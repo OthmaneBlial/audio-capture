@@ -1,0 +1,16 @@
+# Real-Time Voice Transcriber Dependencies
+
+# Groq SDK for Whisper transcription
+groq>=0.4.0
+
+# Audio capture
+PyAudio>=0.2.13
+
+# Voice activity detection
+webrtcvad>=2.0.10
+
+# GTK3 Python bindings (usually pre-installed on Ubuntu)
+PyGObject>=3.42.0
+
+# Environment variable management
+python-dotenv>=1.0.0
