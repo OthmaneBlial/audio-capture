@@ -144,7 +144,7 @@ class MainWindow(Gtk.Window):
             background: transparent;
             color: #e5e7eb;
             font-family: 'Inter', 'SF Pro Display', -apple-system, sans-serif;
-            font-size: 15px;
+            font-size: 17px;
             padding: 16px;
         }
         
@@ -333,11 +333,17 @@ class MainWindow(Gtk.Window):
         # Spacer
         controls.pack_start(Gtk.Box(), True, True, 0)
         
+        # Copy button
+        copy_btn = Gtk.Button(label="Copy")
+        copy_btn.get_style_context().add_class("clear-btn")  # Reusing clear style
+        copy_btn.connect("clicked", self._on_copy_clicked)
+        controls.pack_end(copy_btn, False, False, 0)
+        
         # Clear button
         clear_btn = Gtk.Button(label="Clear")
         clear_btn.get_style_context().add_class("clear-btn")
         clear_btn.connect("clicked", self._on_clear_clicked)
-        controls.pack_end(clear_btn, False, False, 0)
+        controls.pack_end(clear_btn, False, False, 10)  # Added spacing
         
     def _update_button_label(self) -> None:
         """Update the listen button label based on state."""
@@ -357,6 +363,19 @@ class MainWindow(Gtk.Window):
         """Handle sticky mode toggle."""
         self.set_keep_above(state)
         return False
+        
+    def _on_copy_clicked(self, button: Gtk.Button) -> None:
+        """Copy transcription to clipboard."""
+        start, end = self._text_buffer.get_bounds()
+        text = self._text_buffer.get_text(start, end, True)
+        
+        if text and text != "Your transcription will appear here...":
+            clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+            clipboard.set_text(text, -1)
+            self.set_status("Copied to clipboard!", "active")
+            
+            # Reset status after 2 seconds
+            GLib.timeout_add(2000, lambda: self.set_status("Ready to transcribe", "") or False)
         
     def _on_clear_clicked(self, button: Gtk.Button) -> None:
         """Clear the transcription text."""
