@@ -36,7 +36,7 @@ class AudioCapture:
         self._stream: Optional[pyaudio.Stream] = None
         self._is_running = False
         self._lock = threading.Lock()
-        self._audio_queue: queue.Queue[bytes] = queue.Queue()
+        self._audio_queue: queue.Queue[bytes] = queue.Queue(maxsize=100)
         self._on_audio_chunk = on_audio_chunk
         self._capture_thread: Optional[threading.Thread] = None
         
@@ -45,7 +45,8 @@ class AudioCapture:
         with self._lock:
             if self._is_running:
                 return
-                
+            
+            # Initialize PyAudio
             self._pyaudio = pyaudio.PyAudio()
             
             # Find the default input device
@@ -53,56 +54,95 @@ class AudioCapture:
                 default_device = self._pyaudio.get_default_input_device_info()
                 print(f"Using audio device: {default_device['name']}")
             except IOError as e:
+                if self._pyaudio:
+                    self._pyaudio.terminate()
+                    self._pyaudio = None
                 raise RuntimeError(f"No audio input device found: {e}")
             
-            self._stream = self._pyaudio.open(
-                format=self.FORMAT,
-                channels=self.CHANNELS,
-                rate=self.SAMPLE_RATE,
-                input=True,
-                frames_per_buffer=self.FRAMES_PER_BUFFER,
-            )
+            # Open the audio stream
+            try:
+                self._stream = self._pyaudio.open(
+                    format=self.FORMAT,
+                    channels=self.CHANNELS,
+                    rate=self.SAMPLE_RATE,
+                    input=True,
+                    frames_per_buffer=self.FRAMES_PER_BUFFER,
+                    start=False,  # Don't start immediately
+                )
+                self._stream.start_stream()
+            except Exception as e:
+                if self._pyaudio:
+                    self._pyaudio.terminate()
+                    self._pyaudio = None
+                raise RuntimeError(f"Failed to open audio stream: {e}")
             
             self._is_running = True
-            self._capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
+            
+            # Start capture thread
+            self._capture_thread = threading.Thread(
+                target=self._capture_loop,
+                daemon=True,
+                name="AudioCapture"
+            )
             self._capture_thread.start()
     
     def _capture_loop(self) -> None:
         """Continuously read audio data from the stream."""
         while self._is_running:
             try:
-                if self._stream is None:
+                if self._stream is None or not self._stream.is_active():
                     break
                     
                 # Read audio data (blocking)
                 data = self._stream.read(self.FRAMES_PER_BUFFER, exception_on_overflow=False)
                 
-                # Put in queue for consumers
-                self._audio_queue.put(data)
+                # Put in queue for consumers (non-blocking, drop if full)
+                try:
+                    self._audio_queue.put_nowait(data)
+                except queue.Full:
+                    # Drop oldest frame if queue is full
+                    try:
+                        self._audio_queue.get_nowait()
+                        self._audio_queue.put_nowait(data)
+                    except queue.Empty:
+                        pass
                 
                 # Call callback if provided
                 if self._on_audio_chunk:
                     self._on_audio_chunk(data)
                     
-            except Exception as e:
-                if self._is_running:  # Only log if not intentionally stopped
+            except OSError as e:
+                if self._is_running:
                     print(f"Audio capture error: {e}")
+                break
+            except Exception as e:
+                if self._is_running:
+                    print(f"Unexpected audio error: {e}")
                 break
     
     def stop(self) -> None:
         """Stop capturing audio."""
+        self._is_running = False
+        
         with self._lock:
-            self._is_running = False
-            
             if self._stream:
-                self._stream.stop_stream()
-                self._stream.close()
-                self._stream = None
+                try:
+                    if self._stream.is_active():
+                        self._stream.stop_stream()
+                    self._stream.close()
+                except Exception as e:
+                    print(f"Error closing stream: {e}")
+                finally:
+                    self._stream = None
                 
             if self._pyaudio:
-                self._pyaudio.terminate()
-                self._pyaudio = None
-                
+                try:
+                    self._pyaudio.terminate()
+                except Exception as e:
+                    print(f"Error terminating PyAudio: {e}")
+                finally:
+                    self._pyaudio = None
+            
             # Clear the queue
             while not self._audio_queue.empty():
                 try:
