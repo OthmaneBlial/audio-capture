@@ -122,9 +122,24 @@ class AudioCapture:
     
     def stop(self) -> None:
         """Stop capturing audio."""
+        if not self._is_running:
+            return
+            
+        # 1. Signal thread to stop
         self._is_running = False
         
+        # 2. Add sentinel to unblock any get() calls
+        try:
+            self._audio_queue.put(None)
+        except:
+            pass
+            
+        # 3. Wait for thread to finish (with timeout to prevent hanging)
+        if self._capture_thread and self._capture_thread.is_alive():
+            self._capture_thread.join(timeout=1.0)
+        
         with self._lock:
+            # 4. Clean up stream
             if self._stream:
                 try:
                     if self._stream.is_active():
@@ -135,6 +150,7 @@ class AudioCapture:
                 finally:
                     self._stream = None
                 
+            # 5. Clean up PyAudio
             if self._pyaudio:
                 try:
                     self._pyaudio.terminate()
