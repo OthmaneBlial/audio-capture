@@ -1,9 +1,11 @@
-"""Main application window with GTK3 - Modern Dark Theme."""
+"""Main application window with GTK3 - Cohesive Modern Theme."""
 
+import os
+import sys
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GLib, Pango
-from typing import Callable, Optional, Any
+from gi.repository import Gtk, Gdk, GLib
+from typing import Callable, Optional
 import datetime
 from config import ConfigManager
 
@@ -44,37 +46,168 @@ class MainWindow(Gtk.Window):
         self.set_resizable(True)
         self.connect("destroy", Gtk.main_quit)
         
+        # Set Application Icon
+        try:
+            # Determine path to resources
+            if getattr(sys, 'frozen', False):
+                base_path = sys._MEIPASS
+            else:
+                base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
+            icon_path = os.path.join(base_path, "resources", "icon.svg")
+            if os.path.exists(icon_path):
+                self.set_icon_from_file(icon_path)
+            else:
+                print(f"Icon not found at: {icon_path}")
+        except Exception as e:
+            print(f"Failed to set icon: {e}")
+        
     def _apply_styles(self) -> None:
-        """Apply CSS styles."""
+        """Apply CSS styles with a cohesive palette."""
+        # Palette:
+        # BG: #1F1F24 (Deep Gray)
+        # Header: #151518 (Darker)
+        # Accent: #0A84FF (iOS Blue)
+        # Text: #F2F2F7 (Whiteish)
+        # Subtext: #8E8E93 (Gray)
+        
         css = b"""
-        window { background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%); }
-        .header-bar { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); padding: 10px 16px; }
-        .content-box { background: transparent; padding: 20px; }
+        /* Global Reset */
+        window { 
+            background-color: #1F1F24; 
+            color: #F2F2F7;
+        }
         
+        /* Header */
+        .header-bar { 
+            background-color: #151518;
+            border-bottom: 1px solid #2C2C2E;
+            padding: 12px 16px; 
+        }
+        
+        /* Content Area */
+        .content-box { 
+            padding: 24px 32px; 
+        }
+        
+        /* Listen Button (Hero) */
         .listen-btn {
-            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
-            color: white; font-weight: bold; padding: 12px 32px; border-radius: 50px; border: none;
-            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4);
+            background-image: linear-gradient(to bottom, #0A84FF, #0077ED);
+            color: white; 
+            font-weight: bold; 
+            font-size: 16px;
+            padding: 14px 40px; 
+            border-radius: 12px; 
+            border: 1px solid #0062C4;
+            box-shadow: 0 2px 8px rgba(10, 132, 255, 0.3);
+            transition: all 0.2s ease;
         }
-        .listen-btn:hover { background: linear-gradient(135deg, #00e5ff 0%, #4a8be5 100%); }
+        .listen-btn:hover { 
+            background-image: linear-gradient(to bottom, #2491FF, #0A84FF);
+            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.4);
+        }
+        .listen-btn:active {
+            background-image: none;
+            background-color: #0062C4;
+        }
+        
         .listen-btn.recording {
-            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.4);
+            background-image: linear-gradient(to bottom, #FF453A, #FF3B30);
+            border: 1px solid #D70015;
+            box-shadow: 0 0 15px rgba(255, 69, 58, 0.5);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
         
-        .status-box { background: rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 8px 16px; margin: 12px 0; }
-        .status-text { color: #9ca3af; font-size: 13px; }
-        .status-text.active { color: #10b981; }
-        .status-text.error { color: #ef4444; }
+        /* Status Banner */
+        .status-box { 
+            background-color: #2C2C2E; 
+            border-radius: 8px; 
+            padding: 8px 16px; 
+            margin-top: 20px;
+            margin-bottom: 0;
+        }
+        .status-text { 
+            color: #AEAEB2; 
+            font-size: 13px; 
+            font-weight: 500;
+        }
+        .status-text.active { color: #30D158; } /* Green */
+        .status-text.error { color: #FF453A; } /* Red */
         
-        .transcript-frame { background: rgba(255, 255, 255, 0.03); border-radius: 12px; }
-        .transcript-view { background: transparent; color: #e5e7eb; font-family: sans-serif; padding: 16px; }
+        /* Transcript Area */
+        .transcript-frame { 
+            background-color: #252529; 
+            border: 1px solid #3A3A3C;
+            border-radius: 12px; 
+            margin-top: 16px;
+        }
+        .transcript-view { 
+            background-color: transparent; 
+            color: #F2F2F7; 
+            font-family: 'Inter', sans-serif;
+            caret-color: #0A84FF;
+            padding: 16px;
+        }
         
-        .icon-btn { background: transparent; border: none; color: white; padding: 8px; border-radius: 50%; }
-        .icon-btn:hover { background: rgba(255,255,255,0.2); }
+        /* Header Buttons */
+        .icon-btn { 
+            background-image: none;
+            background-color: transparent; 
+            border: none; 
+            color: #0A84FF; 
+            padding: 8px; 
+            border-radius: 8px; 
+            box-shadow: none;
+            min-width: 32px;
+            min-height: 32px;
+        }
+        .icon-btn:hover { 
+            background-color: #2C2C2E; 
+        }
         
-        .settings-popover { background: #1a1a2e; color: white; padding: 16px; border: 1px solid #333; }
-        .settings-label { color: #bccbd6; font-weight: bold; margin-bottom: 4px; }
+        /* Secondary Action Buttons (Clear, Copy) */
+        .secondary-btn {
+            background-image: none;
+            background-color: #3A3A3C;
+            color: white;
+            border: 1px solid #48484A;
+            font-size: 13px;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .secondary-btn:hover {
+            background-color: #48484A;
+            border-color: #5A5A5C;
+        }
+        
+        /* Settings Popover */
+        .settings-popover { 
+            background-color: #2C2C2E; 
+            color: #F2F2F7; 
+            border: 1px solid #3A3A3C; 
+            padding: 16px;
+            border-radius: 12px;
+        }
+        .settings-label { 
+            color: #AEAEB2; 
+            font-weight: 600; 
+            font-size: 13px;
+            margin-bottom: 4px; 
+        }
+        
+        /* Inputs */
+        entry, combobox {
+            background-color: #1C1C1E;
+            border: 1px solid #3A3A3C;
+            color: white;
+            border-radius: 6px;
+            padding: 4px;
+        }
+        
+        switch slider {
+            background: #EBEBF5;
+        }
         """
         style_provider = Gtk.CssProvider()
         style_provider.load_from_data(css)
@@ -93,13 +226,17 @@ class MainWindow(Gtk.Window):
         main_box.pack_start(header, False, False, 0)
         
         # Title
-        title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        title_box.set_valign(Gtk.Align.CENTER)
         header.pack_start(title_box, True, True, 0)
-        title_box.pack_start(Gtk.Label(label="🎙"), False, False, 0)
-        title_box.pack_start(Gtk.Label(label="Voice Transcriber Pro"), False, False, 0)
+        
+        # We can use the icon from file for navbar, but here keep text clean
+        title_lbl = Gtk.Label()
+        title_lbl.set_markup("<span font_weight='800' size='14000' color='white'>Transcriber</span>")
+        title_box.pack_start(title_lbl, False, False, 0)
         
         # Header Buttons (Save, Settings)
-        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         header.pack_end(btn_box, False, False, 0)
         
         save_btn = Gtk.Button(label="💾")
@@ -115,27 +252,27 @@ class MainWindow(Gtk.Window):
         btn_box.pack_start(settings_btn, False, False, 0)
         
         # === Content ===
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         content.get_style_context().add_class("content-box")
         main_box.pack_start(content, True, True, 0)
         
-        # Listen Button
-        btn_wrap = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        # Listen Button Flow
+        btn_wrap = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         btn_wrap.set_halign(Gtk.Align.CENTER)
         content.pack_start(btn_wrap, False, False, 0)
         
-        self._listen_button = Gtk.Button(label="▶ Start Listening")
+        self._listen_button = Gtk.Button(label="▶ Start Transcription")
         self._listen_button.get_style_context().add_class("listen-btn")
         self._listen_button.connect("clicked", self._on_listen_clicked)
         btn_wrap.pack_start(self._listen_button, False, False, 0)
         
-        # Status
+        # Status (Compact)
         status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         status_box.get_style_context().add_class("status-box")
         status_box.set_halign(Gtk.Align.CENTER)
         content.pack_start(status_box, False, False, 0)
         
-        self._status_label = Gtk.Label(label="Ready to transcribe")
+        self._status_label = Gtk.Label(label="Initialised and ready")
         self._status_label.get_style_context().add_class("status-text")
         status_box.pack_start(self._status_label, False, False, 0)
         
@@ -152,38 +289,41 @@ class MainWindow(Gtk.Window):
         self._text_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         self._text_view.set_editable(False)
         self._text_view.set_cursor_visible(False)
-        self._text_view.set_left_margin(16)
-        self._text_view.set_right_margin(16)
-        self._text_view.set_top_margin(16)
-        self._text_view.set_bottom_margin(16)
+        self._text_view.set_left_margin(8)
+        self._text_view.set_right_margin(8)
+        self._text_view.set_top_margin(8)
+        self._text_view.set_bottom_margin(8)
         self._text_buffer = self._text_view.get_buffer()
-        self._text_buffer.set_text("Your transcription will appear here...")
+        self._text_buffer.set_text("")
         scrolled.add(self._text_view)
         
         # Bottom Controls
         controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        main_box.pack_start(controls, False, False, 12)
-        controls.set_margin_start(20)
-        controls.set_margin_end(20)
-        controls.set_margin_bottom(12)
+        controls.set_margin_top(16)
+        content.pack_start(controls, False, False, 0)
         
         # Sticky
         sticky_box = Gtk.Box(spacing=8)
-        controls.pack_start(sticky_box, False, False, 0)
-        sticky_box.pack_start(Gtk.Label(label="📌 Stay on top"), False, False, 0)
+        lbl = Gtk.Label(label="Top")
+        lbl.get_style_context().add_class("status-text") # reuse style
+        sticky_box.pack_start(lbl, False, False, 0)
         self._sticky_switch = Gtk.Switch()
         self._sticky_switch.set_active(self._config.get("sticky_mode"))
         self._sticky_switch.connect("state-set", self._on_sticky_toggled)
         sticky_box.pack_start(self._sticky_switch, False, False, 0)
+        controls.pack_start(sticky_box, False, False, 0)
         
-        # Copy & Clear
-        controls.pack_start(Gtk.Box(), True, True, 0) # Spacer
+        # Spacer
+        controls.pack_start(Gtk.Box(), True, True, 0) 
         
+        # Action Buttons
         copy_btn = Gtk.Button(label="Copy")
+        copy_btn.get_style_context().add_class("secondary-btn")
         copy_btn.connect("clicked", self._on_copy_clicked)
         controls.pack_end(copy_btn, False, False, 0)
         
         clear_btn = Gtk.Button(label="Clear")
+        clear_btn.get_style_context().add_class("secondary-btn")
         clear_btn.connect("clicked", self._on_clear_clicked)
         controls.pack_end(clear_btn, False, False, 8)
 
@@ -195,25 +335,33 @@ class MainWindow(Gtk.Window):
         self._popover = Gtk.Popover()
         self._popover.set_relative_to(parent_btn)
         self._popover.set_position(Gtk.PositionType.BOTTOM)
+        self._popover.get_style_context().add_class("settings-popover")
         
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        box.set_margin_top(12)
-        box.set_margin_bottom(12)
-        box.set_margin_start(12)
-        box.set_margin_end(12)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        box.set_margin_top(8)
+        box.set_margin_bottom(8)
+        box.set_margin_start(8)
+        box.set_margin_end(8)
         self._popover.add(box)
         
+        # Header
+        box.pack_start(Gtk.Label(label="Preferences", xalign=0), False, False, 0)
+        
         # API Key
-        box.pack_start(Gtk.Label(label="Groq API Key:", xalign=0), False, False, 0)
+        row_api = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        row_api.pack_start(Gtk.Label(label="Groq API Key", xalign=0, name="settings-label"), False, False, 0)
         self._api_entry = Gtk.Entry()
         self._api_entry.set_text(self._config.get("api_key") or "")
-        self._api_entry.set_visibility(False) # Hide characters
+        self._api_entry.set_visibility(False)
         self._api_entry.set_width_chars(25)
+        self._api_entry.set_placeholder_text("gsk_...")
         self._api_entry.connect("changed", self._on_config_changed)
-        box.pack_start(self._api_entry, False, False, 0)
+        row_api.pack_start(self._api_entry, False, False, 0)
+        box.pack_start(row_api, False, False, 0)
         
         # Language
-        box.pack_start(Gtk.Label(label="Language:", xalign=0), False, False, 0)
+        row_lang = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        row_lang.pack_start(Gtk.Label(label="Language", xalign=0, name="settings-label"), False, False, 0)
         self._lang_combo = Gtk.ComboBoxText()
         languages = [("auto", "Auto Detect"), ("en", "English"), ("fr", "French"), 
                      ("es", "Spanish"), ("de", "German"), ("it", "Italian"), 
@@ -222,34 +370,35 @@ class MainWindow(Gtk.Window):
             self._lang_combo.append(code, name)
         self._lang_combo.set_active_id(self._config.get("language"))
         self._lang_combo.connect("changed", self._on_config_changed)
-        box.pack_start(self._lang_combo, False, False, 0)
+        row_lang.pack_start(self._lang_combo, False, False, 0)
+        box.pack_start(row_lang, False, False, 0)
         
         # Translation Toggle
-        trans_box = Gtk.Box(spacing=8)
-        trans_box.pack_start(Gtk.Label(label="Translate to English"), False, False, 0)
+        row_trans = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        row_trans.pack_start(Gtk.Label(label="Translate to English", xalign=0), True, True, 0)
         self._trans_switch = Gtk.Switch()
         self._trans_switch.set_active(self._config.get("translate_to_english"))
         self._trans_switch.connect("state-set", lambda s, st: self._on_config_changed(s) or False)
-        trans_box.pack_end(self._trans_switch, False, False, 0)
-        box.pack_start(trans_box, False, False, 0)
+        row_trans.pack_start(self._trans_switch, False, False, 0)
+        box.pack_start(row_trans, False, False, 0)
         
         # Font Size
-        fs_box = Gtk.Box(spacing=8)
-        fs_box.pack_start(Gtk.Label(label="Font Size:"), False, False, 0)
+        row_font = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        row_font.pack_start(Gtk.Label(label="Font Size", xalign=0), True, True, 0)
         self._font_scale = Gtk.SpinButton.new_with_range(12, 32, 1)
         self._font_scale.set_value(self._config.get("font_size"))
         self._font_scale.connect("value-changed", self._on_appearance_changed)
-        fs_box.pack_end(self._font_scale, False, False, 0)
-        box.pack_start(fs_box, False, False, 0)
+        row_font.pack_start(self._font_scale, False, False, 0)
+        box.pack_start(row_font, False, False, 0)
         
         # Opacity
-        op_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        op_box.pack_start(Gtk.Label(label="Window Opacity:", xalign=0), False, False, 0)
+        row_op = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        row_op.pack_start(Gtk.Label(label="Opacity", xalign=0), False, False, 0)
         self._opacity_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0.5, 1.0, 0.05)
         self._opacity_scale.set_value(self._config.get("opacity"))
         self._opacity_scale.connect("value-changed", self._on_appearance_changed)
-        op_box.pack_start(self._opacity_scale, False, False, 0)
-        box.pack_start(op_box, False, False, 0)
+        row_op.pack_start(self._opacity_scale, False, False, 0)
+        box.pack_start(row_op, False, False, 0)
         
         box.show_all()
 
@@ -315,7 +464,7 @@ class MainWindow(Gtk.Window):
             try:
                 with open(filename, 'w') as f:
                     f.write(text)
-                self.set_status(f"Saved to {filename}", "active")
+                self.set_status(f"Saved to {os.path.basename(filename)}", "active")
             except Exception as e:
                 self.show_error(str(e))
         dialog.destroy()
@@ -328,18 +477,20 @@ class MainWindow(Gtk.Window):
             
     def start_listening(self):
         self._is_listening = True
-        self._listen_button.set_label("⏹ Stop Listening")
+        self._listen_button.set_label("⏹ Stop")
         self._listen_button.get_style_context().add_class("recording")
         self.set_status("Listening...", "active")
         
         start, end = self._text_buffer.get_bounds()
-        if self._text_buffer.get_text(start, end, True) == "Your transcription will appear here...":
+        text = self._text_buffer.get_text(start, end, True)
+        if text.strip() == "Your transcription will appear here...":
             self._text_buffer.set_text("")
+            
         if self._on_start: self._on_start()
 
     def stop_listening(self):
         self._is_listening = False
-        self._listen_button.set_label("▶ Start Listening")
+        self._listen_button.set_label("▶ Start Transcription")
         self._listen_button.get_style_context().remove_class("recording")
         self.set_status("Ready", "")
         if self._on_stop: self._on_stop()
@@ -355,9 +506,11 @@ class MainWindow(Gtk.Window):
         clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
         clipboard.set_text(text, -1)
         self.set_status("Copied!", "active")
+        GLib.timeout_add(1500, lambda: self.set_status("Ready") or False)
 
     def _on_clear_clicked(self, btn):
         self._text_buffer.set_text("")
+        self.set_status("Cleared")
 
     def set_status(self, msg, cls=""):
         GLib.idle_add(lambda: self._do_status(msg, cls))
