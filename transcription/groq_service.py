@@ -3,6 +3,8 @@
 import io
 import wave
 import threading
+import time
+import random
 from typing import Optional, Callable
 from groq import Groq
 
@@ -16,6 +18,7 @@ class GroqTranscriptionService:
     - Automatic WAV encoding from raw PCM
     - Thread-safe API calls
     - Error handling with callbacks
+    - Dynamic configuration (language, task)
     """
     
     MODEL = "whisper-large-v3-turbo"
@@ -32,17 +35,7 @@ class GroqTranscriptionService:
     ):
         """
         Initialize the transcription service.
-        
-        Args:
-            api_key: Groq API key (uses GROQ_API_KEY env var if not provided)
-            sample_rate: Audio sample rate
-            channels: Number of audio channels
-            sample_width: Bytes per sample (2 for 16-bit)
-            language: Optional language code (e.g., "en", "es", "fr")
-            on_transcription: Callback for successful transcriptions
-            on_error: Callback for errors
         """
-        self._client = Groq(api_key=api_key)
         self._sample_rate = sample_rate
         self._channels = channels
         self._sample_width = sample_width
@@ -51,28 +44,78 @@ class GroqTranscriptionService:
         self._on_error = on_error
         self._lock = threading.Lock()
         
+        self._task = "transcribe"
+        self._is_mock = False
+        self._client = None
+        
+        # Initialize client
+        self.update_config(api_key=api_key, language=language)
+        
+    def update_config(self, api_key: Optional[str] = None, language: Optional[str] = None, translate: bool = False):
+        """Update configuration dynamically."""
+        with self._lock:
+            if api_key is not None:
+                if not api_key or "your_api_key" in api_key or len(api_key) < 10:
+                    self._is_mock = True
+                    self._client = None
+                else:
+                    self._is_mock = False
+                    self._client = Groq(api_key=api_key)
+            
+            if language is not None:
+                self._language = language if language != "auto" else None
+                
+            self._task = "translate" if translate else "transcribe"
+
     def transcribe(self, audio_data: bytes) -> Optional[str]:
         """
         Transcribe raw PCM audio data.
-        
-        Args:
-            audio_data: Raw PCM audio bytes
-            
-        Returns:
-            Transcribed text or None on error
         """
         try:
+            # Mock mode handling
+            if self._is_mock:
+                time.sleep(0.5)  # Simulate network latency
+                
+                phrases = [
+                    "This is a demo transcription.",
+                    "Settings updated successfully!",
+                    "Translation simulation active.",
+                    "Save to file feature is cool.",
+                    "Voice activity detection is working!",
+                    "Testing dynamic configuration."
+                ]
+                text = random.choice(phrases)
+                
+                if self._task == "translate":
+                    text = "[Translated] " + text
+                
+                if self._on_transcription:
+                    self._on_transcription(text)
+                return text
+
             # Convert raw PCM to WAV format
             wav_buffer = self._pcm_to_wav(audio_data)
             
             # Call Groq API
             with self._lock:
-                transcription = self._client.audio.transcriptions.create(
-                    file=("audio.wav", wav_buffer, "audio/wav"),
-                    model=self.MODEL,
-                    language=self._language,
-                    response_format="text",
-                )
+                if not self._client:
+                    raise RuntimeError("Groq client not initialized")
+
+                if self._task == "translate":
+                    # Translation endpoint
+                    transcription = self._client.audio.translations.create(
+                        file=("audio.wav", wav_buffer, "audio/wav"),
+                        model=self.MODEL,
+                        response_format="text",
+                    )
+                else:
+                    # Transcription endpoint
+                    transcription = self._client.audio.transcriptions.create(
+                        file=("audio.wav", wav_buffer, "audio/wav"),
+                        model=self.MODEL,
+                        language=self._language,
+                        response_format="text",
+                    )
             
             # Get the transcribed text
             text = transcription.strip() if isinstance(transcription, str) else str(transcription).strip()
@@ -88,15 +131,7 @@ class GroqTranscriptionService:
             return None
     
     def transcribe_async(self, audio_data: bytes) -> threading.Thread:
-        """
-        Transcribe audio data asynchronously.
-        
-        Args:
-            audio_data: Raw PCM audio bytes
-            
-        Returns:
-            Thread handle
-        """
+        """Transcribe audio data asynchronously."""
         thread = threading.Thread(
             target=self.transcribe,
             args=(audio_data,),
@@ -106,15 +141,7 @@ class GroqTranscriptionService:
         return thread
     
     def _pcm_to_wav(self, pcm_data: bytes) -> io.BytesIO:
-        """
-        Convert raw PCM data to WAV format.
-        
-        Args:
-            pcm_data: Raw PCM audio bytes
-            
-        Returns:
-            BytesIO buffer containing WAV data
-        """
+        """Convert raw PCM data to WAV format."""
         buffer = io.BytesIO()
         
         with wave.open(buffer, 'wb') as wav_file:
@@ -127,24 +154,23 @@ class GroqTranscriptionService:
         return buffer
     
     def test_connection(self) -> bool:
-        """
-        Test the API connection with a minimal request.
-        
-        Returns:
-            True if connection is successful
-        """
+        """Test the API connection."""
+        if self._is_mock:
+            return True
+            
         try:
-            # Create a minimal silent audio sample (0.1 seconds)
             silent_samples = int(self._sample_rate * 0.1) * self._channels
             silent_data = b'\x00' * (silent_samples * self._sample_width)
             wav_buffer = self._pcm_to_wav(silent_data)
             
-            # Try to transcribe (will return empty or minimal text)
-            self._client.audio.transcriptions.create(
-                file=("test.wav", wav_buffer, "audio/wav"),
-                model=self.MODEL,
-                response_format="text",
-            )
+            with self._lock:
+                if not self._client:
+                    return False
+                self._client.audio.transcriptions.create(
+                    file=("test.wav", wav_buffer, "audio/wav"),
+                    model=self.MODEL,
+                    response_format="text",
+                )
             return True
             
         except Exception as e:

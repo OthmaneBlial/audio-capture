@@ -31,6 +31,7 @@ from gi.repository import Gtk, GLib
 from audio import AudioCapture, VoiceActivityDetector
 from transcription import GroqTranscriptionService
 from ui import MainWindow
+from config import ConfigManager
 
 
 class VoiceTranscriberApp:
@@ -48,33 +49,48 @@ class VoiceTranscriberApp:
         self._audio: Optional[AudioCapture] = None
         self._vad: Optional[VoiceActivityDetector] = None
         
-        # Check for API key
-        api_key = os.environ.get("GROQ_API_KEY")
+        # Initialize configuration
+        self._config = ConfigManager()
+        
+        # Get settings
+        api_key = self._config.get("api_key")
+        language = self._config.get("language")
+        translate = self._config.get("translate_to_english")
+        
+        # Warn if no key (but don't exit, UI will handle it)
         if not api_key or "your_api_key" in api_key:
-            print("=" * 50)
-            print("ERROR: GROQ_API_KEY not configured!")
-            print("")
-            print("Please edit .env and add your Groq API key:")
-            print("  nano .env")
-            print("")
-            print("Get a free API key at: https://console.groq.com")
-            print("=" * 50)
-            # We don't exit here to allow testing mock mode if needed
-            # sys.exit(1)
+            print("Notice: No API key found in config or env. Running in mock mode.")
         
         # Initialize transcription service
         self._transcriber = GroqTranscriptionService(
             api_key=api_key,
             sample_rate=16000,
+            language=language,
             on_transcription=self._on_transcription,
             on_error=self._on_transcription_error,
         )
+        self._transcriber.update_config(translate=translate)
         
         # Initialize UI (must be done before GTK main loop)
         self._window = MainWindow(
+            config=self._config,
             on_start=self._start_listening,
             on_stop=self._stop_listening,
+            on_settings_change=self._on_settings_change,
         )
+        
+    def _on_settings_change(self) -> None:
+        """Handle settings changes from UI."""
+        api_key = self._config.get("api_key")
+        language = self._config.get("language")
+        translate = self._config.get("translate_to_english")
+        
+        self._transcriber.update_config(
+            api_key=api_key,
+            language=language,
+            translate=translate
+        )
+        print("Configuration updated")
         
     def _start_listening(self) -> None:
         """Start the audio capture and processing."""
