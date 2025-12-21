@@ -239,6 +239,10 @@ class VoiceTranscriberApp:
 
 def main():
     """Application entry point."""
+    # Set up application ID for icon association
+    GLib.set_prgname("voice-transcriber")
+    GLib.set_application_name("Voice Transcriber")
+    
     # Suppress ALSA warnings by redirecting stderr
     # This is a bit of a hack but cleans up the console output
     try:

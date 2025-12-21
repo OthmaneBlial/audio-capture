@@ -28,6 +28,7 @@ Exec=$EXEC_PATH
 Icon=$ICON_PATH
 Terminal=false
 Categories=Utility;Audio;
+StartupWMClass=voice-transcriber
 EOF
 
 # Make executable (optional for .desktop, but good practice)

@@ -44,6 +44,7 @@ class MainWindow(Gtk.Window):
         self.set_border_width(0)
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_resizable(True)
+        self.set_wmclass("voice-transcriber", "Voice Transcriber")
         self.connect("destroy", Gtk.main_quit)
         
         # Set Application Icon
