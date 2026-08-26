@@ -60,6 +60,8 @@ flatpak run --user --command=sh "$app_id" -c '
 '
 
 if command -v xvfb-run >/dev/null 2>&1; then
+  xvfb-run -a flatpak run --user --command=python3 "$app_id" \
+    /app/share/voice-transcriber/tests/gtk_accessibility_smoke.py
   set +e
   timeout 5s xvfb-run -a flatpak run --user "$app_id" >/tmp/voice-transcriber-flatpak-ui.log 2>&1
   ui_exit=$?

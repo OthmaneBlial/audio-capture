@@ -39,7 +39,7 @@ modules:
       - install -Dm644 packaging/io.github.othmaneblial.audio_capture.desktop /app/share/applications/io.github.othmaneblial.audio_capture.desktop
       - install -Dm644 packaging/io.github.othmaneblial.audio_capture.metainfo.xml /app/share/metainfo/io.github.othmaneblial.audio_capture.metainfo.xml
       - install -Dm644 resources/icon.svg /app/share/icons/hicolor/scalable/apps/io.github.othmaneblial.audio_capture.svg
+      - install -Dm644 tests/gtk_accessibility_smoke.py /app/share/voice-transcriber/tests/gtk_accessibility_smoke.py
     sources:
       - type: dir
         path: .
-
