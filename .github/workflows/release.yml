@@ -40,10 +40,17 @@ jobs:
           cache-key: release-flatpak-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('io.github.othmaneblial.audio_capture.yml', 'packaging/python3-dependencies.json') }}
       - name: Prove a no-download rebuild and lint the exported repository
         run: |
+          source_dir="$RUNNER_TEMP/voice-transcriber-source"
+          mkdir -p "$source_dir"
+          git archive --format=tar HEAD | tar -xf - -C "$source_dir"
           flatpak-builder --force-clean --disable-download --disable-rofiles-fuse \
-            --repo=offline-repo offline-build io.github.othmaneblial.audio_capture.yml
+            --state-dir="$GITHUB_WORKSPACE/.flatpak-builder" \
+            --repo="$RUNNER_TEMP/offline-repo" \
+            "$RUNNER_TEMP/offline-build" \
+            "$source_dir/io.github.othmaneblial.audio_capture.yml"
           flatpak-builder-lint --exceptions \
-            --user-exceptions packaging/flatpak-lint-exceptions.json repo offline-repo
+            --user-exceptions packaging/flatpak-lint-exceptions.json \
+            repo "$RUNNER_TEMP/offline-repo"
       - name: Smoke test installed bundle
         run: packaging/smoke_test_flatpak.sh voice-transcriber.flatpak
       - name: Generate checksum, SBOM, test report, and notes
