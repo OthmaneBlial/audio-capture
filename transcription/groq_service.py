@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import itertools
 import logging
 import threading
 import wave
@@ -38,6 +39,7 @@ class GroqTranscriptionService:
         language: Optional[str] = None,
         on_transcription: Optional[Callable[[str], None]] = None,
         on_error: Optional[Callable[[Exception], None]] = None,
+        on_request_state: Optional[Callable[[str, str, Optional[str]], None]] = None,
         *,
         max_workers: int = 2,
         max_pending_requests: int = 4,
@@ -57,6 +59,7 @@ class GroqTranscriptionService:
         self._language: Optional[str] = None
         self._on_transcription = on_transcription
         self._on_error = on_error
+        self._on_request_state = on_request_state
         self._transport_factory = transport_factory
         self._request_timeout_seconds = request_timeout_seconds
         self._lock = threading.RLock()
@@ -65,6 +68,7 @@ class GroqTranscriptionService:
         self._executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="Transcription")
         self._pending = threading.BoundedSemaphore(max_pending_requests)
         self._closed = False
+        self._request_ids = itertools.count(1)
         self.update_config(api_key=api_key, language=language)
 
     @property
@@ -124,19 +128,41 @@ class GroqTranscriptionService:
 
     def transcribe_async(self, audio_data: bytes) -> Optional[Future[Optional[str]]]:
         """Queue a request, dropping only excess work with a clear user-facing error."""
+        request_id = f"segment-{next(self._request_ids)}"
         with self._lock:
             if self._closed:
                 self._report_error(TranscriptionError("The transcription service is shutting down."))
+                self._notify_request(request_id, "error", "Service is shutting down")
                 return None
         if not self._pending.acquire(blocking=False):
             self._report_error(
                 TranscriptionError("Transcription queue is full. Please wait a moment before continuing.")
             )
+            self._notify_request(request_id, "error", "Queue is full")
             return None
 
+        self._notify_request(request_id, "pending", "Waiting for Groq")
         future = self._executor.submit(self.transcribe, audio_data)
-        future.add_done_callback(lambda _future: self._pending.release())
+        future.add_done_callback(lambda completed: self._finish_request(request_id, completed))
         return future
+
+    def _finish_request(self, request_id: str, future: Future[Optional[str]]) -> None:
+        self._pending.release()
+        try:
+            text = future.result()
+        except Exception:
+            text = None
+        if text:
+            self._notify_request(request_id, "complete", "Added to transcript")
+        else:
+            self._notify_request(request_id, "error", "Transcription failed")
+
+    def _notify_request(self, request_id: str, state: str, detail: str) -> None:
+        if self._on_request_state:
+            try:
+                self._on_request_state(request_id, state, detail)
+            except Exception:
+                LOGGER.debug("Request-state callback failed", exc_info=True)
 
     def close(self, wait: bool = False) -> None:
         """Stop accepting work and release worker resources."""

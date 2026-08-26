@@ -20,7 +20,7 @@ except ImportError:
 
 from config import ConfigManager
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 LOGGER = logging.getLogger(__name__)
 Gtk: Any = None
 GLib: Any = None
@@ -47,6 +47,7 @@ class VoiceTranscriberApp:
             language=self._config.get("language"),
             on_transcription=self._on_transcription,
             on_error=self._on_transcription_error,
+            on_request_state=self._on_request_state,
         )
         self._transcriber.update_config(translate=self._config.get("translate_to_english"))
         self._window = MainWindow(
@@ -202,8 +203,13 @@ class VoiceTranscriberApp:
     def _on_transcription(self, text: str) -> None:
         if text.strip():
             self._window.append_text(text)
+            if self._config.get("copy_on_final"):
+                self._window.copy_transcript_after_final()
         if self._running.is_set():
             self._window.set_status("Listening…", "active")
+
+    def _on_request_state(self, request_id: str, state: str, detail: Optional[str]) -> None:
+        self._window.update_segment_state(request_id, state, detail)
 
     def _on_transcription_error(self, error: Exception) -> None:
         # Service errors are normalized and never contain a credential.

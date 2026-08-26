@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "voice-transcriber"
-version = "0.4.0"
+version = "0.5.0"
 description = "A focused GTK desktop app for live Groq Whisper transcription from your microphone."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -37,7 +37,7 @@ Repository = "https://github.com/OthmaneBlial/audio-capture"
 Issues = "https://github.com/OthmaneBlial/audio-capture/issues"
 
 [tool.setuptools]
-py-modules = ["main", "config", "diagnostics", "onboarding"]
+py-modules = ["main", "config", "diagnostics", "onboarding", "exports", "history", "platform_capabilities", "transcript"]
 
 [tool.setuptools.packages.find]
 include = ["audio*", "transcription*", "ui*", "resources*"]

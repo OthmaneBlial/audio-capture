@@ -4,6 +4,21 @@ All notable changes to Voice Transcriber are documented here.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-26
+
+### Added
+
+- An editable transcript desk with bounded undo/redo, select-all, clear
+  confirmation, and recent per-segment pending/complete/error states.
+- Focused push-to-talk, capability-gated X11 tray window toggle, and an honest
+  explanation where global shortcuts or tray integration are unavailable.
+- Optional copy-on-final and destination-confirmed plain text, Markdown, and
+  timestamped exports written with owner-only permissions.
+- Explicit opt-in local text history with configurable expiry, storage-path
+  disclosure, retrieval, per-entry deletion, and clear-all controls.
+- A real-participant usability protocol that does not confuse automated
+  heuristic review with five observed sessions.
+
 ## [0.4.0] - 2026-08-26
 
 ### Added

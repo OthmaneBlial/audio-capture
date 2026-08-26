@@ -42,6 +42,7 @@ Voice Transcriber is privacy-explicit, not an offline transcription engine.
 | Completed speech segment | Encoded in memory and sent to Groq Whisper |
 | Input signal meter | Calculated locally and never persisted |
 | Transcript | Remains in the GTK buffer until you copy, clear, or export it |
+| Optional history | Disabled by default; when enabled, stores transcript text only with visible retention and clear-all controls |
 | Export | Writes a local UTF-8 text file only after you choose a destination |
 | Settings and API key | Saved only when you choose to save them, in an owner-only local config where supported |
 | Analytics and crash reporting | None |
@@ -106,7 +107,14 @@ selected source is receiving audio without saving a recording. Use **Copy**
   transcription request.
 - Groq Whisper transcription and optional translation into English.
 - A keyboard-friendly recording desk with session state, copy, export,
-  adjustable text, opacity, and always-on-top mode.
+  direct editing, undo/redo, focused push-to-talk, adjustable text, opacity,
+  and always-on-top mode.
+- Visible pending/complete/error state per recent speech segment without
+  retaining segment audio or text in the state tracker.
+- Plain text, Markdown, and timestamped owner-only exports with a destination
+  confirmation; optional copy-on-final without simulated paste.
+- Explicit opt-in local text history with 1–365 day retention, storage-path
+  disclosure, per-entry deletion, and clear-all. It remains off by default.
 - Clear failures for missing keys, connectivity, rate limits, microphone
   access, malformed audio, and a full request queue.
 - Atomic settings writes and owner-only configuration permissions where the
@@ -157,6 +165,9 @@ is available and `2` when one is missing.
 | Translate to English | Settings | Uses the provider translation endpoint |
 | Microphone input | Settings or `--device INDEX` | Saved selection is reused; CLI option overrides it for one launch |
 | Keep on top | Main window | Keeps the desk visible beside other work |
+| Capture control | Settings | Toggle or focused hold-to-talk; no universal/global shortcut claim |
+| Copy after final | Settings | Disabled by default; copies the full editable desk after a final segment |
+| Local history | Settings | Disabled by default; text only, visible location and retention |
 
 ## Stable diagnostic commands
 
@@ -190,6 +201,9 @@ two-worker transcription pool accepts only a small number of pending segments.
 See [the architecture note](docs/ARCHITECTURE.md) for lifecycle and failure
 behaviour.
 
+Read [Daily dictation controls](docs/DAILY-DICTATION.md) for editing, desktop
+capability limits, export formats, and the opt-in history/deletion contract.
+
 ## Troubleshooting
 
 | What you see | What to do |
@@ -216,8 +230,9 @@ python -m compileall -q audio transcription ui config.py main.py
 
 The unit suite fakes external native/API boundaries. It exercises configuration
 precedence and permissions, microphone discovery and selection, local meter
-normalisation, VAD segmentation, error normalisation, WAV conversion, and the
-request bound without requiring a microphone or a Groq account.
+normalisation, VAD segmentation, error normalisation, WAV conversion, the
+request bound, edit snapshots, export modes, history retention/deletion, and
+desktop capability gating without requiring a microphone or a Groq account.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [Code of Conduct](CODE_OF_CONDUCT.md) before opening a pull request.

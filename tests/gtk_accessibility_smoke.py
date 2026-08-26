@@ -90,6 +90,72 @@ def main() -> int:
                         f"unexpected setup controls: entries={len(entries)} checks={len(checks)} combos={len(combos)}"
                     )
                 dialog.response(Gtk.ResponseType.CANCEL)
+            GLib.timeout_add(80, inspect_main_desk)
+            return False
+
+        def inspect_main_desk() -> bool:
+            widgets = descendants(window)
+            text_views = [widget for widget in widgets if isinstance(widget, Gtk.TextView)]
+            if len(text_views) != 1 or not text_views[0].get_editable():
+                failures.append("main transcript must be one editable text view")
+            button_labels = {
+                widget.get_label()
+                for widget in widgets
+                if isinstance(widget, Gtk.Button) and widget.get_visible()
+            }
+            for label in (
+                "History",
+                "Export",
+                "Settings",
+                "Start listening",
+                "Undo",
+                "Redo",
+                "Clear",
+                "Copy",
+            ):
+                if label not in button_labels:
+                    failures.append(f"missing daily-dictation button: {label}")
+            window.update_segment_state("gtk-smoke", "pending", "Waiting for provider")
+            GLib.timeout_add(80, inspect_segment_state)
+            return False
+
+        def inspect_segment_state() -> bool:
+            visible_text = " ".join(
+                widget.get_text()
+                for widget in descendants(window)
+                if isinstance(widget, Gtk.Label) and widget.get_visible()
+            )
+            if "Segment 1 · Waiting for provider" not in visible_text:
+                failures.append("pending segment state is not visible")
+            settings_buttons = [
+                widget
+                for widget in descendants(window)
+                if isinstance(widget, Gtk.Button) and widget.get_label() == "Settings"
+            ]
+            if settings_buttons:
+                settings_buttons[0].clicked()
+                GLib.timeout_add(100, inspect_settings)
+            else:
+                failures.append("could not open Settings for daily-dictation smoke")
+                GLib.timeout_add(20, stop)
+            return False
+
+        def inspect_settings() -> bool:
+            widgets = descendants(window._popover)
+            names = {
+                widget.get_accessible().get_name()
+                for widget in widgets
+                if widget.get_accessible().get_name()
+            }
+            for required_name in (
+                "Capture control mode",
+                "Copy transcript after each final segment",
+                "Keep local transcript history",
+                "History retention days",
+            ):
+                if required_name not in names:
+                    failures.append(f"missing accessible Settings control: {required_name}")
+            window._popover.popdown()
             GLib.timeout_add(20, stop)
             return False
 

@@ -74,3 +74,29 @@ class ConfigManagerTests(unittest.TestCase):
             for invalid in (1, "true", None):
                 with self.assertRaises(ConfigError):
                     config.set("onboarding_complete", invalid)
+
+    def test_daily_dictation_preferences_are_private_validated_and_off_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = ConfigManager(Path(temporary_directory), environ={})
+            self.assertFalse(config.get("copy_on_final"))
+            self.assertFalse(config.get("history_enabled"))
+            self.assertEqual(config.get("capture_mode"), "toggle")
+            config.update(
+                {
+                    "copy_on_final": True,
+                    "history_enabled": True,
+                    "history_retention_days": 14,
+                    "capture_mode": "push_to_talk",
+                }
+            )
+            reloaded = ConfigManager(Path(temporary_directory), environ={})
+            self.assertTrue(reloaded.get("copy_on_final"))
+            self.assertEqual(reloaded.get("history_retention_days"), 14)
+            for key, invalid in (
+                ("history_retention_days", 0),
+                ("history_retention_days", 366),
+                ("capture_mode", "global"),
+                ("copy_on_final", 1),
+            ):
+                with self.assertRaises(ConfigError):
+                    config.set(key, invalid)

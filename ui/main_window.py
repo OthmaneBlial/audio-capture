@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import datetime as dt
 import logging
-import os
 import sys
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -15,7 +13,11 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
 from config import ConfigError, ConfigManager
+from exports import ExportFormat, build_export, write_export
+from history import HistoryEntry, HistoryStore
 from onboarding import OnboardingError, validate_cloud_setup
+from platform_capabilities import detect_desktop_capabilities
+from transcript import SegmentTracker, UndoHistory
 
 LOGGER = logging.getLogger(__name__)
 
@@ -42,11 +44,19 @@ class MainWindow(Gtk.Window):
         self._status_reset_source: Optional[int] = None
         self._geometry_save_source: Optional[int] = None
         self._pending_geometry: Optional[tuple[int, int]] = None
+        self._undo_history = UndoHistory()
+        self._applying_snapshot = False
+        self._suppress_next_click = False
+        self._segment_tracker = SegmentTracker(max_visible=4)
+        self._history = HistoryStore()
+        self._capabilities = detect_desktop_capabilities()
+        self._tray_icon: Optional[Any] = None
 
         self._setup_window()
         self._apply_styles()
         self._setup_ui()
         self._load_initial_settings()
+        self._setup_tray_toggle()
         if not self._config.get("onboarding_complete"):
             GLib.idle_add(self._show_first_run)
 
@@ -57,7 +67,7 @@ class MainWindow(Gtk.Window):
         self.set_resizable(True)
         self.set_wmclass("voice-transcriber", "Voice Transcriber")
         self.set_role("voice-transcriber")
-        self.connect("destroy", Gtk.main_quit)
+        self.connect("destroy", self._on_destroy)
         self.connect("configure-event", self._on_window_configure)
         try:
             base_path = getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1])
@@ -86,6 +96,11 @@ class MainWindow(Gtk.Window):
         .status { color: #B4C6B4; font-size: 12px; font-weight: 700; }
         .status.active { color: #C9F57A; }
         .status.error { color: #FFAA8E; }
+        .segment-strip { background-color: #141B17; border: 1px solid #344338; border-radius: 8px; padding: 6px 10px; }
+        .segment-state { color: #AAB8AA; font-size: 11px; }
+        .segment-state.pending { color: #D5EAA9; }
+        .segment-state.complete { color: #B8E85A; }
+        .segment-state.error { color: #FFAA8E; }
         .input-monitor { padding: 3px 1px 0 1px; }
         .input-label { color: #C5D1C4; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; }
         .input-source { color: #9DAE9F; font-size: 11px; }
@@ -99,6 +114,7 @@ class MainWindow(Gtk.Window):
         .secondary-button { background-image: none; background-color: #253128; border: 1px solid #405044; color: #E5EDE1; padding: 8px 12px; border-radius: 7px; font-weight: 700; box-shadow: none; }
         .secondary-button:hover, .secondary-button:focus { background-color: #334138; border-color: #617264; }
         .danger-button { color: #FFB19B; }
+        .history-card { background-color: #141B17; border: 1px solid #344338; border-radius: 8px; padding: 10px; }
         .settings-box { background-color: #1A211C; color: #F4F7F0; border: 1px solid #405044; border-radius: 9px; padding: 12px; }
         .settings-title { color: #F4F7F0; font-size: 15px; font-weight: 800; }
         .settings-label { color: #C5D1C4; font-size: 12px; font-weight: 700; }
@@ -149,6 +165,8 @@ class MainWindow(Gtk.Window):
         self._listen_button.set_tooltip_text("Start or stop microphone capture (Ctrl+Enter)")
         self._listen_button.get_accessible().set_name("Start listening")
         self._listen_button.connect("clicked", self._on_listen_clicked)
+        self._listen_button.connect("button-press-event", self._on_listen_pressed)
+        self._listen_button.connect("button-release-event", self._on_listen_released)
         content.pack_start(self._listen_button, False, False, 0)
 
         status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -158,6 +176,12 @@ class MainWindow(Gtk.Window):
         self._status_label.get_accessible().set_name("Transcription status")
         status_box.pack_start(self._status_label, False, False, 0)
         content.pack_start(status_box, False, False, 0)
+
+        self._segment_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        self._segment_box.get_style_context().add_class("segment-strip")
+        self._segment_box.get_accessible().set_name("Recent transcription segment states")
+        self._segment_box.set_no_show_all(True)
+        content.pack_start(self._segment_box, False, False, 0)
 
         input_monitor = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         input_monitor.get_style_context().add_class("input-monitor")
@@ -196,10 +220,12 @@ class MainWindow(Gtk.Window):
         self._text_view = Gtk.TextView()
         self._text_view.get_style_context().add_class("transcript-view")
         self._text_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        self._text_view.set_editable(False)
-        self._text_view.set_cursor_visible(False)
-        self._text_view.get_accessible().set_name("Current transcript")
+        self._text_view.set_editable(True)
+        self._text_view.set_cursor_visible(True)
+        self._text_view.get_accessible().set_name("Editable current transcript")
         self._text_buffer = self._text_view.get_buffer()
+        self._text_buffer.connect("insert-text", self._on_text_edit_before)
+        self._text_buffer.connect("delete-range", self._on_text_edit_before)
         self._text_buffer.connect("changed", self._on_transcript_changed)
         scrolled.add(self._text_view)
         self._empty_state = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -214,26 +240,41 @@ class MainWindow(Gtk.Window):
         )
         overlay.add_overlay(self._empty_state)
 
-        actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         actions.get_style_context().add_class("bottom-rule")
+        edit_actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         sticky_label = self._label("Keep on top", "settings-label")
-        actions.pack_start(sticky_label, False, False, 0)
+        edit_actions.pack_start(sticky_label, False, False, 0)
         self._sticky_switch = Gtk.CheckButton()
         self._sticky_switch.set_active(self._config.get("sticky_mode"))
         self._sticky_switch.set_tooltip_text("Keep Voice Transcriber above other windows")
         self._sticky_switch.get_accessible().set_name("Keep Voice Transcriber on top")
         self._sticky_switch.connect("toggled", self._on_sticky_toggled)
-        actions.pack_start(self._sticky_switch, False, False, 0)
-        actions.pack_start(Gtk.Box(), True, True, 0)
+        edit_actions.pack_start(self._sticky_switch, False, False, 0)
+        edit_actions.pack_start(Gtk.Box(), True, True, 0)
+        undo_button = self._make_secondary_button("Undo", "Undo transcript edit (Ctrl+Z)", self._on_undo_clicked)
+        redo_button = self._make_secondary_button("Redo", "Redo transcript edit (Ctrl+Shift+Z)", self._on_redo_clicked)
+        edit_actions.pack_end(redo_button, False, False, 0)
+        edit_actions.pack_end(undo_button, False, False, 0)
+        actions.pack_start(edit_actions, False, False, 0)
+        output_actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        history_button = self._make_secondary_button(
+            "History",
+            "Review or permanently delete opt-in transcript history",
+            self._on_history_clicked,
+        )
+        output_actions.pack_start(history_button, False, False, 0)
+        output_actions.pack_start(Gtk.Box(), True, True, 0)
         copy_button = self._make_secondary_button("Copy", "Copy transcript to clipboard (Ctrl+Shift+C)", self._on_copy_clicked)
-        actions.pack_end(copy_button, False, False, 0)
+        output_actions.pack_end(copy_button, False, False, 0)
         clear_button = self._make_secondary_button("Clear", "Remove the current transcript", self._on_clear_clicked)
         clear_button.get_style_context().add_class("danger-button")
-        actions.pack_end(clear_button, False, False, 0)
+        output_actions.pack_end(clear_button, False, False, 0)
+        actions.pack_start(output_actions, False, False, 0)
         content.pack_end(actions, False, False, 0)
 
         self._init_settings_popover(settings_button)
-        self._install_shortcuts(copy_button, settings_button)
+        self._install_shortcuts(copy_button, settings_button, undo_button, redo_button)
 
     def _make_top_button(self, label: str, tooltip: str, callback: Callable[..., None]) -> Gtk.Button:
         button = Gtk.Button(label=label)
@@ -249,7 +290,13 @@ class MainWindow(Gtk.Window):
         button.connect("clicked", callback)
         return button
 
-    def _install_shortcuts(self, copy_button: Gtk.Button, settings_button: Gtk.Button) -> None:
+    def _install_shortcuts(
+        self,
+        copy_button: Gtk.Button,
+        settings_button: Gtk.Button,
+        undo_button: Gtk.Button,
+        redo_button: Gtk.Button,
+    ) -> None:
         accel_group = Gtk.AccelGroup()
         self.add_accel_group(accel_group)
         self._listen_button.add_accelerator("clicked", accel_group, Gdk.KEY_Return, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
@@ -257,17 +304,32 @@ class MainWindow(Gtk.Window):
             "clicked", accel_group, Gdk.KEY_C, Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK, Gtk.AccelFlags.VISIBLE
         )
         settings_button.add_accelerator("clicked", accel_group, Gdk.KEY_comma, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
+        undo_button.add_accelerator(
+            "clicked", accel_group, Gdk.KEY_z, Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE
+        )
+        redo_button.add_accelerator(
+            "clicked",
+            accel_group,
+            Gdk.KEY_z,
+            Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK,
+            Gtk.AccelFlags.VISIBLE,
+        )
 
     def _init_settings_popover(self, parent_button: Gtk.Button) -> None:
         self._popover = Gtk.Popover.new(parent_button)
         self._popover.set_position(Gtk.PositionType.BOTTOM)
+        settings_scroll = Gtk.ScrolledWindow()
+        settings_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        settings_scroll.set_min_content_width(340)
+        settings_scroll.set_min_content_height(420)
+        self._popover.add(settings_scroll)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         box.get_style_context().add_class("settings-box")
         box.set_margin_top(8)
         box.set_margin_bottom(8)
         box.set_margin_start(8)
         box.set_margin_end(8)
-        self._popover.add(box)
+        settings_scroll.add(box)
         box.pack_start(self._label("Session settings", "settings-title"), False, False, 0)
 
         api_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -326,10 +388,56 @@ class MainWindow(Gtk.Window):
 
         translate_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         translate_row.pack_start(self._label("Translate to English", "settings-label"), True, True, 0)
-        self._translate_switch = Gtk.Switch()
+        self._translate_switch = Gtk.CheckButton()
         self._translate_switch.set_active(self._config.get("translate_to_english"))
+        self._translate_switch.get_accessible().set_name("Translate to English")
         translate_row.pack_end(self._translate_switch, False, False, 0)
         box.pack_start(translate_row, False, False, 0)
+
+        capture_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        capture_row.pack_start(self._label("Capture control", "settings-label"), False, False, 0)
+        self._capture_mode_combo = Gtk.ComboBoxText()
+        self._capture_mode_combo.append("toggle", "Click to start / stop")
+        self._capture_mode_combo.append("push_to_talk", "Hold to talk while app is focused")
+        self._capture_mode_combo.set_active_id(self._config.get("capture_mode"))
+        self._capture_mode_combo.get_accessible().set_name("Capture control mode")
+        capture_row.pack_start(self._capture_mode_combo, False, False, 0)
+        capture_row.pack_start(
+            self._label(self._capabilities.explanation, "settings-help"), False, False, 0
+        )
+        box.pack_start(capture_row, False, False, 0)
+
+        copy_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        copy_row.pack_start(self._label("Copy after each final segment", "settings-label"), True, True, 0)
+        self._copy_on_final_switch = Gtk.CheckButton()
+        self._copy_on_final_switch.set_active(self._config.get("copy_on_final"))
+        self._copy_on_final_switch.get_accessible().set_name("Copy transcript after each final segment")
+        copy_row.pack_end(self._copy_on_final_switch, False, False, 0)
+        box.pack_start(copy_row, False, False, 0)
+
+        history_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        history_toggle = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        history_toggle.pack_start(self._label("Keep local transcript history", "settings-label"), True, True, 0)
+        self._history_switch = Gtk.CheckButton()
+        self._history_switch.set_active(self._config.get("history_enabled"))
+        self._history_switch.get_accessible().set_name("Keep local transcript history")
+        history_toggle.pack_end(self._history_switch, False, False, 0)
+        history_row.pack_start(history_toggle, False, False, 0)
+        retention = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        retention.pack_start(self._label("Delete after", "settings-help"), True, True, 0)
+        self._history_retention = Gtk.SpinButton.new_with_range(1, 365, 1)
+        self._history_retention.set_value(self._config.get("history_retention_days"))
+        self._history_retention.get_accessible().set_name("History retention days")
+        retention.pack_end(self._history_retention, False, False, 0)
+        retention.pack_end(self._label("days", "settings-help"), False, False, 0)
+        history_row.pack_start(retention, False, False, 0)
+        history_row.pack_start(
+            self._label(f"Disabled by default · text only · {self._history.path}", "settings-help"),
+            False,
+            False,
+            0,
+        )
+        box.pack_start(history_row, False, False, 0)
 
         font_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         font_row.pack_start(self._label("Transcript size", "settings-label"), True, True, 0)
@@ -353,6 +461,21 @@ class MainWindow(Gtk.Window):
         self._update_font_size(self._config.get("font_size"))
         self.set_opacity(self._config.get("opacity"))
         self.set_keep_above(self._config.get("sticky_mode"))
+        self._apply_capture_mode()
+
+    def _apply_capture_mode(self) -> None:
+        if self._is_listening:
+            return
+        push_to_talk = self._config.get("capture_mode") == "push_to_talk"
+        label = "Hold to talk" if push_to_talk else "Start listening"
+        self._listen_button.set_label(label)
+        self._listen_button.get_accessible().set_name(label)
+        tooltip = (
+            "Hold while speaking; release to stop (focused app only)"
+            if push_to_talk
+            else "Start or stop microphone capture (Ctrl+Enter)"
+        )
+        self._listen_button.set_tooltip_text(tooltip)
 
     def _show_first_run(self) -> bool:
         """Offer an explicit, keyboard-operable cloud setup before first transcription."""
@@ -530,6 +653,10 @@ class MainWindow(Gtk.Window):
                     "font_size": int(self._font_scale.get_value()),
                     "opacity": self._opacity_scale.get_value(),
                     "input_device_index": self._selected_input_device_index(),
+                    "capture_mode": self._capture_mode_combo.get_active_id() or "toggle",
+                    "copy_on_final": self._copy_on_final_switch.get_active(),
+                    "history_enabled": self._history_switch.get_active(),
+                    "history_retention_days": int(self._history_retention.get_value()),
                 }
             )
         except ConfigError as error:
@@ -537,6 +664,9 @@ class MainWindow(Gtk.Window):
             return
         self._update_font_size(self._config.get("font_size"))
         self.set_opacity(self._config.get("opacity"))
+        self._apply_capture_mode()
+        if self._config.get("history_enabled"):
+            self._history.list(retention_days=self._config.get("history_retention_days"))
         if self._on_settings_change_cb:
             self._on_settings_change_cb()
         self._popover.popdown()
@@ -603,26 +733,76 @@ class MainWindow(Gtk.Window):
         if not text:
             self.show_error("There is no transcript to export yet.")
             return
+        format_combo = Gtk.ComboBoxText()
+        format_combo.append("text", "Plain text (.txt)")
+        format_combo.append("markdown", "Markdown (.md)")
+        format_combo.append("timestamped", "Timestamped text (.txt)")
+        format_combo.set_active_id("text")
+        format_combo.get_accessible().set_name("Export format")
+        format_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        format_box.set_margin_top(8)
+        format_box.set_margin_bottom(8)
+        format_box.set_margin_start(8)
+        format_box.set_margin_end(8)
+        format_box.pack_start(self._label("Format", "settings-label"), False, False, 0)
+        format_box.pack_start(format_combo, True, True, 0)
+        format_box.show_all()
         dialog = Gtk.FileChooserDialog(
             title="Export transcript", parent=self, action=Gtk.FileChooserAction.SAVE
         )
         dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Export", Gtk.ResponseType.ACCEPT)
         dialog.set_do_overwrite_confirmation(True)
-        dialog.set_current_name(f"transcript_{dt.datetime.now():%Y-%m-%d_%H-%M}.txt")
+        dialog.set_extra_widget(format_box)
+        initial = build_export(text, "text")
+        dialog.set_current_name(initial.suggested_name)
+
+        def update_name(_combo: Gtk.ComboBoxText) -> None:
+            selected = format_combo.get_active_id() or "text"
+            document = build_export(text, selected)
+            dialog.set_current_name(document.suggested_name)
+
+        format_combo.connect("changed", update_name)
         try:
             if dialog.run() == Gtk.ResponseType.ACCEPT:
                 filename = dialog.get_filename()
                 if filename:
                     destination = Path(filename)
-                    destination.write_text(text + "\n", encoding="utf-8")
-                    os.chmod(destination, 0o600)
-                    self.set_status(f"Exported {destination.name}", "active", reset_after_ms=2_500)
+                    export_format: ExportFormat = format_combo.get_active_id() or "text"
+                    document = build_export(text, export_format)
+                    if self._confirm_export(destination, document.format):
+                        write_export(destination, document)
+                        self.set_status(
+                            f"Exported {destination.name} · owner-only permissions",
+                            "active",
+                            reset_after_ms=2_500,
+                        )
         except OSError as error:
             self.show_error(f"Could not export transcript: {error}")
         finally:
             dialog.destroy()
 
+    def _confirm_export(self, destination: Path, export_format: str) -> bool:
+        confirmation = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.NONE,
+            text="Write this transcript export?",
+        )
+        confirmation.format_secondary_text(
+            f"Destination: {destination}\nFormat: {export_format}\nPermissions: owner read/write only"
+        )
+        confirmation.add_button("Back", Gtk.ResponseType.CANCEL)
+        confirmation.add_button("Write export", Gtk.ResponseType.ACCEPT)
+        try:
+            return confirmation.run() == Gtk.ResponseType.ACCEPT
+        finally:
+            confirmation.destroy()
+
     def _on_listen_clicked(self, _button: Gtk.Button) -> None:
+        if self._suppress_next_click:
+            self._suppress_next_click = False
+            return
         if self._is_listening:
             self.stop_listening()
             return
@@ -630,17 +810,38 @@ class MainWindow(Gtk.Window):
         if started:
             self.start_listening()
 
+    def _on_listen_pressed(self, _button: Gtk.Button, event: Gdk.EventButton) -> bool:
+        if self._config.get("capture_mode") != "push_to_talk" or event.button != 1:
+            return False
+        self._suppress_next_click = True
+        if not self._is_listening:
+            started = self._on_start() if self._on_start else True
+            if started:
+                self.start_listening()
+        return False
+
+    def _on_listen_released(self, _button: Gtk.Button, event: Gdk.EventButton) -> bool:
+        if self._config.get("capture_mode") == "push_to_talk" and event.button == 1:
+            self._suppress_next_click = True
+            if self._is_listening:
+                self.stop_listening()
+        return False
+
     def start_listening(self) -> None:
         self._is_listening = True
-        self._listen_button.set_label("Stop listening")
-        self._listen_button.get_accessible().set_name("Stop listening")
+        label = (
+            "Release to stop"
+            if self._config.get("capture_mode") == "push_to_talk"
+            else "Stop listening"
+        )
+        self._listen_button.set_label(label)
+        self._listen_button.get_accessible().set_name(label)
         self._listen_button.get_style_context().add_class("recording")
         self.set_status("Listening…", "active")
 
     def stop_listening(self) -> None:
         self._is_listening = False
-        self._listen_button.set_label("Start listening")
-        self._listen_button.get_accessible().set_name("Start listening")
+        self._apply_capture_mode()
         self._listen_button.get_style_context().remove_class("recording")
         self.set_input_level(0.0)
         if self._on_stop:
@@ -656,16 +857,230 @@ class MainWindow(Gtk.Window):
             self.show_error(str(error))
 
     def _on_copy_clicked(self, _button: Gtk.Button) -> None:
+        self.copy_transcript()
+
+    def copy_transcript(self, *, automatic: bool = False) -> None:
         text = self._transcript_text()
         if not text:
-            self.show_error("There is no transcript to copy yet.")
+            if not automatic:
+                self.show_error("There is no transcript to copy yet.")
             return
         Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
-        self.set_status("Transcript copied", "active", reset_after_ms=1_500)
+        message = "Final transcript copied automatically" if automatic else "Transcript copied"
+        self.set_status(message, "active", reset_after_ms=1_500)
+
+    def copy_transcript_after_final(self) -> None:
+        GLib.idle_add(self._do_copy_transcript_after_final)
+
+    def _do_copy_transcript_after_final(self) -> bool:
+        self.copy_transcript(automatic=True)
+        return False
 
     def _on_clear_clicked(self, _button: Gtk.Button) -> None:
-        self._text_buffer.set_text("")
-        self.set_status("Transcript cleared")
+        if not self._transcript_text():
+            return
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.NONE,
+            text="Discard the current transcript?",
+        )
+        detail = (
+            "This clears the desk. It will not be added to history. Existing explicit exports are unchanged."
+            if self._config.get("history_enabled")
+            else "History is off, so this text cannot be recovered unless you already copied or exported it."
+        )
+        dialog.format_secondary_text(detail)
+        dialog.add_button("Keep editing", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Discard transcript", Gtk.ResponseType.ACCEPT)
+        try:
+            if dialog.run() == Gtk.ResponseType.ACCEPT:
+                self._replace_transcript("", remember=True)
+                self.set_status("Transcript permanently cleared from this desk")
+        finally:
+            dialog.destroy()
+
+    def _on_history_clicked(self, _button: Gtk.Button) -> None:
+        if not self._config.get("history_enabled"):
+            dialog = Gtk.MessageDialog(
+                transient_for=self,
+                modal=True,
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.CLOSE,
+                text="Local history is off",
+            )
+            dialog.format_secondary_text(
+                f"Nothing is saved automatically. Enable text-only history in Settings if you want it.\n\nStorage: {self._history.path}"
+            )
+            dialog.run()
+            dialog.destroy()
+            return
+
+        try:
+            entries = self._history.list(
+                retention_days=self._config.get("history_retention_days")
+            )
+        except (OSError, ValueError) as error:
+            self.show_error(f"Could not read local history: {error}")
+            return
+        dialog = Gtk.Dialog(title="Local transcript history", transient_for=self, modal=True)
+        dialog.set_default_size(560, 440)
+        dialog.add_button("Close", Gtk.ResponseType.CLOSE)
+        if entries:
+            clear_button = dialog.add_button("Clear all history", Gtk.ResponseType.REJECT)
+            clear_button.get_style_context().add_class("destructive-action")
+        area = dialog.get_content_area()
+        area.set_spacing(10)
+        area.set_margin_top(14)
+        area.set_margin_bottom(14)
+        area.set_margin_start(14)
+        area.set_margin_end(14)
+        area.pack_start(
+            self._label(
+                f"Text only · automatically removed after {self._config.get('history_retention_days')} days · {self._history.path}",
+                "settings-help",
+            ),
+            False,
+            False,
+            0,
+        )
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        entries_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        scrolled.add(entries_box)
+        area.pack_start(scrolled, True, True, 0)
+        if not entries:
+            entries_box.pack_start(
+                self._label("No retained transcripts yet.", "empty-copy", xalign=0.5),
+                True,
+                True,
+                20,
+            )
+        for entry in entries:
+            entries_box.pack_start(self._history_card(entry), False, False, 0)
+        dialog.show_all()
+        try:
+            if dialog.run() == Gtk.ResponseType.REJECT and self._confirm_clear_history():
+                self._history.clear()
+                self.set_status("All local history permanently deleted", "active", reset_after_ms=2_500)
+        finally:
+            dialog.destroy()
+
+    def _history_card(self, entry: HistoryEntry) -> Gtk.Box:
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=7)
+        card.get_style_context().add_class("history-card")
+        created = entry.created_at.replace("T", " ").replace("Z", " UTC")
+        card.pack_start(self._label(created, "settings-help"), False, False, 0)
+        preview = entry.text if len(entry.text) <= 180 else entry.text[:177] + "…"
+        card.pack_start(self._label(preview, "settings-label"), False, False, 0)
+        actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        use_button = self._make_secondary_button(
+            "Use on desk",
+            "Replace the current desk with this retained transcript",
+            lambda _button, item=entry: self._restore_history_entry(item),
+        )
+        copy_button = self._make_secondary_button(
+            "Copy",
+            "Copy this retained transcript",
+            lambda _button, item=entry: self._copy_history_entry(item),
+        )
+        delete_button = self._make_secondary_button(
+            "Delete",
+            "Permanently delete this retained transcript",
+            lambda _button, item=entry, widget=card: self._delete_history_entry(item, widget),
+        )
+        delete_button.get_style_context().add_class("danger-button")
+        actions.pack_end(delete_button, False, False, 0)
+        actions.pack_end(copy_button, False, False, 0)
+        actions.pack_end(use_button, False, False, 0)
+        card.pack_start(actions, False, False, 0)
+        return card
+
+    def _restore_history_entry(self, entry: HistoryEntry) -> None:
+        if self._transcript_text() and not self._confirm_replace_transcript():
+            return
+        self._replace_transcript(entry.text, remember=True)
+        self.set_status("History entry opened on the editable desk", "active", reset_after_ms=2_000)
+
+    def _copy_history_entry(self, entry: HistoryEntry) -> None:
+        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(entry.text, -1)
+        self.set_status("History entry copied", "active", reset_after_ms=1_500)
+
+    def _delete_history_entry(self, entry: HistoryEntry, card: Gtk.Widget) -> None:
+        confirmation = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.OK_CANCEL,
+            text="Permanently delete this history entry?",
+        )
+        try:
+            if confirmation.run() == Gtk.ResponseType.OK and self._history.delete(entry.id):
+                card.destroy()
+                self.set_status("History entry permanently deleted", "active", reset_after_ms=1_500)
+        finally:
+            confirmation.destroy()
+
+    def _confirm_replace_transcript(self) -> bool:
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.NONE,
+            text="Replace the current transcript?",
+        )
+        dialog.format_secondary_text("You can undo this replacement after returning to the desk.")
+        dialog.add_button("Keep current", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Replace", Gtk.ResponseType.ACCEPT)
+        try:
+            return dialog.run() == Gtk.ResponseType.ACCEPT
+        finally:
+            dialog.destroy()
+
+    def _confirm_clear_history(self) -> bool:
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.NONE,
+            text="Permanently delete all local history?",
+        )
+        dialog.format_secondary_text("Explicit exports are not affected. This history cannot be recovered.")
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Delete all", Gtk.ResponseType.ACCEPT)
+        try:
+            return dialog.run() == Gtk.ResponseType.ACCEPT
+        finally:
+            dialog.destroy()
+
+    def _on_undo_clicked(self, _button: Gtk.Button) -> None:
+        current = self._transcript_text(raw=True)
+        replacement = self._undo_history.undo(current)
+        if replacement != current:
+            self._replace_transcript(replacement, remember=False)
+            self.set_status("Edit undone", "active", reset_after_ms=1_000)
+
+    def _on_redo_clicked(self, _button: Gtk.Button) -> None:
+        current = self._transcript_text(raw=True)
+        replacement = self._undo_history.redo(current)
+        if replacement != current:
+            self._replace_transcript(replacement, remember=False)
+            self.set_status("Edit restored", "active", reset_after_ms=1_000)
+
+    def _on_text_edit_before(self, _buffer: Gtk.TextBuffer, *_args: Any) -> None:
+        if not self._applying_snapshot:
+            self._undo_history.remember(self._transcript_text(raw=True))
+
+    def _replace_transcript(self, text: str, *, remember: bool) -> None:
+        current = self._transcript_text(raw=True)
+        if remember:
+            self._undo_history.remember(current)
+        self._applying_snapshot = True
+        try:
+            self._text_buffer.set_text(text)
+        finally:
+            self._applying_snapshot = False
 
     def _on_transcript_changed(self, _buffer: Gtk.TextBuffer) -> None:
         self._empty_state.set_visible(not bool(self._transcript_text()))
@@ -679,6 +1094,42 @@ class MainWindow(Gtk.Window):
             self._geometry_save_source = GLib.timeout_add(500, self._save_geometry)
         return False
 
+    def _setup_tray_toggle(self) -> None:
+        if not self._capabilities.tray_window_toggle or not hasattr(Gtk, "StatusIcon"):
+            return
+        try:
+            self._tray_icon = Gtk.StatusIcon.new_from_icon_name(
+                "io.github.othmaneblial.audio_capture"
+            )
+            self._tray_icon.set_tooltip_text("Voice Transcriber · toggle window")
+            self._tray_icon.connect("activate", self._on_tray_activate)
+            self._tray_icon.set_visible(True)
+        except Exception:
+            self._tray_icon = None
+            LOGGER.debug("Legacy X11 tray toggle is unavailable", exc_info=True)
+
+    def _on_tray_activate(self, _icon: Any) -> None:
+        if self.get_visible():
+            self.hide()
+        else:
+            self.show_all()
+            self.present()
+
+    def _on_destroy(self, _window: Gtk.Window) -> None:
+        if self._config.get("history_enabled"):
+            text = self._transcript_text()
+            if text:
+                try:
+                    self._history.add(
+                        text,
+                        retention_days=self._config.get("history_retention_days"),
+                    )
+                except (OSError, ValueError):
+                    LOGGER.warning("Could not save opt-in transcript history", exc_info=True)
+        if self._tray_icon is not None:
+            self._tray_icon.set_visible(False)
+        Gtk.main_quit()
+
     def _save_geometry(self) -> bool:
         self._geometry_save_source = None
         if self._pending_geometry is None:
@@ -691,9 +1142,10 @@ class MainWindow(Gtk.Window):
             LOGGER.debug("Could not persist window geometry", exc_info=True)
         return False
 
-    def _transcript_text(self) -> str:
+    def _transcript_text(self, *, raw: bool = False) -> str:
         start, end = self._text_buffer.get_bounds()
-        return self._text_buffer.get_text(start, end, True).strip()
+        text = self._text_buffer.get_text(start, end, True)
+        return text if raw else text.strip()
 
     def _update_font_size(self, size: int) -> None:
         provider = Gtk.CssProvider()
@@ -728,11 +1180,43 @@ class MainWindow(Gtk.Window):
         clean_text = text.strip()
         if not clean_text:
             return False
-        end = self._text_buffer.get_end_iter()
-        if self._text_buffer.get_char_count() > 0:
-            self._text_buffer.insert(end, " ")
-        self._text_buffer.insert(self._text_buffer.get_end_iter(), clean_text)
+        self._undo_history.remember(self._transcript_text(raw=True))
+        self._applying_snapshot = True
+        try:
+            end = self._text_buffer.get_end_iter()
+            if self._text_buffer.get_char_count() > 0:
+                self._text_buffer.insert(end, " ")
+            self._text_buffer.insert(self._text_buffer.get_end_iter(), clean_text)
+        finally:
+            self._applying_snapshot = False
         self._text_view.scroll_to_iter(self._text_buffer.get_end_iter(), 0.0, False, 0.0, 0.0)
+        return False
+
+    def update_segment_state(self, request_id: str, state: str, detail: Optional[str]) -> None:
+        """Show a bounded per-request state without retaining audio or transcript text."""
+        GLib.idle_add(self._do_update_segment_state, request_id, state, detail)
+
+    def _do_update_segment_state(
+        self, request_id: str, state: str, detail: Optional[str]
+    ) -> bool:
+        try:
+            self._segment_tracker.update(request_id, state, detail)
+        except ValueError:
+            LOGGER.debug("Ignored invalid segment state: %s", state)
+            return False
+        for child in self._segment_box.get_children():
+            child.destroy()
+        for status in self._segment_tracker.visible():
+            marker = {"pending": "●", "complete": "✓", "error": "!"}[status.state]
+            label = self._label(
+                f"{marker} Segment {status.ordinal} · {status.detail}", "segment-state"
+            )
+            label.get_style_context().add_class(status.state)
+            label.get_accessible().set_name(
+                f"Segment {status.ordinal}, {status.state}: {status.detail}"
+            )
+            self._segment_box.pack_start(label, False, False, 0)
+        self._segment_box.show_all()
         return False
 
     def set_input_level(self, level: float) -> None:

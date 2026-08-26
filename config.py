@@ -36,6 +36,10 @@ class ConfigManager:
         "sticky_mode": False,
         "input_device_index": None,
         "onboarding_complete": False,
+        "capture_mode": "toggle",
+        "copy_on_final": False,
+        "history_enabled": False,
+        "history_retention_days": 30,
     }
     ENVIRONMENT_KEYS = {"api_key": "GROQ_API_KEY"}
     SUPPORTED_LANGUAGES = {"auto", "en", "fr", "es", "de", "it", "pt", "ar", "zh"}
@@ -165,13 +169,27 @@ class ConfigManager:
             if value not in self.SUPPORTED_LANGUAGES:
                 raise ConfigError(f"Unsupported language: {value!r}")
             return value
-        if key in {"translate_to_english", "sticky_mode", "onboarding_complete"}:
+        if key in {
+            "translate_to_english",
+            "sticky_mode",
+            "onboarding_complete",
+            "copy_on_final",
+            "history_enabled",
+        }:
             if not isinstance(value, bool):
                 raise ConfigError(f"{key} must be true or false")
             return value
         if key == "font_size":
             if isinstance(value, bool) or not isinstance(value, int) or not 12 <= value <= 32:
                 raise ConfigError("font_size must be an integer between 12 and 32")
+            return value
+        if key == "history_retention_days":
+            if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 365:
+                raise ConfigError("history_retention_days must be an integer between 1 and 365")
+            return value
+        if key == "capture_mode":
+            if value not in {"toggle", "push_to_talk"}:
+                raise ConfigError("capture_mode must be toggle or push_to_talk")
             return value
         if key == "opacity":
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0.5 <= value <= 1.0:

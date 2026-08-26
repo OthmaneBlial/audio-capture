@@ -129,6 +129,30 @@ class GroqTranscriptionServiceTests(unittest.TestCase):
             release.set()
             service.close(wait=True)
 
+    def test_async_requests_report_bounded_user_visible_states(self) -> None:
+        states: list[tuple[str, str, Optional[str]]] = []
+        service = GroqTranscriptionService(
+            api_key="valid-test-key-12345",
+            transport_factory=FakeFactory(FakeTransport()),
+            on_request_state=lambda request_id, state, detail: states.append(
+                (request_id, state, detail)
+            ),
+        )
+        try:
+            future = service.transcribe_async(b"\x00\x00" * 80)
+            assert future is not None
+            self.assertEqual(future.result(timeout=2), "hello world")
+            # The completion callback can run immediately after Future.result returns.
+            for _ in range(100):
+                if any(state == "complete" for _, state, _ in states):
+                    break
+                threading.Event().wait(0.001)
+            self.assertEqual([state for _, state, _ in states], ["pending", "complete"])
+            self.assertEqual(states[0][0], states[1][0])
+            self.assertNotIn("hello world", " ".join(detail or "" for _, _, detail in states))
+        finally:
+            service.close(wait=True)
+
 
 class GroqHTTPTransportTests(unittest.TestCase):
     def test_posts_multipart_wav_and_reads_json_without_putting_key_in_body(self) -> None:

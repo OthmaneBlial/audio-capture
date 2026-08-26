@@ -15,7 +15,7 @@ cleanup() {
 trap cleanup EXIT
 
 flatpak install --user --noninteractive --or-update "$bundle_path"
-flatpak run --user --command=voice-transcriber "$app_id" --version | grep -Fx "voice-transcriber 0.4.0"
+flatpak run --user --command=voice-transcriber "$app_id" --version | grep -Fx "voice-transcriber 0.5.0"
 flatpak run --user --command=voice-transcriber "$app_id" --help | grep -F -- "--doctor"
 
 doctor_report="$(mktemp)"

@@ -9,13 +9,16 @@ Groq transcription endpoint.
 | Raw 30 ms microphone frames | Bounded in-memory capture queue | Never directly | Not persisted |
 | Detected speech segment | In memory as PCM, then WAV | Sent to Groq after the segment closes | Not persisted |
 | Silence | Local VAD only | Never sent as a transcription request | Not persisted |
-| Transcript text | GTK memory buffer | Not sent elsewhere by the app | Saved only on explicit export |
+| Transcript text | Editable GTK memory buffer | Not sent elsewhere by the app | Explicit export; optional local history only after opt-in |
+| Recent request state | Bounded local state tracker | Never | Not persisted; contains status only, not audio/transcript text |
+| Local transcript history | Owner-only JSON after explicit opt-in | Never | Disabled by default; configurable expiry, entry deletion, and clear-all |
 | Groq API key | Environment, `.env`, or owner-only config | Used for authenticated Groq requests | Saved only when the user chooses Settings |
 | Preferences | Owner-only local config | Never | Persisted locally |
 | Input signal meter | In-memory RMS value | Never | Not persisted |
 
 The current application has no analytics, crash reporter, background upload,
-audio library, cloud transcript history, or automatic sync.
+audio library, cloud transcript history, or automatic sync. Local text history
+is off by default and its storage path is disclosed before activation.
 
 ## Session path
 
@@ -27,7 +30,8 @@ microphone
   -> in-memory WAV encoding
   -> Groq Whisper request
   -> transcript in the GTK buffer
-  -> explicit copy, clear, or local export
+  -> edit / explicit copy / clear / local export
+  -> optional local text history only after opt-in
 ```
 
 Provider-side processing and retention are governed by the provider account and
