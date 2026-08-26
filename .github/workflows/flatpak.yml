@@ -50,7 +50,7 @@ jobs:
           desktop-file-validate packaging/io.github.othmaneblial.audio_capture.desktop
           appstreamcli validate --no-net --explain packaging/io.github.othmaneblial.audio_capture.metainfo.xml
       - name: Smoke test first-run GTK accessibility
-        run: xvfb-run -a python3 tests/gtk_accessibility_smoke.py
+        run: PYTHONPATH=. xvfb-run -a python3 tests/gtk_accessibility_smoke.py
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.7
         with:
           bundle: voice-transcriber.flatpak
