@@ -67,4 +67,3 @@ Review the receipt before committing it. A useful result names the exact model,
 hardware, corpus checksum, sample and speaker count, WER numerator/denominator,
 p50/p95 latency, limitations, and any failed samples. Never hand-edit summary
 numbers; rerun the harness.
-
