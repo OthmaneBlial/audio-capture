@@ -43,3 +43,11 @@ modules:
     sources:
       - type: dir
         path: .
+        skip:
+          - .git
+          - .flatpak-builder
+          - build-dir
+          - offline-build
+          - offline-repo
+          - repo
+          - "*.flatpak"
