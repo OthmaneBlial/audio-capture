@@ -45,4 +45,3 @@ and completed states. Record only widget names and focus order.
 
 **Acceptance:** every interactive control has a useful accessible name, the
 focus path is documented, and any fix includes a manual verification note.
-

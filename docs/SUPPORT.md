@@ -42,4 +42,3 @@ configuration file.
 Reproducible bug reports should receive an acknowledgement within seven days.
 Security reports follow [SECURITY.md](../SECURITY.md) and remain private until
 a coordinated fix is available.
-

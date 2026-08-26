@@ -87,25 +87,25 @@ runs, and support issues instead.
 **Outcome:** a visitor understands the product, its limits, and a successful
 workflow in less than a minute.
 
-- [ ] Rewrite the README opening around a concrete job: “Dictate a thought,
+- [x] Rewrite the README opening around a concrete job: “Dictate a thought,
   review it, and paste it anywhere on Linux.” Keep the current technical
   explanation lower in the page.
-- [ ] Add three truthful screenshots and one short silent GIF/video: choosing a
+- [x] Add three truthful screenshots and one short silent GIF/video: choosing a
   microphone, the live meter and transcription state, then copy/export. Use
   synthetic or consented sample text; do not publish customer audio.
-- [ ] Add a compact comparison table: **current behaviour**, **what stays
+- [x] Add a compact comparison table: **current behaviour**, **what stays
   local**, **what is sent to Groq**, **where text can be stored**, and **what
   it does not do**.
-- [ ] Publish a supported-environments table with tested desktop/session,
+- [x] Publish a supported-environments table with tested desktop/session,
   architecture, audio stack, package format, and known limitations. Debian and
   Ubuntu are the only supported targets until evidence expands that table.
-- [ ] Add an explicit “Try before configuring” path: launch the UI, inspect
+- [x] Add an explicit “Try before configuring” path: launch the UI, inspect
   devices and privacy information, then explain exactly why a key is required
   before Start becomes available. Do not fake a transcript.
-- [ ] Add `CODE_OF_CONDUCT.md`, an issue-template `config.yml`, labels,
+- [x] Add `CODE_OF_CONDUCT.md`, an issue-template `config.yml`, labels,
   `good first issue` candidates, and a small maintainer response policy. Check
   GitHub’s community profile again after publishing.
-- [ ] Fix discoverability without a speculative repository rename: align the
+- [x] Fix discoverability without a speculative repository rename: align the
   GitHub description, topics, README title, release names, and site metadata
   on “Linux dictation / speech-to-text / privacy-aware”. Reconsider the generic
   `audio-capture` repository name only after search and referral data justify
@@ -114,6 +114,11 @@ workflow in less than a minute.
 **Acceptance gate:** a clean browser visit shows the outcome, data boundary,
 support matrix, install route, demo, license, latest release, and a newcomer
 contribution route. All claims can be traced to code or a documented test.
+
+**Completed evidence:** local desktop/mobile browser QA passed with no console
+errors or horizontal overflow; the deployed Pages build `6fc2361` completed;
+all three screenshots, the animated tour, docs, CSS, and JavaScript returned
+HTTP 200; and GitHub's community profile reached 100% after publication.
 
 ### P1 — Make first success a normal Linux installation
 

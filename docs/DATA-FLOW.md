@@ -34,4 +34,3 @@ Provider-side processing and retention are governed by the provider account and
 its current policies. Users should review Groq's documentation for their own
 account and jurisdiction; this project does not make a vendor-retention promise
 it cannot enforce.
-
