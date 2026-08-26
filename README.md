@@ -62,18 +62,21 @@ It requires an explicit confirmation that completed speech segments will leave
 the device before enabling transcription. **Explore first** keeps the app usable
 for inspection without accepting that boundary.
 
+Install the checksum-verified, source-mapped `x86_64` Flatpak release asset, verify its
+checksum, and open it without cloning the repository:
+
 ```bash
-git clone https://github.com/OthmaneBlial/audio-capture.git
-cd audio-capture
-./setup.sh
-source venv/bin/activate
-python main.py --list-devices
-python main.py
+curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v0.4.0/voice-transcriber-0.4.0-x86_64.flatpak
+curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v0.4.0/voice-transcriber-0.4.0-x86_64.flatpak.sha256
+sha256sum --check voice-transcriber-0.4.0-x86_64.flatpak.sha256
+flatpak install --user ./voice-transcriber-0.4.0-x86_64.flatpak
+flatpak run io.github.othmaneblial.audio_capture
 ```
 
-The current supported source-install path is Debian/Ubuntu Linux with GTK 3 and
-a working microphone. See [the evidence-based support matrix](docs/SUPPORT.md)
-for the distinction between supported, expected, and unsupported environments.
+The bundle maps exactly to source tag `v0.4.0`. See the [complete Flatpak
+instructions](docs/packaging/FLATPAK.md) and [evidence-based support
+matrix](docs/SUPPORT.md) for runtime setup, updates, removal, and the
+distinction between automated and real-hardware evidence.
 
 ## Configure a real transcription session
 
@@ -109,7 +112,7 @@ selected source is receiving audio without saving a recording. Use **Copy**
 - Atomic settings writes and owner-only configuration permissions where the
   operating system supports them.
 
-## Installation details
+## Source installation details
 
 `setup.sh` installs required Debian/Ubuntu system libraries, creates `venv/`,
 and installs Python dependencies. For a manual setup:
@@ -130,10 +133,9 @@ Add an application-menu entry after the environment is ready:
 ./install.sh
 ```
 
-This release does not yet provide a Flatpak, Debian package, AppImage, or
-automatic updater. Source archives on the release page are not installable app
-packages. Packaging work and its acceptance gates are tracked in
-[ROADMAP.md](ROADMAP.md).
+This remains the development path. The Flatpak release is the primary normal
+installation; no Debian package or AppImage is claimed. Packaging evidence and
+remaining real-device gates are tracked in [ROADMAP.md](ROADMAP.md).
 
 ## Configuration
 

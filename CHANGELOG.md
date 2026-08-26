@@ -4,6 +4,8 @@ All notable changes to Voice Transcriber are documented here.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-26
+
 ### Added
 
 - A reproducible three-state product tour with static screenshots and a short
