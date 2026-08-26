@@ -32,12 +32,16 @@ All notable changes to Voice Transcriber are documented here.
 
 ### Verification
 
-- Fifty deterministic unit tests and Ruff passed in CI run `33014705688`.
+- Fifty deterministic unit tests, Ruff, and source compilation passed in exact
+  commit CI run `33015936280`.
 - Benchmark run `33015305254` passed on 25 deterministic LibriSpeech
   `test-clean` speakers with whisper.cpp tiny.en: 37 errors / 627 reference
   words (5.90% WER), 1,043.810 ms p50 and 1,508.576 ms p95 wall-clock latency
   on its named GitHub runner. The complete unedited receipt is committed.
-- CodeQL run `33015316849` passed for Python, Actions, and JavaScript.
+- Flatpak run `33015936279` built and installed `0.6.0`, passed CLI/doctor,
+  provider-boundary and mapped GTK accessibility smoke tests, then uninstalled.
+- CodeQL run `33015923746` passed for Python, Actions, and JavaScript with no
+  open code-scanning alerts.
 
 ## [0.5.0] - 2026-08-26
 

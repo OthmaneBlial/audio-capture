@@ -235,9 +235,13 @@ Benchmark run `33015305254` verified the official LibriSpeech `test-clean`
 archive checksum, selected 25 speakers deterministically, built pinned
 whisper.cpp/tiny.en, and published the committed receipt: 37 / 627 word errors
 (5.90% WER), 1,043.810 ms p50 and 1,508.576 ms p95 on the named GitHub runner.
-CodeQL run `33015316849` also passed all three detected languages. The measured
-local prototype remains labelled experimental—not supported or universally
-offline—until the separate Flatpak and physical first-success gates pass.
+Exact commit CI run `33015936280` passed 50 tests, Ruff, and compilation;
+Flatpak run `33015936279` built/installed `0.6.0` and passed the CLI, doctor,
+provider-boundary, mapped GTK accessibility, and uninstall smoke contracts;
+CodeQL run `33015923746` passed all three detected languages with no open
+alerts. The measured local prototype remains labelled experimental—not
+supported or universally offline—until the separate Flatpak and physical
+first-success gates pass.
 
 ### P4 — Make trust and releases independently verifiable
 
