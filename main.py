@@ -358,6 +358,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         parser.error("--json requires --list-devices or --doctor")
     _configure_logging(args.verbose)
     load_dotenv()
+    if args.list_devices or args.doctor:
+        _configure_alsa_errors()
     if args.check_config:
         return _run_config_check()
     if args.list_devices:

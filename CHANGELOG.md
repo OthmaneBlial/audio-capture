@@ -10,11 +10,19 @@ All notable changes to Voice Transcriber are documented here.
   animation made from synthetic sample text.
 - A field-level data-flow document, supported-environment matrix, code of
   conduct, issue-routing config, label manifest, and bounded newcomer tasks.
+- A privacy-safe `--doctor --json` readiness report with an explicit optional
+  Groq reachability probe, stable schema, and actionable exit status.
+- A keyboard-operable first-run setup that requires acknowledgement of the
+  cloud boundary before transcription is enabled.
+- A source-pinned Flatpak manifest, application metadata, generated Python
+  dependency module, and clean-install smoke workflow.
 
 ### Changed
 
 - Reframed the README and site around daily Linux dictation, an explicit cloud
   boundary, and the ability to inspect the app before configuring a Groq key.
+- Replaced the transitive Groq SDK stack with a small, tested stdlib HTTP
+  transport so the package boundary is easier to audit and reproduce.
 
 ## [0.2.0] - 2026-08-26
 

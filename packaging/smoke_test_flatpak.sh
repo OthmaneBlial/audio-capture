@@ -42,7 +42,8 @@ print("Flatpak doctor contract: passed")
 PY
 
 permissions="$(flatpak info --user --show-permissions "$app_id")"
-grep -F "shared=network;ipc;" <<<"$permissions"
+grep -Eq 'shared=.*network' <<<"$permissions"
+grep -Eq 'shared=.*ipc' <<<"$permissions"
 grep -Eq 'sockets=.*wayland' <<<"$permissions"
 grep -Eq 'sockets=.*(fallback-x11|x11)' <<<"$permissions"
 grep -Eq 'sockets=.*pulseaudio' <<<"$permissions"

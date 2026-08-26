@@ -11,7 +11,8 @@ Groq Whisper, and leaves the resulting text ready to copy or explicitly export.
 
 **[Visit the project site](https://othmaneblial.github.io/audio-capture/)** ·
 **[Read the data flow](docs/DATA-FLOW.md)** ·
-**[Check supported environments](docs/SUPPORT.md)**
+**[Check supported environments](docs/SUPPORT.md)** ·
+**[Inspect CLI contracts](docs/CLI.md)**
 
 ![Guided Voice Transcriber product preview showing ready, listening, and completed transcript states](site/assets/voice-transcriber-tour.gif)
 
@@ -55,6 +56,11 @@ You can open the application, inspect Settings, discover microphone inputs, and
 read the privacy boundary without configuring Groq. **Start listening** remains
 blocked until a plausible API key is available; the app never substitutes a
 fake transcription.
+
+On the first run, the app asks for a microphone, spoken language, and Groq key.
+It requires an explicit confirmation that completed speech segments will leave
+the device before enabling transcription. **Explore first** keeps the app usable
+for inspection without accepting that boundary.
 
 ```bash
 git clone https://github.com/OthmaneBlial/audio-capture.git
@@ -156,6 +162,10 @@ is available and `2` when one is missing.
 python main.py --check-config
 python main.py --list-devices
 python main.py --list-devices --json
+python main.py --doctor
+python main.py --doctor --json
+# Explicit opt-in network/key check; never sends audio:
+python main.py --doctor --probe-provider --json
 python main.py --device 2
 python main.py --version
 python main.py --help
@@ -163,6 +173,9 @@ python main.py --help
 
 `--check-config` never prints the key. `--list-devices --json` prints device
 metadata only and does not contact Groq.
+`--doctor` reports readiness and remediation without contacting Groq unless
+`--probe-provider` is explicitly supplied. See [the versioned CLI
+contracts](docs/CLI.md) for fields and exit codes.
 
 ## Architecture
 
