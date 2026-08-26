@@ -9,9 +9,9 @@ URL for every completed run.
 - [x] Unit tests, Ruff, and Python compilation pass.
 - [x] Desktop file and AppStream metadata validate with no errors.
 - [x] Flatpak manifest builds from a clean checkout.
-- [ ] All declared sources are fetched, then an offline `--disable-download`
+- [x] All declared sources are fetched, then an offline `--disable-download`
   rebuild passes.
-- [ ] Manifest, exported repository, and AppStream lints report zero
+- [x] Manifest, exported repository, and AppStream lints report zero
   non-excepted errors; the historical App-ID/repository punctuation exception
   remains documented in `FLATPAK-LINT.md` and is not Flathub approval.
 - [x] Bundle installs into a clean user Flatpak installation.

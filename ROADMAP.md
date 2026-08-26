@@ -248,14 +248,14 @@ first-success gates pass.
 **Outcome:** an open-source user can verify what the app does and reproduce a
 safe release decision.
 
-- [ ] Add a privacy page and a concise threat model covering microphone access,
+- [x] Add a privacy page and a concise threat model covering microphone access,
   VAD, memory, provider request, API-key storage, exports, history, logs, and
   crash reports. Link the current Groq policy/documentation rather than making
   unverifiable vendor-retention claims.
-- [ ] Add a privacy regression checklist/test suite: no raw-audio files,
+- [x] Add a privacy regression checklist/test suite: no raw-audio files,
   secrets redacted from logs/errors, no key in diagnostics, retention disabled
   by default, and explicit export/history permissions.
-- [ ] Expand CI to the declared supported Python range, package builds, test
+- [x] Expand CI to the declared supported Python range, package builds, test
   coverage reporting, dependency vulnerability checks, and static security
   analysis. Native hardware checks remain separately labelled manual evidence.
 - [ ] Add reproducible release automation: version consistency checks,
@@ -264,12 +264,29 @@ safe release decision.
 - [ ] Test against representative PipeWire/PulseAudio and X11/Wayland paths;
   publish a compatibility issue template that captures only the data needed to
   reproduce an audio failure.
-- [ ] Define a supported-version and deprecation policy. Keep security fixes,
+- [x] Define a supported-version and deprecation policy. Keep security fixes,
   packaging fixes, and model/provider changes easy to audit in release notes.
 
 **Acceptance gate:** every release has a test report, provenance/checksum,
 known limitations, compatibility status, and a privacy-change section. A
 security reviewer can follow the documented data flow from microphone to export.
+
+**Implementation evidence:** the published privacy notice and threat model map
+microphone, VAD, bounded memory, provider requests, credentials, text storage,
+exports, logs, local executables, and release supply chain. Four privacy tests
+join the 58-test suite. Exact-commit CI run `33018105244` passed Python 3.9,
+3.11, and 3.14 with branch coverage above 70%, wheel/sdist builds, a hashed
+dependency audit, Bandit, Ruff, and compilation. Flatpak run `33018105481`
+passed the documented App-ID-only linter exception, mirrored AppStream/repo
+lints, a clean `--disable-download` rebuild, install/GTK/CLI smoke, and removal.
+CodeQL run `33018105062` passed all detected languages with no open alerts.
+Release automation now validates version/changelog surfaces and creates a
+checksum, CycloneDX SBOM, test report, provenance and SBOM attestations, and
+release notes. Its checkbox remains open until the `v1.0.0` tag proves the
+complete publish job. The compatibility checkbox also remains open because
+Xvfb and capability unit tests are not relabelled as real Wayland/X11 plus
+PipeWire/PulseAudio microphone sessions; the new structured issue form records
+that missing evidence without collecting sensitive system dumps.
 
 ### P5 — Build an open-source distribution and contribution loop
 
