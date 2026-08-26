@@ -1,5 +1,23 @@
 # Good first issue candidates
 
+## Published contribution queue
+
+The maintained public tasks below each name a maintainer, acceptance criteria,
+verification boundary, and privacy-safe reporting rules:
+
+- [Ubuntu GNOME Wayland + PipeWire compatibility](https://github.com/OthmaneBlial/audio-capture/issues/3)
+- [Debian X11 + PulseAudio compatibility](https://github.com/OthmaneBlial/audio-capture/issues/4)
+- [Orca first-run and dictation-desk review](https://github.com/OthmaneBlial/audio-capture/issues/5)
+- [French installation and privacy guidance](https://github.com/OthmaneBlial/audio-capture/issues/6)
+- [Public Flatpak install and removal reproduction](https://github.com/OthmaneBlial/audio-capture/issues/7)
+- [Fake provider-boundary contract fixture](https://github.com/OthmaneBlial/audio-capture/issues/8)
+- [Laptop tiny.en benchmark reproduction](https://github.com/OthmaneBlial/audio-capture/issues/9)
+- [v1 asset, SBOM, and provenance verification](https://github.com/OthmaneBlial/audio-capture/issues/10)
+
+Use the [contributor map](contributing/README.md) before claiming a task. The
+older candidate patterns below remain useful when one of the published issues
+is completed and the queue needs a similarly bounded replacement.
+
 These candidates are intentionally bounded. Before publishing one as an issue,
 a maintainer should confirm it still matches the current code and promise to
 review the resulting pull request.

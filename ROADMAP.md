@@ -296,16 +296,16 @@ contributors a bounded way to help.
 - [ ] Publish a release page that includes the demo, a one-sentence outcome,
   package instructions, support matrix, privacy delta, benchmark delta, and
   a short “help wanted” list.
-- [ ] Create a public `docs/contributing/` map: architecture tour, local
+- [x] Create a public `docs/contributing/` map: architecture tour, local
   development without a real API key, fake audio fixtures, UI contribution
   guide, packaging guide, and an issue-to-PR path.
-- [ ] Curate 5–10 narrowly scoped issues after P1/P2 evidence exists: package
+- [x] Curate 5–10 narrowly scoped issues after P1/P2 evidence exists: package
   smoke test, documentation translation, accessibility review, device matrix,
   provider contract fixture, and release QA. Each issue needs acceptance
   criteria and a maintainer.
-- [ ] Enable GitHub Discussions only if it will receive regular responses;
+- [x] Enable GitHub Discussions only if it will receive regular responses;
   otherwise direct users to issues with the two existing structured forms.
-- [ ] Write one technical launch post and one user-focused demo post around the
+- [x] Write one technical launch post and one user-focused demo post around the
   verified differentiator: ephemeral voice-to-text with an explicit cloud
   boundary. Share only after a packaged release and demo exist; collect feedback
   questions rather than asking generically for stars.
@@ -316,6 +316,23 @@ contributors a bounded way to help.
 **Acceptance gate:** the project has an installable release, a visual proof,
 an honest support boundary, a contributor’s first task, and a repeatable
 release/feedback cycle.
+
+**Implementation evidence:** the contributor map now provides an architecture
+tour, no-key development loop, synthetic audio/provider fixture contract, GTK
+and accessibility guide, packaging guide, and complete issue-to-PR path. Eight
+public issues (`#3`–`#10`) cover two physical compatibility combinations,
+Orca, French docs, public-asset installation, a provider fixture, a laptop
+benchmark, and v1 release QA; every issue names `@OthmaneBlial`, acceptance
+criteria, and privacy-safe reporting constraints. Discussions remains
+intentionally disabled and routes to structured issues because a regular
+response loop is not yet proven. The technical and user-demo launch articles,
+with original cover art, are committed under `blogs/` and remain marked for
+publication only after public v1 verification. `docs/FAQ.md` and
+`docs/FEEDBACK.md` define how a report becomes a compatibility row, FAQ,
+regression test, fix, or credited contribution without telemetry. The release
+page and external-feedback checkbox remain open until v1 assets are public and
+real outside feedback exists; prepared machinery is not relabelled as those
+outcomes.
 
 ## Recommended release sequence
 
