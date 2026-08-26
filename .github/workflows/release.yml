@@ -38,7 +38,8 @@ jobs:
           bundle: voice-transcriber.flatpak
           manifest-path: io.github.othmaneblial.audio_capture.yml
           cache-key: release-flatpak-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('io.github.othmaneblial.audio_capture.yml', 'packaging/python3-dependencies.json') }}
-      - name: Prove a no-download rebuild and lint the exported repository
+          mirror-screenshots-url: https://dl.flathub.org/media
+      - name: Prove a no-download rebuild
         run: |
           source_dir="$RUNNER_TEMP/voice-transcriber-source"
           mkdir -p "$source_dir"
@@ -46,12 +47,13 @@ jobs:
           git archive --format=tar HEAD | tar -xf - -C "$source_dir"
           flatpak-builder --force-clean --disable-download --disable-rofiles-fuse \
             --state-dir="$GITHUB_WORKSPACE/.flatpak-builder" \
-            --repo="$RUNNER_TEMP/offline-repo" \
             "$RUNNER_TEMP/offline-build" \
             "$source_dir/io.github.othmaneblial.audio_capture.yml"
+      - name: Lint the mirrored exported repository
+        run: |
           flatpak-builder-lint --exceptions \
             --user-exceptions packaging/flatpak-lint-exceptions.json \
-            repo "$RUNNER_TEMP/offline-repo"
+            repo repo
       - name: Smoke test installed bundle
         run: packaging/smoke_test_flatpak.sh voice-transcriber.flatpak
       - name: Generate checksum, SBOM, test report, and notes
