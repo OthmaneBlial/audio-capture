@@ -40,7 +40,7 @@ jobs:
           cache-key: release-flatpak-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('io.github.othmaneblial.audio_capture.yml', 'packaging/python3-dependencies.json') }}
       - name: Prove a no-download rebuild and lint the exported repository
         run: |
-          flatpak-builder --force-clean --disable-download \
+          flatpak-builder --force-clean --disable-download --disable-rofiles-fuse \
             --repo=offline-repo offline-build io.github.othmaneblial.audio_capture.yml
           flatpak-builder-lint --exceptions \
             --user-exceptions packaging/flatpak-lint-exceptions.json repo offline-repo
