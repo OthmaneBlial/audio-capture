@@ -1,16 +1,7 @@
-# Real-Time Voice Transcriber Dependencies
-
-# Groq SDK for Whisper transcription
-groq>=0.4.0
-
-# Audio capture
-PyAudio>=0.2.13
-
-# Voice activity detection
-webrtcvad>=2.0.10
-
-# GTK3 Python bindings (usually pre-installed on Ubuntu)
-PyGObject>=3.42.0
-
-# Environment variable management
-python-dotenv>=1.0.0
+# Runtime dependencies. GTK and PortAudio development libraries are installed
+# by setup.sh on Debian/Ubuntu before pip resolves the native Python packages.
+groq>=0.4,<2
+PyAudio>=0.2.13,<1
+webrtcvad>=2.0.10,<3
+PyGObject>=3.42,<4
+python-dotenv>=1.0,<2

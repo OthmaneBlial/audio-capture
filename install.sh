@@ -1,41 +1,37 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Add a desktop-menu launcher for a completed local installation.
 
-# Voice Transcriber Installer
-# Creates a Desktop Entry for launch from application menu
+set -euo pipefail
 
-# Get the absolute path of the project directory
-PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ICON_PATH="$PROJECT_DIR/resources/icon.svg"
-EXEC_PATH="$PROJECT_DIR/venv/bin/python $PROJECT_DIR/main.py"
-DESKTOP_FILE="$HOME/.local/share/applications/voice-transcriber.desktop"
+project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python_path="$project_dir/venv/bin/python"
+icon_path="$project_dir/resources/icon.svg"
+desktop_dir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+desktop_file="$desktop_dir/voice-transcriber.desktop"
 
-# Ensure venv exists
-if [ ! -d "$PROJECT_DIR/venv" ]; then
-    echo "❌ Virtual environment not found. Please run ./setup.sh first."
-    exit 1
+if [[ ! -x "$python_path" ]]; then
+  echo "Virtual environment not found. Run ./setup.sh first." >&2
+  exit 1
+fi
+if [[ ! -f "$icon_path" ]]; then
+  echo "Application icon is missing at $icon_path." >&2
+  exit 1
 fi
 
-echo "Installing Voice Transcriber..."
-
-# Create the .desktop file
-cat > "$DESKTOP_FILE" << EOF
+mkdir -p "$desktop_dir"
+cat > "$desktop_file" <<EOF
 [Desktop Entry]
 Version=1.0
 Type=Application
 Name=Voice Transcriber
-Comment=Real-time speech-to-text with Groq Whisper
-Exec=$EXEC_PATH
-Icon=$ICON_PATH
+Comment=Live microphone transcription with Groq Whisper
+Exec="$python_path" "$project_dir/main.py"
+Icon=$icon_path
 Terminal=false
-Categories=Utility;Audio;
+Categories=Utility;AudioVideo;Audio;
+Keywords=voice;transcription;speech-to-text;whisper;groq;
 StartupWMClass=voice-transcriber
 EOF
+chmod 644 "$desktop_file"
 
-# Make executable (optional for .desktop, but good practice)
-chmod +x "$DESKTOP_FILE"
-
-echo "✅ Installed successfully!"
-echo "   Icon: $ICON_PATH"
-echo "   Exec: $EXEC_PATH"
-echo ""
-echo "🎉 You can now find 'Voice Transcriber' in your applications menu."
+echo "Installed launcher: $desktop_file"

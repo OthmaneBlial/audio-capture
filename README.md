@@ -1,227 +1,120 @@
-# 🎤 Real-Time Voice Transcriber
+# Voice Transcriber
 
-A lightweight Linux desktop application that continuously listens to microphone input and transcribes speech to text in real time using Groq's Whisper Large V3 Turbo model.
+[![CI](https://github.com/OthmaneBlial/audio-capture/actions/workflows/ci.yml/badge.svg)](https://github.com/OthmaneBlial/audio-capture/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/OthmaneBlial/audio-capture?display_name=tag)](https://github.com/OthmaneBlial/audio-capture/releases)
+[![License](https://img.shields.io/github/license/OthmaneBlial/audio-capture)](LICENSE)
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![GTK3](https://img.shields.io/badge/GTK-3.0-green.svg)
-![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04+-orange.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+**Turn spoken notes into editable text without managing audio files.** Voice Transcriber is a focused Linux GTK desktop app: it listens to your microphone, detects speech locally, and sends only completed speech segments to Groq Whisper for fast transcription.
 
-## ✨ Features
+**[Visit the project site →](https://othmaneblial.github.io/audio-capture/)**
 
-- **Real-time transcription** using Groq's ultra-fast Whisper Large V3 Turbo (216x real-time speed)
-- **Voice Activity Detection** (VAD) to avoid transcribing silence
-- **Always-on-top mode** (sticky window) for overlay use
-- **Dark theme** with modern, minimal UI
-- **Low latency** and **low CPU usage** optimized audio pipeline
-- **Graceful error handling** with visual feedback
+> Privacy boundary: microphone frames and transcript state stay in the app's memory. Completed speech segments are sent to Groq for transcription; this is not an offline transcription engine. Exported transcripts are saved locally only when you choose to export.
 
-## 🏗️ Architecture
+## Why it is useful
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Main Application                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
-│  │   Audio      │────│     VAD      │────│ Transcription│      │
-│  │   Capture    │    │   (webrtcvad)│    │   (Groq)     │      │
-│  │  (PyAudio)   │    │              │    │              │      │
-│  └──────────────┘    └──────────────┘    └──────────────┘      │
-│         │                                        │               │
-│         │            ┌──────────────┐            │               │
-│         └────────────│     UI       │────────────┘               │
-│                      │   (GTK3)     │                            │
-│                      └──────────────┘                            │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+The fast path is deliberately short: configure one key, click **Start listening**, speak, then copy or export the result. Voice activity detection avoids uploading silence, and the app keeps a bounded work queue so a slow connection cannot spawn unlimited background requests.
 
-### Audio Pipeline
+- Real microphone capture: 16 kHz mono PCM, tuned for Whisper.
+- Local speech detection with `webrtcvad`; silence is never sent as a transcription request.
+- Groq Whisper transcription or translation to English.
+- A keyboard-friendly recording desk with session status, copy, export, adjustable text, and always-on-top mode.
+- Clear failure guidance for missing keys, connectivity, rate limits, microphone access, and a full request queue.
+- No simulated transcripts. If configuration is incomplete, the app says so.
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| Capture | PyAudio | Real-time microphone input |
-| Format | 16kHz, Mono, 16-bit PCM | Optimal for Whisper |
-| VAD | webrtcvad | Detect speech vs silence |
-| Transcription | Groq Whisper API | Convert speech to text |
-| UI | GTK3 | Display results |
+## Quick start
 
-### Threading Model
-
-- **Main Thread**: GTK UI event loop
-- **Audio Thread**: Continuous microphone capture
-- **Processing Thread**: VAD and API calls
-
-This design ensures the UI remains responsive while audio is being processed.
-
-## 📋 Requirements
-
-- **OS**: Ubuntu 20.04, 22.04, or 24.04 (or other Debian-based distros)
-- **Python**: 3.8 or higher
-- **Groq API Key**: Get one free at https://console.groq.com
-
-## 🚀 Installation
-
-### Quick Setup (Recommended)
+Voice Transcriber currently supports Debian/Ubuntu Linux desktops with GTK 3 and a working microphone.
 
 ```bash
-# Clone or download this project
+git clone https://github.com/OthmaneBlial/audio-capture.git
 cd audio-capture
-
-# Run the setup script
-chmod +x setup.sh
 ./setup.sh
-
-# Add your Groq API key
-nano .env  # or use your favorite editor
-
-# Run the application
+cp .env.example .env
+# Edit .env and set GROQ_API_KEY to a newly created Groq API key.
 source venv/bin/activate
+python main.py --check-config
 python main.py
 ```
 
-### Manual Setup
+Inside the app, use **Start listening** (or `Ctrl+Enter`), then **Copy** (`Ctrl+Shift+C`) or **Export**. The Settings menu supports language selection, translation, font size, opacity, and an API key saved in a local owner-only configuration file.
 
-1. **Install system dependencies:**
+## Installation details
+
+`setup.sh` installs required Debian/Ubuntu system libraries, creates `venv/`, and installs Python dependencies. If you prefer manual setup:
 
 ```bash
 sudo apt update
-sudo apt install -y \
-    python3 python3-pip python3-venv \
-    python3-gi python3-gi-cairo \
-    gir1.2-gtk-3.0 \
-    portaudio19-dev python3-pyaudio \
-    libcairo2-dev libgirepository1.0-dev pkg-config
-```
-
-2. **Create and activate virtual environment:**
-
-```bash
+sudo apt install -y python3 python3-pip python3-venv python3-gi gir1.2-gtk-3.0 \
+  portaudio19-dev python3-pyaudio libcairo2-dev libgirepository1.0-dev pkg-config
 python3 -m venv venv --system-site-packages
 source venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-3. **Install Python dependencies:**
+To add an application-menu entry after setup:
 
 ```bash
-pip install -r requirements.txt
+./install.sh
 ```
 
-4. **Set up your API key:**
+## Configuration
+
+Settings resolve in this order:
+
+```text
+defaults < ~/.config/voice-transcriber/config.json < environment variables
+```
+
+`GROQ_API_KEY` has the highest precedence. It is never logged. Local settings are atomically written with owner-only file permissions; `.env` is ignored by Git. `python main.py --check-config` exits with status `0` when a plausible API key is available and `2` when one is missing.
+
+| Setting | Where | Notes |
+| --- | --- | --- |
+| `GROQ_API_KEY` | environment or `.env` | Required to transcribe. Create and control this key in Groq. |
+| Language | Settings | Auto-detect by default; English, French, Spanish, German, Italian, Portuguese, Arabic, and Chinese are offered. |
+| Translate to English | Settings | Uses Groq's translation endpoint. |
+| Keep on top | Window control | Helpful while dictating into another app. |
+
+## Architecture
+
+```text
+Microphone → bounded frame queue → local VAD → bounded API worker pool → GTK transcript
+```
+
+The UI runs on GTK's main loop. Capture and VAD run away from it, while a two-worker transcription pool accepts only a small number of pending segments. See [the architecture note](docs/ARCHITECTURE.md) for lifecycle and failure behavior.
+
+## Troubleshooting
+
+| What you see | What to do |
+| --- | --- |
+| “No Groq API key is configured” | Set `GROQ_API_KEY` in `.env` or add a key in Settings, then start again. |
+| The microphone cannot open | Verify a microphone is connected and grant microphone access to your desktop session. On Linux, check PipeWire/PulseAudio settings. |
+| “Could not reach Groq” | Check your network connection and Groq service access. The app leaves the session running so you can continue after recovery. |
+| Rate-limit message | Wait a few seconds before speaking more; the request queue is intentionally bounded. |
+| PyAudio cannot install | Ensure `portaudio19-dev` is installed, then recreate the virtual environment with `--system-site-packages`. |
+
+## Development
 
 ```bash
-# Option 1: Create .env file
-echo "GROQ_API_KEY=your_api_key_here" > .env
-
-# Option 2: Export environment variable
-export GROQ_API_KEY=your_api_key_here
+python3 -m unittest discover -s tests -v
+ruff check .
+python3 -m compileall -q audio transcription ui config.py main.py
 ```
 
-5. **Run the application:**
+The unit suite fakes external native/API boundaries; it exercises configuration precedence and permissions, VAD segmentation, error normalization, WAV conversion, and the request bound without requiring a microphone or a Groq account. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
-```bash
-python main.py
-```
+## Security and responsible disclosure
 
-## 🎮 Usage
+Please do not report security issues in public GitHub issues. Follow [SECURITY.md](SECURITY.md) for private reporting guidance. If a credential ever reached Git history, rotate it in the issuing service even after removing the file from the current branch.
 
-1. **Start the application** with `python main.py`
-2. **Click "▶ Start Listening"** to begin capturing audio
-3. **Speak into your microphone** - transcription appears in real-time
-4. **Toggle "📌 Sticky"** to keep the window on top of others
-5. **Click "⏹ Stop Listening"** to pause
-6. **Click "🗑 Clear"** to clear the transcript
+## Roadmap
 
-### Status Indicators
+- [ ] Optional configurable input-device picker.
+- [ ] Configurable local transcript retention with an explicit opt-in.
+- [ ] Distribution packages for supported Linux desktop environments.
 
-| Status | Meaning |
-|--------|---------|
-| Ready | App is ready, not listening |
-| 🎤 Listening... | Capturing audio, waiting for speech |
-| 🗣 Speaking... (Xs) | Speech detected, buffering |
-| ⏳ Transcribing... | Sending audio to Groq API |
-| ❌ Error message | Something went wrong |
+These are not implemented in `v0.1.0`.
 
-## ⚙️ Configuration
+## License
 
-### VAD Settings
-
-Edit `main.py` to adjust voice activity detection:
-
-```python
-self._vad = VoiceActivityDetector(
-    aggressiveness=2,        # 0-3, higher = more aggressive filtering
-    silence_threshold_ms=500, # Silence duration to end segment
-    min_speech_ms=250,       # Minimum speech duration
-    max_speech_ms=25000,     # Maximum segment length (25s)
-)
-```
-
-### Language
-
-To transcribe a specific language, add the language parameter:
-
-```python
-self._transcriber = GroqTranscriptionService(
-    language="en",  # "en", "es", "fr", "de", "ja", etc.
-)
-```
-
-## 🐛 Troubleshooting
-
-### "No audio input device found"
-
-- Check your microphone is connected
-- Run `arecord -l` to list audio devices
-- Check PulseAudio/PipeWire settings
-
-### "API connection failed"
-
-- Verify your GROQ_API_KEY is correct
-- Check your internet connection
-- Ensure you have API credits at https://console.groq.com
-
-### GTK warnings on Wayland
-
-The always-on-top feature works best on X11. On Wayland, you may need to:
-- Right-click the window title bar → "Always on Top"
-- Install `gnome-shell-extension-always-on-top` for GNOME
-
-### PyAudio installation fails
-
-```bash
-# Install PortAudio development files first
-sudo apt install portaudio19-dev
-pip install pyaudio
-```
-
-## 📁 Project Structure
-
-```
-audio-capture/
-├── main.py                 # Application entry point
-├── audio/
-│   ├── __init__.py
-│   ├── capture.py          # PyAudio microphone capture
-│   └── vad.py              # Voice activity detection
-├── transcription/
-│   ├── __init__.py
-│   └── groq_service.py     # Groq Whisper API integration
-├── ui/
-│   ├── __init__.py
-│   └── main_window.py      # GTK3 main window
-├── requirements.txt        # Python dependencies
-├── setup.sh                # Ubuntu setup script
-└── README.md               # This file
-```
-
-## 📄 License
-
-MIT License - feel free to use this in your own projects!
-
-## 🙏 Acknowledgments
-
-- [Groq](https://groq.com) for the lightning-fast Whisper API
-- [webrtcvad](https://github.com/wiseman/py-webrtcvad) for voice activity detection
-- [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) for audio capture
+Released under the [MIT License](LICENSE).

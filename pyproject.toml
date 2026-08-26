@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voice-transcriber"
+version = "0.1.0"
+description = "A focused GTK desktop app for live Groq Whisper transcription from your microphone."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: X11 Applications :: GTK",
+  "Intended Audience :: End Users/Desktop",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+dependencies = [
+  "groq>=0.4,<2",
+  "PyAudio>=0.2.13,<1",
+  "webrtcvad>=2.0.10,<3",
+  "PyGObject>=3.42,<4",
+  "python-dotenv>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6,<1"]
+
+[project.scripts]
+voice-transcriber = "main:main"
+
+[project.urls]
+Homepage = "https://othmaneblial.github.io/audio-capture/"
+Repository = "https://github.com/OthmaneBlial/audio-capture"
+Issues = "https://github.com/OthmaneBlial/audio-capture/issues"
+
+[tool.setuptools]
+py-modules = ["main", "config"]
+
+[tool.setuptools.packages.find]
+include = ["audio*", "transcription*", "ui*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+extend-exclude = ["venv", ".venv", ".test-venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E402", "E501"]

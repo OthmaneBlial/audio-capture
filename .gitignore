@@ -1,2 +1,20 @@
-# venv
+# Local credentials and application state
+.env
+.env.*
+!.env.example
+
+# Python environments, caches, and build artifacts
 venv/
+.venv/
+.test-venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Local transcripts and editor files
+transcript_*.txt
+.DS_Store

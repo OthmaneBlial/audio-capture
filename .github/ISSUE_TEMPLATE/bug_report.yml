@@ -1,0 +1,24 @@
+name: Bug report
+description: Report a reproducible problem with Voice Transcriber.
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Do not include API keys, recordings, or private transcript content.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Start the app\n2. …"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS, desktop environment, and app version
+    validations:
+      required: true

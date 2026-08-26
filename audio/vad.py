@@ -1,8 +1,9 @@
 """Voice Activity Detection using webrtcvad."""
 
 import collections
+from typing import Optional
+
 import webrtcvad
-from typing import Optional, Generator, List
 
 
 class VoiceActivityDetector:
@@ -39,6 +40,12 @@ class VoiceActivityDetector:
             raise ValueError(f"Invalid frame duration: {frame_duration_ms}")
         if not 0 <= aggressiveness <= 3:
             raise ValueError(f"Invalid aggressiveness: {aggressiveness}")
+        if silence_threshold_ms < frame_duration_ms:
+            raise ValueError("silence_threshold_ms must be at least one audio frame")
+        if min_speech_ms < frame_duration_ms:
+            raise ValueError("min_speech_ms must be at least one audio frame")
+        if max_speech_ms < min_speech_ms:
+            raise ValueError("max_speech_ms must be greater than min_speech_ms")
             
         self._sample_rate = sample_rate
         self._frame_duration_ms = frame_duration_ms
@@ -60,7 +67,7 @@ class VoiceActivityDetector:
         self._ring_buffer: collections.deque = collections.deque(maxlen=self._silence_frames)
         
         # Current speech segment
-        self._speech_frames: List[bytes] = []
+        self._speech_frames: list[bytes] = []
         self._is_speaking = False
         self._voiced_count = 0
         
@@ -74,6 +81,8 @@ class VoiceActivityDetector:
         Returns:
             Complete speech segment bytes if speech ended, None otherwise
         """
+        if not isinstance(frame, bytes):
+            raise TypeError("frame must be bytes")
         if len(frame) != self._frame_size:
             # Handle incorrect frame size by padding or truncating
             if len(frame) < self._frame_size:

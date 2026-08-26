@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Voice Transcriber is a focused Linux desktop app for live Groq Whisper transcription.">
+    <title>Voice Transcriber — speech, without the busywork</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="Voice Transcriber home">
+        <span class="brand-mark" aria-hidden="true">⌁</span>
+        <span>Voice Transcriber</span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <nav id="site-nav" aria-label="Primary navigation">
+        <a href="#workflow">Workflow</a>
+        <a href="#privacy">Privacy</a>
+        <a href="docs.html">Docs</a>
+        <a class="nav-repo" href="https://github.com/OthmaneBlial/audio-capture">GitHub <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Linux desktop · Groq Whisper · local speech detection</p>
+          <h1>Let the thought<br>arrive <em>before</em><br>the formatting.</h1>
+          <p class="lede">Voice Transcriber catches speech from your microphone, filters silence locally, and gives you clean editable text — ready to copy, export, or keep beside your work.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#install">Try the quick start <span aria-hidden="true">↓</span></a>
+            <a class="button button-quiet" href="docs.html">Read the docs</a>
+          </div>
+          <p class="microcopy">No recordings are saved by the app. Speech segments are sent to Groq only after local voice activity detection.</p>
+        </div>
+        <div class="desk-preview" aria-label="Illustration of the Voice Transcriber interface">
+          <div class="preview-top"><span class="signal" aria-hidden="true"></span><span>VOICE TRANSCRIBER</span><span class="preview-settings" aria-hidden="true">⚙</span></div>
+          <div class="preview-body">
+            <p class="preview-label">LIVE SESSION</p>
+            <div class="preview-button">■ &nbsp; Stop listening</div>
+            <p class="preview-status"><span class="status-dot" aria-hidden="true"></span> Listening · speech detected (3.2s)</p>
+            <div class="preview-transcript">
+              <p>“The important part is getting the idea out before it disappears.”</p>
+              <span class="cursor" aria-hidden="true"></span>
+            </div>
+            <div class="preview-footer"><span>Keep on top&nbsp; <b>●</b></span><span>Clear&nbsp;&nbsp; Copy</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="statement" aria-labelledby="statement-title">
+        <p class="eyebrow">The point</p>
+        <h2 id="statement-title">A small, dependable desk for when typing gets in the way.</h2>
+        <p>There is no audio library to organise and no generic dashboard to navigate. Start a session, talk naturally, then put the words where they belong.</p>
+      </section>
+
+      <section id="workflow" class="workflow" aria-labelledby="workflow-title">
+        <div class="section-heading">
+          <p class="eyebrow">The short path</p>
+          <h2 id="workflow-title">From microphone to useful text.</h2>
+        </div>
+        <ol class="steps">
+          <li><span class="step-number">01</span><h3>Listen</h3><p>Capture 30 ms microphone frames in a bounded real-time queue.</p></li>
+          <li><span class="step-number">02</span><h3>Detect</h3><p>Voice activity detection runs on your device, so silence never becomes a transcription request.</p></li>
+          <li><span class="step-number">03</span><h3>Transcribe</h3><p>Completed segments travel to Groq Whisper through a bounded two-worker request pool.</p></li>
+          <li><span class="step-number">04</span><h3>Use it</h3><p>Review the growing transcript, then copy it or export a local UTF-8 text file.</p></li>
+        </ol>
+      </section>
+
+      <section id="privacy" class="privacy" aria-labelledby="privacy-title">
+        <div>
+          <p class="eyebrow">An honest boundary</p>
+          <h2 id="privacy-title">Local capture. Cloud transcription. No ambiguity.</h2>
+        </div>
+        <div class="boundary-grid">
+          <article><p class="boundary-label">Stays on your device</p><ul><li>Raw microphone frames before speech is detected</li><li>The active transcript until you copy or export it</li><li>Window preferences and local settings</li></ul></article>
+          <article><p class="boundary-label boundary-label-send">Sent when you speak</p><ul><li>Completed speech segments, encoded in memory as WAV</li><li>Your configured language or translation request</li><li>Nothing is sent while waiting in silence</li></ul></article>
+        </div>
+      </section>
+
+      <section id="install" class="install" aria-labelledby="install-title">
+        <div class="section-heading"><p class="eyebrow">First result</p><h2 id="install-title">One key. One command. Start speaking.</h2></div>
+        <div class="terminal" aria-label="Quick-start commands">
+          <div class="terminal-bar"><span></span><span></span><span></span><p>terminal</p></div>
+          <pre><code id="quickstart">git clone https://github.com/OthmaneBlial/audio-capture.git
+cd audio-capture
+./setup.sh
+cp .env.example .env
+# add GROQ_API_KEY to .env
+source venv/bin/activate
+python main.py</code></pre>
+          <button class="copy-button" type="button" data-copy-target="quickstart">Copy command</button>
+        </div>
+        <p class="install-note">For Debian/Ubuntu desktops with GTK 3. Run <code>python main.py --check-config</code> before opening the app to verify the key without starting the GUI.</p>
+      </section>
+
+      <section class="closing">
+        <p class="eyebrow">Built for the moment</p>
+        <h2>Keep the conversation. Lose the friction.</h2>
+        <a class="button button-primary" href="https://github.com/OthmaneBlial/audio-capture">Explore the source <span aria-hidden="true">↗</span></a>
+      </section>
+    </main>
+
+    <footer><span>Voice Transcriber</span><span>MIT licensed</span><a href="docs.html">Documentation</a><a href="https://github.com/OthmaneBlial/audio-capture">GitHub</a></footer>
+  </body>
+</html>

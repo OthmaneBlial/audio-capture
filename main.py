@@ -1,267 +1,270 @@
 #!/usr/bin/env python3
-"""
-Real-Time Voice Transcriber
+"""Desktop entry point for Voice Transcriber."""
 
-A lightweight Linux desktop application that continuously listens to
-microphone input and transcribes speech to text using Groq's Whisper
-Large V3 Turbo model.
+from __future__ import annotations
 
-Usage:
-    python main.py
-
-Environment Variables:
-    GROQ_API_KEY: Your Groq API key (required)
-"""
-
-import os
+import argparse
+import logging
+import signal
 import sys
 import threading
-import signal
-import time
-from typing import Optional
+from typing import Any, Optional
 
-# Load environment variables from .env file
 from dotenv import load_dotenv
-load_dotenv()
 
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GLib
-
-from audio import AudioCapture, VoiceActivityDetector
-from transcription import GroqTranscriptionService
-from ui import MainWindow
 from config import ConfigManager
+
+__version__ = "0.1.0"
+LOGGER = logging.getLogger(__name__)
+Gtk: Any = None
+GLib: Any = None
 
 
 class VoiceTranscriberApp:
-    """
-    Main application controller.
-    
-    Coordinates audio capture, voice activity detection,
-    transcription, and UI updates.
-    """
-    
-    def __init__(self):
-        """Initialize the application."""
-        self._running = False
+    """Coordinate microphone capture, VAD, API work, and the GTK window."""
+
+    def __init__(self) -> None:
+        from transcription import GroqTranscriptionService
+        from ui import MainWindow
+
+        self._running = threading.Event()
+        self._lifecycle_lock = threading.RLock()
         self._processing_thread: Optional[threading.Thread] = None
-        self._audio: Optional[AudioCapture] = None
-        self._vad: Optional[VoiceActivityDetector] = None
-        
-        # Initialize configuration
+        self._audio: Any = None
+        self._vad: Any = None
         self._config = ConfigManager()
-        
-        # Get settings
-        api_key = self._config.get("api_key")
-        language = self._config.get("language")
-        translate = self._config.get("translate_to_english")
-        
-        # Warn if no key (but don't exit, UI will handle it)
-        if not api_key or "your_api_key" in api_key:
-            print("Notice: No API key found in config or env. Running in mock mode.")
-        
-        # Initialize transcription service
         self._transcriber = GroqTranscriptionService(
-            api_key=api_key,
+            api_key=self._config.get("api_key"),
             sample_rate=16000,
-            language=language,
+            language=self._config.get("language"),
             on_transcription=self._on_transcription,
             on_error=self._on_transcription_error,
         )
-        self._transcriber.update_config(translate=translate)
-        
-        # Initialize UI (must be done before GTK main loop)
+        self._transcriber.update_config(translate=self._config.get("translate_to_english"))
         self._window = MainWindow(
             config=self._config,
             on_start=self._start_listening,
             on_stop=self._stop_listening,
             on_settings_change=self._on_settings_change,
         )
-        
+
     def _on_settings_change(self) -> None:
-        """Handle settings changes from UI."""
-        api_key = self._config.get("api_key")
-        language = self._config.get("language")
-        translate = self._config.get("translate_to_english")
-        
+        """Apply preferences without exposing the API key in logs."""
         self._transcriber.update_config(
-            api_key=api_key,
-            language=language,
-            translate=translate
+            api_key=self._config.get("api_key"),
+            language=self._config.get("language"),
+            translate=self._config.get("translate_to_english"),
         )
-        print("Configuration updated")
-        
-    def _start_listening(self) -> None:
-        """Start the audio capture and processing."""
-        if self._running:
-            return
-        
-        try:
-            # Initialize audio components
-            self._audio = AudioCapture()
-            self._vad = VoiceActivityDetector(
-                sample_rate=self._audio.sample_rate,
-                frame_duration_ms=self._audio.frame_duration_ms,
-                aggressiveness=2,
-                silence_threshold_ms=600,
-                min_speech_ms=300,
-                max_speech_ms=20000,
-            )
-            
-            self._running = True
-            self._audio.start()
-            
-            # Start processing thread
-            self._processing_thread = threading.Thread(
-                target=self._processing_loop,
-                daemon=True,
-                name="AudioProcessing"
-            )
-            self._processing_thread.start()
-            
-            print("🎤 Listening started")
-            
-        except Exception as e:
-            print(f"Failed to start listening: {e}")
-            GLib.idle_add(lambda: self._window.show_error(str(e)) or False)
-            GLib.idle_add(lambda: self._window.stop_listening() or False)
-        
+        LOGGER.info("Transcription preferences updated")
+
+    def _start_listening(self) -> bool:
+        """Start microphone capture. Returns false when UI should remain stopped."""
+        from audio import AudioCapture, VoiceActivityDetector
+
+        with self._lifecycle_lock:
+            if self._running.is_set():
+                return True
+            if not self._config.has_api_key():
+                self._window.show_error(
+                    "No Groq API key is configured. Open Settings or set GROQ_API_KEY, then try again."
+                )
+                return False
+
+            audio: Any = None
+            try:
+                audio = AudioCapture()
+                vad = VoiceActivityDetector(
+                    sample_rate=audio.sample_rate,
+                    frame_duration_ms=audio.frame_duration_ms,
+                    aggressiveness=2,
+                    silence_threshold_ms=600,
+                    min_speech_ms=300,
+                    max_speech_ms=20_000,
+                )
+                audio.start()
+                self._audio = audio
+                self._vad = vad
+                self._running.set()
+                self._processing_thread = threading.Thread(
+                    target=self._processing_loop,
+                    args=(audio, vad),
+                    daemon=True,
+                    name="AudioProcessing",
+                )
+                self._processing_thread.start()
+            except Exception as error:
+                if audio is not None:
+                    audio.stop()
+                LOGGER.exception("Could not start microphone capture")
+                self._window.show_error(str(error))
+                return False
+
+        LOGGER.info("Listening started")
+        return True
+
     def _stop_listening(self) -> None:
-        """Stop the audio capture and processing."""
-        print("⏹ Stopping...")
-        self._running = False
-        
-        # Stop audio capture
-        if self._audio:
-            try:
-                self._audio.stop()
-            except Exception as e:
-                print(f"Error stopping audio: {e}")
+        """Stop capture deterministically, then flush an in-progress speech segment."""
+        with self._lifecycle_lock:
+            if not self._running.is_set() and self._audio is None:
+                return
+            self._running.clear()
+            audio, vad, processing_thread = self._audio, self._vad, self._processing_thread
             self._audio = None
-        
-        # Flush remaining audio from VAD
-        if self._vad:
-            remaining = self._vad.flush()
-            if remaining and len(remaining) > 1000:  # Only transcribe if substantial
-                self._transcriber.transcribe_async(remaining)
             self._vad = None
-        
-        print("✅ Stopped")
-        
-    def _processing_loop(self) -> None:
-        """Main loop for processing audio frames."""
-        print("Processing loop started")
-        
-        while self._running and self._audio and self._vad:
+            self._processing_thread = None
+
+        if audio is not None:
+            audio.stop()
+        if processing_thread and processing_thread.is_alive() and processing_thread is not threading.current_thread():
+            processing_thread.join(timeout=1.5)
+            if processing_thread.is_alive():
+                LOGGER.warning("Audio processing did not finish before shutdown timeout")
+
+        if vad is not None:
+            remaining = vad.flush()
+            if remaining:
+                self._transcriber.transcribe_async(remaining)
+        LOGGER.info("Listening stopped")
+
+    def _processing_loop(self, audio: Any, vad: Any) -> None:
+        """Run VAD outside GTK's main loop and hand bounded segments to the API pool."""
+        while self._running.is_set():
             try:
-                # Get audio chunk with timeout
-                chunk = self._audio.get_audio_chunk(timeout=0.1)
+                chunk = audio.get_audio_chunk(timeout=0.2)
                 if chunk is None:
+                    if not audio.is_running and self._running.is_set():
+                        self._running.clear()
+                        GLib.idle_add(
+                            lambda: self._handle_capture_failure(
+                                "Microphone capture stopped unexpectedly. Check the device and start again."
+                            )
+                            or False
+                        )
                     continue
-                
-                # Process through VAD
-                speech_segment = self._vad.process_frame(chunk)
-                
-                # Update status if speaking
-                if self._vad.is_speaking:
-                    duration_s = self._vad.current_duration_ms / 1000
+
+                speech_segment = vad.process_frame(chunk)
+                if vad.is_speaking:
+                    duration = vad.current_duration_ms / 1000
                     GLib.idle_add(
-                        lambda d=duration_s: self._window.set_status(
-                            f"Speaking... ({d:.1f}s)", "active"
-                        ) or False
+                        lambda value=duration: self._window.set_status(
+                            f"Listening · speech detected ({value:.1f}s)", "active"
+                        )
+                        or False
                     )
-                
-                # Transcribe complete speech segments
                 if speech_segment:
-                    print(f"📝 Got speech segment: {len(speech_segment)} bytes")
-                    GLib.idle_add(
-                        lambda: self._window.set_status("Transcribing...", "active") or False
-                    )
+                    GLib.idle_add(lambda: self._window.set_status("Transcribing securely…", "active") or False)
                     self._transcriber.transcribe_async(speech_segment)
-                    
-            except Exception as e:
-                print(f"Processing error: {e}")
-                time.sleep(0.1)
-                
-        print("Processing loop ended")
-                
+            except Exception:
+                LOGGER.exception("Audio processing failed")
+                self._running.clear()
+                GLib.idle_add(
+                    lambda: self._handle_capture_failure(
+                        "Audio processing failed. Stop and start listening again."
+                    )
+                    or False
+                )
+                break
+
+    def _handle_capture_failure(self, message: str) -> None:
+        """Bring controller and visible record state back into sync after capture loss."""
+        self._window.show_error(message)
+        self._window.stop_listening()
+
     def _on_transcription(self, text: str) -> None:
-        """Handle successful transcription."""
-        print(f"✅ Transcribed: {text}")
-        if text and text.strip():
-            GLib.idle_add(lambda t=text: self._window.append_text(t) or False)
-            
-        if self._running:
-            GLib.idle_add(
-                lambda: self._window.set_status("Listening...", "active") or False
-            )
-            
+        if text.strip():
+            self._window.append_text(text)
+        if self._running.is_set():
+            self._window.set_status("Listening…", "active")
+
     def _on_transcription_error(self, error: Exception) -> None:
-        """Handle transcription errors."""
-        error_msg = str(error)
-        print(f"❌ Transcription error: {error_msg}")
-        
-        # Truncate long error messages
-        if len(error_msg) > 40:
-            error_msg = error_msg[:37] + "..."
-            
-        GLib.idle_add(lambda e=error_msg: self._window.show_error(e) or False)
-        
-        # Resume listening status after a delay
-        if self._running:
-            GLib.timeout_add(
-                3000,
-                lambda: self._window.set_status("Listening...", "active") or False
-            )
-        
+        # Service errors are normalized and never contain a credential.
+        self._window.show_error(str(error))
+        if self._running.is_set():
+            GLib.timeout_add(4_000, lambda: self._window.set_status("Listening…", "active") or False)
+
     def run(self) -> None:
-        """Run the application."""
-        # Handle Ctrl+C gracefully
-        def signal_handler(sig, frame):
-            print("\nShutting down...")
+        """Open the desktop window and guarantee resource cleanup on exit."""
+        def handle_signal(_signal_number: int, _frame: Any) -> None:
+            LOGGER.info("Shutdown signal received")
             self._stop_listening()
             GLib.idle_add(Gtk.main_quit)
-            
-        signal.signal(signal.SIGINT, signal_handler)
-        
-        # Show window and start main loop
+
+        signal.signal(signal.SIGINT, handle_signal)
+        signal.signal(signal.SIGTERM, handle_signal)
         self._window.show_all()
-        
-        print("🎙 Voice Transcriber started")
-        print("   Click 'Start Listening' to begin")
-        
         Gtk.main()
-        
-        # Cleanup
         self._stop_listening()
+        self._transcriber.close(wait=False)
 
 
-def main():
-    """Application entry point."""
-    # Set up application ID for icon association
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="voice-transcriber",
+        description="Capture short speech segments from your microphone and transcribe them with Groq Whisper.",
+    )
+    parser.add_argument("--version", action="version", version=f"voice-transcriber {__version__}")
+    parser.add_argument("--check-config", action="store_true", help="validate configuration without opening GTK")
+    parser.add_argument("--verbose", action="store_true", help="show diagnostic logs (never credentials)")
+    return parser
+
+
+def _configure_logging(verbose: bool) -> None:
+    logging.basicConfig(
+        level=logging.DEBUG if verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
+
+def _run_config_check() -> int:
+    config = ConfigManager()
+    if not config.has_api_key():
+        print("Configuration incomplete: set GROQ_API_KEY or add a key in the app Settings.", file=sys.stderr)
+        return 2
+    print(f"Configuration looks valid. API key source: {config.source_for('api_key')}.")
+    return 0
+
+
+def _configure_alsa_errors() -> None:
+    """Mute noisy ALSA diagnostics when the optional native library is present."""
+    try:
+        from ctypes import CDLL, CFUNCTYPE, c_char_p, c_int
+
+        callback_type = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
+        callback = callback_type(lambda *_args: None)
+        asound = CDLL("libasound.so.2")
+        asound.snd_lib_error_set_handler(callback)
+    except (OSError, ImportError):
+        LOGGER.debug("Could not install ALSA error handler", exc_info=True)
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    """Run the command-line entry point."""
+    args = _parser().parse_args(argv)
+    _configure_logging(args.verbose)
+    load_dotenv()
+    if args.check_config:
+        return _run_config_check()
+
+    global Gtk, GLib
+    try:
+        import gi
+
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import GLib as gi_glib
+        from gi.repository import Gtk as gi_gtk
+    except (ImportError, ValueError):
+        LOGGER.error(
+            "GTK 3 is unavailable. Install the Linux system prerequisites in the README before launching the desktop app."
+        )
+        LOGGER.debug("GTK import failure", exc_info=True)
+        return 1
+    Gtk, GLib = gi_gtk, gi_glib
+    _configure_alsa_errors()
     GLib.set_prgname("voice-transcriber")
     GLib.set_application_name("Voice Transcriber")
-    
-    # Suppress ALSA warnings by redirecting stderr
-    # This is a bit of a hack but cleans up the console output
-    try:
-        from ctypes import CDLL, CFUNCTYPE, c_char_p, c_int, c_void_p
-        
-        def py_error_handler(filename, line, function, err, fmt):
-            pass
-            
-        ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
-        c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
-        
-        asound = CDLL('libasound.so.2')
-        asound.snd_lib_error_set_handler(c_error_handler)
-    except:
-        pass
-    
-    app = VoiceTranscriberApp()
-    app.run()
+    VoiceTranscriberApp().run()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
