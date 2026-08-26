@@ -1216,6 +1216,7 @@ class MainWindow(Gtk.Window):
                 f"Segment {status.ordinal}, {status.state}: {status.detail}"
             )
             self._segment_box.pack_start(label, False, False, 0)
+        self._segment_box.set_no_show_all(False)
         self._segment_box.show_all()
         return False
 
