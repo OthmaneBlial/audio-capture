@@ -57,7 +57,12 @@ class GroqHTTPTransport:
                 payload = response.read()
         except urllib.error.HTTPError as error:
             status_code = error.code
-            error.close()
+            # Python 3.9's HTTPError.close() assumes a response file exists;
+            # test doubles and some failed connection paths legitimately have
+            # no body handle. Never read a provider error body, and close the
+            # handle only when one was supplied.
+            if error.fp is not None:
+                error.close()
             raise GroqTransportError(f"Groq returned HTTP {status_code}.") from error
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             raise GroqTransportError("Could not reach Groq before the request timeout.") from error
