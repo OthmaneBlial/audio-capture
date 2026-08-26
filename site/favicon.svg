@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Voice Transcriber">
+  <rect width="64" height="64" rx="16" fill="#102119"/>
+  <path d="M21 32c0-8 4-14 11-14s11 6 11 14-4 14-11 14-11-6-11-14Z" fill="#b6df61"/>
+  <path d="M17 31v2c0 9 6.7 16 15 16s15-7 15-16v-2M32 49v8M24 57h16" fill="none" stroke="#f3f0e8" stroke-linecap="round" stroke-width="4"/>
+</svg>
