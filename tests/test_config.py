@@ -62,3 +62,15 @@ class ConfigManagerTests(unittest.TestCase):
             for invalid in (-1, True, "4"):
                 with self.assertRaises(ConfigError):
                     config.set("input_device_index", invalid)
+
+    def test_onboarding_completion_is_explicit_and_boolean(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = ConfigManager(Path(temporary_directory), environ={})
+            self.assertFalse(config.get("onboarding_complete"))
+
+            config.set("onboarding_complete", True)
+            self.assertTrue(ConfigManager(Path(temporary_directory), environ={}).get("onboarding_complete"))
+
+            for invalid in (1, "true", None):
+                with self.assertRaises(ConfigError):
+                    config.set("onboarding_complete", invalid)

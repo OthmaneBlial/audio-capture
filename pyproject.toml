@@ -19,7 +19,6 @@ classifiers = [
   "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
 dependencies = [
-  "groq>=0.4,<2",
   "PyAudio>=0.2.13,<1",
   "webrtcvad>=2.0.10,<3",
   "PyGObject>=3.42,<4",
@@ -38,10 +37,13 @@ Repository = "https://github.com/OthmaneBlial/audio-capture"
 Issues = "https://github.com/OthmaneBlial/audio-capture/issues"
 
 [tool.setuptools]
-py-modules = ["main", "config"]
+py-modules = ["main", "config", "diagnostics", "onboarding"]
 
 [tool.setuptools.packages.find]
-include = ["audio*", "transcription*", "ui*"]
+include = ["audio*", "transcription*", "ui*", "resources*"]
+
+[tool.setuptools.package-data]
+resources = ["*.svg"]
 
 [tool.ruff]
 line-length = 100

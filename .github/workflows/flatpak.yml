@@ -1,0 +1,55 @@
+name: Flatpak
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "audio/**"
+      - "transcription/**"
+      - "ui/**"
+      - "config.py"
+      - "diagnostics.py"
+      - "onboarding.py"
+      - "main.py"
+      - "packaging/**"
+      - "resources/**"
+      - "pyproject.toml"
+      - "io.github.othmaneblial.audio_capture.yml"
+      - ".github/workflows/flatpak.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "audio/**"
+      - "transcription/**"
+      - "ui/**"
+      - "config.py"
+      - "diagnostics.py"
+      - "onboarding.py"
+      - "main.py"
+      - "packaging/**"
+      - "resources/**"
+      - "pyproject.toml"
+      - "io.github.othmaneblial.audio_capture.yml"
+      - ".github/workflows/flatpak.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and smoke test
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v7
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.7
+        with:
+          bundle: voice-transcriber.flatpak
+          manifest-path: io.github.othmaneblial.audio_capture.yml
+          cache-key: flatpak-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('io.github.othmaneblial.audio_capture.yml', 'packaging/python3-dependencies.json') }}
+      - name: Smoke test installed bundle
+        run: packaging/smoke_test_flatpak.sh voice-transcriber.flatpak
+

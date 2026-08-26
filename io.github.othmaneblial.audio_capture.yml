@@ -1,0 +1,45 @@
+id: io.github.othmaneblial.audio_capture
+runtime: org.gnome.Platform
+runtime-version: "50"
+sdk: org.gnome.Sdk
+command: voice-transcriber
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  - --share=network
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - "*.a"
+  - "*.la"
+modules:
+  - name: portaudio
+    buildsystem: autotools
+    config-opts:
+      - --disable-static
+      - --without-jack
+    sources:
+      - type: archive
+        url: https://github.com/PortAudio/portaudio/archive/refs/tags/v19.7.0.tar.gz
+        sha256: 5af29ba58bbdbb7bbcefaaecc77ec8fc413f0db6f4c4e286c40c3e1b83174fa0
+        x-checker-data:
+          type: anitya
+          project-id: 4133
+          stable-only: true
+          url-template: https://github.com/PortAudio/portaudio/archive/refs/tags/v$version.tar.gz
+
+  - packaging/python3-dependencies.json
+
+  - name: voice-transcriber
+    buildsystem: simple
+    build-commands:
+      - python3 -m pip install --verbose --prefix=/app --no-deps --no-build-isolation .
+      - install -Dm644 packaging/io.github.othmaneblial.audio_capture.desktop /app/share/applications/io.github.othmaneblial.audio_capture.desktop
+      - install -Dm644 packaging/io.github.othmaneblial.audio_capture.metainfo.xml /app/share/metainfo/io.github.othmaneblial.audio_capture.metainfo.xml
+      - install -Dm644 resources/icon.svg /app/share/icons/hicolor/scalable/apps/io.github.othmaneblial.audio_capture.svg
+    sources:
+      - type: dir
+        path: .
+

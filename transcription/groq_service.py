@@ -9,7 +9,7 @@ import wave
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Callable, Optional
 
-from groq import Groq
+from .groq_transport import GroqHTTPTransport
 
 LOGGER = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class GroqTranscriptionService:
         max_workers: int = 2,
         max_pending_requests: int = 4,
         request_timeout_seconds: float = 25.0,
-        client_factory: Callable[..., Groq] = Groq,
+        transport_factory: Callable[..., GroqHTTPTransport] = GroqHTTPTransport,
     ) -> None:
         if sample_rate not in (8000, 16000, 32000, 48000):
             raise ValueError("sample_rate must be supported by Whisper PCM input")
@@ -57,10 +57,10 @@ class GroqTranscriptionService:
         self._language: Optional[str] = None
         self._on_transcription = on_transcription
         self._on_error = on_error
-        self._client_factory = client_factory
+        self._transport_factory = transport_factory
         self._request_timeout_seconds = request_timeout_seconds
         self._lock = threading.RLock()
-        self._client: Optional[Groq] = None
+        self._transport: Optional[GroqHTTPTransport] = None
         self._task = "transcribe"
         self._executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="Transcription")
         self._pending = threading.BoundedSemaphore(max_pending_requests)
@@ -69,9 +69,9 @@ class GroqTranscriptionService:
 
     @property
     def configured(self) -> bool:
-        """Whether a usable Groq client is available."""
+        """Whether a usable Groq HTTP transport is available."""
         with self._lock:
-            return self._client is not None
+            return self._transport is not None
 
     def update_config(
         self,
@@ -83,7 +83,9 @@ class GroqTranscriptionService:
         with self._lock:
             if api_key is not None:
                 cleaned_key = api_key.strip()
-                self._client = self._build_client(cleaned_key) if self._is_plausible_key(cleaned_key) else None
+                self._transport = (
+                    self._build_transport(cleaned_key) if self._is_plausible_key(cleaned_key) else None
+                )
             if language is not None:
                 self._language = language if language != "auto" else None
             self._task = "translate" if translate else "transcribe"
@@ -95,29 +97,21 @@ class GroqTranscriptionService:
             with self._lock:
                 if self._closed:
                     raise TranscriptionError("The transcription service is shutting down.")
-                client = self._client
+                transport = self._transport
                 task = self._task
                 language = self._language
-            if client is None:
+            if transport is None:
                 raise TranscriptionError(
                     "No Groq API key is configured. Add GROQ_API_KEY to your environment or save a key in Settings."
                 )
 
             wav_buffer = self._pcm_to_wav(audio_data)
-            if task == "translate":
-                response = client.audio.translations.create(
-                    file=("speech.wav", wav_buffer, "audio/wav"),
-                    model=self.MODEL,
-                    response_format="text",
-                )
-            else:
-                response = client.audio.transcriptions.create(
-                    file=("speech.wav", wav_buffer, "audio/wav"),
-                    model=self.MODEL,
-                    language=language,
-                    response_format="text",
-                )
-            text = response.strip() if isinstance(response, str) else str(response).strip()
+            text = transport.transcribe(
+                wav_buffer.getvalue(),
+                model=self.MODEL,
+                language=language,
+                translate=task == "translate",
+            ).strip()
             if text and self._on_transcription:
                 self._on_transcription(text)
             return text
@@ -152,17 +146,8 @@ class GroqTranscriptionService:
             self._closed = True
         self._executor.shutdown(wait=wait, cancel_futures=True)
 
-    def _build_client(self, api_key: str) -> Groq:
-        try:
-            return self._client_factory(
-                api_key=api_key,
-                timeout=self._request_timeout_seconds,
-                max_retries=0,
-            )
-        except TypeError:
-            # Supports injected test clients and older SDKs. Current Groq clients
-            # receive explicit timeouts and disabled SDK retries.
-            return self._client_factory(api_key=api_key)
+    def _build_transport(self, api_key: str) -> GroqHTTPTransport:
+        return self._transport_factory(api_key=api_key, timeout=self._request_timeout_seconds)
 
     @staticmethod
     def _is_plausible_key(api_key: str) -> bool:

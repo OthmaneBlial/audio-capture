@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.othmaneblial.audio_capture</id>
+  <name>Voice Transcriber</name>
+  <summary>Privacy-explicit Linux dictation with local speech detection</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.othmaneblial">
+    <name>Othmane Blial</name>
+  </developer>
+  <description>
+    <p>
+      Voice Transcriber turns short spoken notes, prompts, emails, tickets, and
+      drafts into text ready to copy or explicitly export.
+    </p>
+    <p>
+      Voice activity detection and the input meter run locally. Completed speech
+      segments are sent to Groq Whisper; the application does not save raw audio
+      or collect analytics.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.othmaneblial.audio_capture.desktop</launchable>
+  <provides>
+    <binary>voice-transcriber</binary>
+  </provides>
+  <url type="homepage">https://othmaneblial.github.io/audio-capture/</url>
+  <url type="bugtracker">https://github.com/OthmaneBlial/audio-capture/issues</url>
+  <url type="vcs-browser">https://github.com/OthmaneBlial/audio-capture</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/OthmaneBlial/audio-capture/d98f1992bf33c4f6c94f3deb76046a553c0ca830/site/assets/demo-02-active.png</image>
+      <caption>A visible microphone signal, speech state, and transcript result area</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/OthmaneBlial/audio-capture/d98f1992bf33c4f6c94f3deb76046a553c0ca830/site/assets/demo-03-complete.png</image>
+      <caption>A completed transcript ready to copy, clear, or export</caption>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.2.0" date="2026-08-26">
+      <description>
+        <p>Adds microphone selection, local signal verification, and machine-readable device diagnostics.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

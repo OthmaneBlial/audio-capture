@@ -35,6 +35,7 @@ class ConfigManager:
         "window_height": 520,
         "sticky_mode": False,
         "input_device_index": None,
+        "onboarding_complete": False,
     }
     ENVIRONMENT_KEYS = {"api_key": "GROQ_API_KEY"}
     SUPPORTED_LANGUAGES = {"auto", "en", "fr", "es", "de", "it", "pt", "ar", "zh"}
@@ -164,7 +165,7 @@ class ConfigManager:
             if value not in self.SUPPORTED_LANGUAGES:
                 raise ConfigError(f"Unsupported language: {value!r}")
             return value
-        if key in {"translate_to_english", "sticky_mode"}:
+        if key in {"translate_to_english", "sticky_mode", "onboarding_complete"}:
             if not isinstance(value, bool):
                 raise ConfigError(f"{key} must be true or false")
             return value

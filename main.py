@@ -11,7 +11,12 @@ import sys
 import threading
 from typing import Any, Optional
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    # Diagnostics remain usable before optional/runtime Python packages are installed.
+    def load_dotenv() -> bool:
+        return False
 
 from config import ConfigManager
 
@@ -229,13 +234,19 @@ def _parser() -> argparse.ArgumentParser:
     checks = parser.add_mutually_exclusive_group()
     checks.add_argument("--check-config", action="store_true", help="validate configuration without opening GTK")
     checks.add_argument("--list-devices", action="store_true", help="list available microphone inputs without opening GTK")
+    checks.add_argument("--doctor", action="store_true", help="run privacy-safe environment diagnostics without opening GTK")
     parser.add_argument(
         "--device",
         type=_device_index_argument,
         metavar="INDEX",
         help="use a microphone index for this session (overrides the saved choice)",
     )
-    parser.add_argument("--json", action="store_true", help="format --list-devices output as JSON")
+    parser.add_argument("--json", action="store_true", help="format --list-devices or --doctor output as JSON")
+    parser.add_argument(
+        "--probe-provider",
+        action="store_true",
+        help="with --doctor, explicitly contact Groq to verify the configured credential",
+    )
     parser.add_argument("--verbose", action="store_true", help="show diagnostic logs (never credentials)")
     return parser
 
@@ -311,6 +322,19 @@ def _run_device_list(*, as_json: bool) -> int:
     return 0
 
 
+def _run_doctor(*, as_json: bool, probe_provider: bool) -> int:
+    """Run diagnostics without opening GTK, transmitting audio, or exposing secrets."""
+    from diagnostics import collect_diagnostics, diagnostics_json, format_diagnostics
+
+    report = collect_diagnostics(
+        ConfigManager(),
+        app_version=__version__,
+        probe_provider=probe_provider,
+    )
+    print(diagnostics_json(report) if as_json else format_diagnostics(report))
+    return 0 if report["ready"] else 1
+
+
 def _configure_alsa_errors() -> None:
     """Mute noisy ALSA diagnostics when the optional native library is present."""
     try:
@@ -326,13 +350,20 @@ def _configure_alsa_errors() -> None:
 
 def main(argv: Optional[list[str]] = None) -> int:
     """Run the command-line entry point."""
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args = parser.parse_args(argv)
+    if args.probe_provider and not args.doctor:
+        parser.error("--probe-provider requires --doctor")
+    if args.json and not (args.list_devices or args.doctor):
+        parser.error("--json requires --list-devices or --doctor")
     _configure_logging(args.verbose)
     load_dotenv()
     if args.check_config:
         return _run_config_check()
     if args.list_devices:
         return _run_device_list(as_json=args.json)
+    if args.doctor:
+        return _run_doctor(as_json=args.json, probe_provider=args.probe_provider)
 
     global Gtk, GLib
     try:

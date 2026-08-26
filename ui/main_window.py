@@ -15,6 +15,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
 from config import ConfigError, ConfigManager
+from onboarding import OnboardingError, validate_cloud_setup
 
 LOGGER = logging.getLogger(__name__)
 
@@ -46,6 +47,8 @@ class MainWindow(Gtk.Window):
         self._apply_styles()
         self._setup_ui()
         self._load_initial_settings()
+        if not self._config.get("onboarding_complete"):
+            GLib.idle_add(self._show_first_run)
 
     def _setup_window(self) -> None:
         self.set_default_size(self._config.get("window_width"), self._config.get("window_height"))
@@ -100,6 +103,8 @@ class MainWindow(Gtk.Window):
         .settings-title { color: #F4F7F0; font-size: 15px; font-weight: 800; }
         .settings-label { color: #C5D1C4; font-size: 12px; font-weight: 700; }
         .settings-help { color: #9DAE9F; font-size: 11px; }
+        .onboarding-boundary { background-color: #111813; border: 1px solid #405044; border-radius: 8px; padding: 12px; }
+        .onboarding-error { color: #FFAA8E; font-size: 12px; font-weight: 700; }
         entry, combobox { background-color: #101512; border: 1px solid #46594B; color: #F4F7F0; border-radius: 6px; padding: 6px; }
         entry:focus, combobox:focus { border-color: #B8E85A; }
         switch slider { background-color: #DCE9D7; }
@@ -347,6 +352,170 @@ class MainWindow(Gtk.Window):
         self._update_font_size(self._config.get("font_size"))
         self.set_opacity(self._config.get("opacity"))
         self.set_keep_above(self._config.get("sticky_mode"))
+
+    def _show_first_run(self) -> bool:
+        """Offer an explicit, keyboard-operable cloud setup before first transcription."""
+        dialog = Gtk.Dialog(title="Set up Voice Transcriber", transient_for=self, modal=True)
+        dialog.set_default_size(480, 500)
+        dialog.add_button("Explore first", Gtk.ResponseType.CANCEL)
+        save_button = dialog.add_button("Save and continue", Gtk.ResponseType.APPLY)
+        save_button.get_style_context().add_class("suggested-action")
+        dialog.set_default_response(Gtk.ResponseType.APPLY)
+
+        box = dialog.get_content_area()
+        box.set_spacing(12)
+        box.set_margin_top(18)
+        box.set_margin_bottom(18)
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+        box.pack_start(self._label("FIRST RUN", "eyebrow"), False, False, 0)
+        title = self._label("Know the boundary before you speak", "settings-title")
+        title.get_accessible().set_name("First-run setup")
+        box.pack_start(title, False, False, 0)
+        box.pack_start(
+            self._label(
+                "Voice activity detection runs locally. When a speech segment ends, that segment is sent to Groq cloud for transcription. Raw audio is not saved by this app.",
+                "privacy-note",
+            ),
+            False,
+            False,
+            0,
+        )
+
+        boundary = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        boundary.get_style_context().add_class("onboarding-boundary")
+        boundary.pack_start(self._label("Provider · Groq cloud", "settings-label"), False, False, 0)
+        boundary.pack_start(
+            self._label(
+                "Sent: completed speech segments and the selected language/translation request.",
+                "settings-help",
+            ),
+            False,
+            False,
+            0,
+        )
+        boundary.pack_start(
+            self._label(
+                "Local: silence detection, input meter, active transcript, and preferences.",
+                "settings-help",
+            ),
+            False,
+            False,
+            0,
+        )
+        box.pack_start(boundary, False, False, 0)
+
+        key_label = self._label("Groq API key", "settings-label")
+        box.pack_start(key_label, False, False, 0)
+        key_entry = Gtk.Entry()
+        key_entry.set_visibility(False)
+        key_entry.set_invisible_char("•")
+        key_entry.set_placeholder_text("gsk_…")
+        key_entry.set_activates_default(True)
+        key_entry.get_accessible().set_name("Groq API key")
+        if self._config.source_for("api_key") == "environment":
+            key_entry.set_placeholder_text("Set by GROQ_API_KEY")
+            key_entry.set_sensitive(False)
+        else:
+            key_entry.set_text(self._config.saved_value("api_key") or "")
+        box.pack_start(key_entry, False, False, 0)
+
+        language_label = self._label("Spoken language", "settings-label")
+        box.pack_start(language_label, False, False, 0)
+        language_combo = Gtk.ComboBoxText()
+        for code, language in (
+            ("auto", "Auto-detect"),
+            ("en", "English"),
+            ("fr", "French"),
+            ("es", "Spanish"),
+            ("de", "German"),
+            ("it", "Italian"),
+            ("pt", "Portuguese"),
+            ("ar", "Arabic"),
+            ("zh", "Chinese"),
+        ):
+            language_combo.append(code, language)
+        language_combo.set_active_id(self._config.get("language"))
+        language_combo.get_accessible().set_name("Spoken language")
+        box.pack_start(language_combo, False, False, 0)
+
+        device_label = self._label("Microphone input", "settings-label")
+        box.pack_start(device_label, False, False, 0)
+        device_combo = Gtk.ComboBoxText()
+        device_combo.append("default", "System default microphone")
+        saved_device = self._config.get("input_device_index")
+        selected_device = "default" if saved_device is None else str(saved_device)
+        try:
+            devices = self._on_list_input_devices() if self._on_list_input_devices else []
+        except Exception:
+            LOGGER.debug("Could not discover inputs during first-run setup", exc_info=True)
+            devices = []
+        known_devices = {"default"}
+        for device in devices:
+            identifier = str(device.index)
+            known_devices.add(identifier)
+            device_combo.append(identifier, f"{device.name}{' · default' if device.is_default else ''}")
+        if selected_device not in known_devices and selected_device != "default":
+            device_combo.append(selected_device, f"Saved device #{selected_device} · unavailable")
+        device_combo.set_active_id(selected_device)
+        device_combo.get_accessible().set_name("Microphone input")
+        box.pack_start(device_combo, False, False, 0)
+
+        consent = Gtk.CheckButton(
+            label="I understand that completed speech segments will be sent to Groq."
+        )
+        consent.set_tooltip_text("Required before cloud transcription can be enabled")
+        consent.get_accessible().set_name("Confirm Groq cloud data boundary")
+        box.pack_start(consent, False, False, 0)
+        error_label = self._label("", "onboarding-error")
+        error_label.set_no_show_all(True)
+        box.pack_start(error_label, False, False, 0)
+        dialog.show_all()
+        error_label.hide()
+
+        try:
+            while True:
+                response = dialog.run()
+                if response != Gtk.ResponseType.APPLY:
+                    return False
+                configured_key = (
+                    self._config.get("api_key")
+                    if self._config.source_for("api_key") == "environment"
+                    else key_entry.get_text()
+                )
+                try:
+                    clean_key = validate_cloud_setup(
+                        configured_key,
+                        data_boundary_confirmed=consent.get_active(),
+                    )
+                    selected = device_combo.get_active_id()
+                    self._config.update(
+                        {
+                            "api_key": self._config.saved_value("api_key")
+                            if self._config.source_for("api_key") == "environment"
+                            else clean_key,
+                            "language": language_combo.get_active_id() or "auto",
+                            "input_device_index": None
+                            if not selected or selected == "default"
+                            else int(selected),
+                            "onboarding_complete": True,
+                        }
+                    )
+                except (ConfigError, OnboardingError) as error:
+                    error_label.set_text(str(error))
+                    error_label.show()
+                    continue
+
+                self._language_combo.set_active_id(self._config.get("language"))
+                self._device_combo.set_active_id(selected or "default")
+                if self._config.source_for("api_key") != "environment":
+                    self._api_entry.set_text(self._config.saved_value("api_key"))
+                if self._on_settings_change_cb:
+                    self._on_settings_change_cb()
+                self.set_status("Setup complete · ready to start", "active", reset_after_ms=3_000)
+                return False
+        finally:
+            dialog.destroy()
 
     def _on_save_settings(self, _button: Gtk.Button) -> None:
         try:

@@ -1,6 +1,5 @@
 # Runtime dependencies. GTK and PortAudio development libraries are installed
 # by setup.sh on Debian/Ubuntu before pip resolves the native Python packages.
-groq>=0.4,<2
 PyAudio>=0.2.13,<1
 webrtcvad>=2.0.10,<3
 PyGObject>=3.42,<4

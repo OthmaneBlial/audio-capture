@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Voice Transcriber
+Comment=Turn short spoken thoughts into text with an explicit cloud boundary
+Exec=voice-transcriber
+Icon=io.github.othmaneblial.audio_capture
+Terminal=false
+Categories=AudioVideo;Audio;Utility;
+Keywords=dictation;speech-to-text;voice;transcription;whisper;groq;
+StartupWMClass=voice-transcriber
+
