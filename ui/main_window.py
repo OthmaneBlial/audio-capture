@@ -218,10 +218,11 @@ class MainWindow(Gtk.Window):
         actions.get_style_context().add_class("bottom-rule")
         sticky_label = self._label("Keep on top", "settings-label")
         actions.pack_start(sticky_label, False, False, 0)
-        self._sticky_switch = Gtk.Switch()
+        self._sticky_switch = Gtk.CheckButton()
         self._sticky_switch.set_active(self._config.get("sticky_mode"))
         self._sticky_switch.set_tooltip_text("Keep Voice Transcriber above other windows")
-        self._sticky_switch.connect("state-set", self._on_sticky_toggled)
+        self._sticky_switch.get_accessible().set_name("Keep Voice Transcriber on top")
+        self._sticky_switch.connect("toggled", self._on_sticky_toggled)
         actions.pack_start(self._sticky_switch, False, False, 0)
         actions.pack_start(Gtk.Box(), True, True, 0)
         copy_button = self._make_secondary_button("Copy", "Copy transcript to clipboard (Ctrl+Shift+C)", self._on_copy_clicked)
@@ -646,13 +647,13 @@ class MainWindow(Gtk.Window):
             self._on_stop()
         self.set_status("Ready when you are")
 
-    def _on_sticky_toggled(self, _switch: Gtk.Switch, state: bool) -> bool:
+    def _on_sticky_toggled(self, checkbox: Gtk.CheckButton) -> None:
+        state = checkbox.get_active()
         self.set_keep_above(state)
         try:
             self._config.set("sticky_mode", state)
         except ConfigError as error:
             self.show_error(str(error))
-        return False
 
     def _on_copy_clicked(self, _button: Gtk.Button) -> None:
         text = self._transcript_text()
