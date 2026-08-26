@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Contribution map and good first issues
+    url: https://github.com/OthmaneBlial/audio-capture/blob/main/docs/contributing/README.md
+    about: Choose a bounded task and follow the no-key issue-to-PR path.
   - name: Security or privacy vulnerability
     url: https://github.com/OthmaneBlial/audio-capture/security/policy
     about: Report credentials, unintended audio transmission, and other sensitive issues privately.

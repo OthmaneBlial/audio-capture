@@ -15,6 +15,13 @@ def render(version: str, commit: str) -> str:
 
 Dictate a thought, review it, and intentionally keep or discard the text on Linux.
 
+## See the workflow
+
+Watch the [three-state guided demo](https://othmaneblial.github.io/audio-capture/#proof)
+made with synthetic sample text, then read the
+[support matrix](https://github.com/OthmaneBlial/audio-capture/blob/v{version}/docs/SUPPORT.md)
+before installing.
+
 ## What changed
 
 {changes}
@@ -31,6 +38,13 @@ flatpak install --user ./voice-transcriber-{version}-x86_64.flatpak
 The artifact maps to commit `{commit}`. This release also publishes a CycloneDX
 SBOM and downloadable Sigstore provenance/SBOM-attestation bundles. Verify online
 with `gh attestation verify voice-transcriber-{version}-x86_64.flatpak --repo OthmaneBlial/audio-capture`.
+
+## Privacy delta
+
+The versioned changelog above contains the complete **Privacy** subsection for
+this release. The enduring microphone-to-export contract is documented in the
+[privacy notice](https://github.com/OthmaneBlial/audio-capture/blob/v{version}/docs/PRIVACY.md)
+and [threat model](https://github.com/OthmaneBlial/audio-capture/blob/v{version}/docs/THREAT-MODEL.md).
 
 ## Support boundary
 

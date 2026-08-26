@@ -1,4 +1,5 @@
 import importlib.util
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,12 +10,14 @@ def load_script(name: str):
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
 
 check_release = load_script("check_release")
 generate_sbom = load_script("generate_sbom")
+render_release_notes = load_script("render_release_notes")
 
 
 class ReleaseToolTests(unittest.TestCase):
@@ -39,6 +42,15 @@ class ReleaseToolTests(unittest.TestCase):
             )
             destination.write_text(__import__("json").dumps(payload))
             self.assertTrue(destination.is_file())
+
+    def test_release_notes_include_every_public_release_surface(self):
+        notes = render_release_notes.render("0.6.0", "abc123")
+        self.assertIn("guided demo", notes)
+        self.assertIn("Install and verify", notes)
+        self.assertIn("Support boundary", notes)
+        self.assertIn("Privacy delta", notes)
+        self.assertIn("Benchmark and help wanted", notes)
+        self.assertIn("abc123", notes)
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,6 +2,10 @@
 
 Thanks for helping make Voice Transcriber easier to trust and use.
 
+Start with the public [contributor map](docs/contributing/README.md). It links
+the architecture tour, credential-free development loop, fake-fixture rules,
+UI and packaging guides, and the complete issue-to-PR path.
+
 ## Prerequisites
 
 - Python 3.9+
@@ -21,6 +25,9 @@ ruff check .
 ```
 
 The core workflow is capture → VAD → bounded transcription queue → GTK. Keep native microphone work out of unit tests; inject or fake external boundaries so contributors can test without hardware or credentials.
+
+For the shortest no-key loop, follow
+[Development without a key](docs/contributing/DEVELOPMENT-WITHOUT-KEY.md).
 
 ## Pull requests
 

@@ -15,7 +15,8 @@ is deliberately feature-flagged and labelled experimental.
 **[Read the data flow](docs/DATA-FLOW.md)** ·
 **[Read the privacy notice](docs/PRIVACY.md)** ·
 **[Check supported environments](docs/SUPPORT.md)** ·
-**[Inspect CLI contracts](docs/CLI.md)**
+**[Inspect CLI contracts](docs/CLI.md)** ·
+**[Get answers](docs/FAQ.md)**
 
 ![Guided Voice Transcriber product preview showing ready, listening, and completed transcript states](site/assets/voice-transcriber-tour.gif)
 
@@ -269,8 +270,11 @@ input, benchmark math, edit snapshots, export modes, history
 retention/deletion, and desktop capability gating without requiring a
 microphone, Groq account, local model, or corpus download.
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) and the
-[Code of Conduct](CODE_OF_CONDUCT.md) before opening a pull request.
+Read the [contributor map](docs/contributing/README.md),
+[CONTRIBUTING.md](CONTRIBUTING.md), and the
+[Code of Conduct](CODE_OF_CONDUCT.md) before opening a pull request. Most
+contributions need no microphone, provider key, GTK session, or model because
+the deterministic suite injects those boundaries.
 
 ## Security and responsible disclosure
 
