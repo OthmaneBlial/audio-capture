@@ -60,10 +60,16 @@ flatpak run --user --command=sh "$app_id" -c '
 '
 
 if command -v xvfb-run >/dev/null 2>&1; then
-  xvfb-run -a flatpak run --user --command=python3 "$app_id" \
+  # GitHub's container has no Flatpak portal for Glycin's second-level image
+  # sandbox. Disable only that nested loader sandbox for these Xvfb launches;
+  # the application itself still runs in its installed Flatpak sandbox.
+  xvfb-run -a flatpak run --user \
+    --env=GLYCIN_DISABLE_SANDBOX=i-know-the-risks --command=python3 "$app_id" \
     /app/share/voice-transcriber/tests/gtk_accessibility_smoke.py
   set +e
-  timeout 5s xvfb-run -a flatpak run --user "$app_id" >/tmp/voice-transcriber-flatpak-ui.log 2>&1
+  timeout 5s xvfb-run -a flatpak run --user \
+    --env=GLYCIN_DISABLE_SANDBOX=i-know-the-risks "$app_id" \
+    >/tmp/voice-transcriber-flatpak-ui.log 2>&1
   ui_exit=$?
   set -e
   if [[ "$ui_exit" -ne 124 ]]; then
