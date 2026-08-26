@@ -92,7 +92,7 @@ class MainWindow(Gtk.Window):
         levelbar trough { min-height: 8px; border-radius: 99px; background-color: #263229; border: 1px solid #3A4A3E; }
         levelbar block.filled { border-radius: 99px; background-color: #B8E85A; }
         .transcript-shell { background-color: #141B17; border: 1px solid #344338; border-radius: 10px; margin-top: 14px; }
-        .transcript-view { background-color: transparent; color: #F4F7F0; font-family: Serif; font-size: 17px; line-height: 1.45; padding: 16px; }
+        .transcript-view { background-color: transparent; color: #F4F7F0; font-family: Serif; font-size: 17px; padding: 16px; }
         .empty-title { color: #EDF4E7; font-size: 17px; font-weight: 800; }
         .empty-copy { color: #9DAE9F; font-size: 13px; }
         .bottom-rule { border-top: 1px solid #2B382F; padding-top: 14px; }
