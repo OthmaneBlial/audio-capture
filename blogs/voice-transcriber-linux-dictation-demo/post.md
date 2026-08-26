@@ -2,7 +2,7 @@
 title: "Voice Transcriber: a focused Linux dictation app"
 description: "See how Voice Transcriber turns a spoken note into editable text on Linux while showing what stays local and what is sent for transcription."
 slug: "linux-dictation-app-demo"
-status: "ready after final v1 release verification"
+status: "ready for publication"
 ---
 
 # Voice Transcriber: a focused Linux dictation app

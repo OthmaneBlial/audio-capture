@@ -258,7 +258,7 @@ safe release decision.
 - [x] Expand CI to the declared supported Python range, package builds, test
   coverage reporting, dependency vulnerability checks, and static security
   analysis. Native hardware checks remain separately labelled manual evidence.
-- [ ] Add reproducible release automation: version consistency checks,
+- [x] Add reproducible release automation: version consistency checks,
   changelog validation, artifact checksums, SBOM, signed tags or attestations,
   and a downloadable provenance record.
 - [ ] Test against representative PipeWire/PulseAudio and X11/Wayland paths;
@@ -282,8 +282,7 @@ lints, a clean `--disable-download` rebuild, install/GTK/CLI smoke, and removal.
 CodeQL run `33018105062` passed all detected languages with no open alerts.
 Release automation now validates version/changelog surfaces and creates a
 checksum, CycloneDX SBOM, test report, provenance and SBOM attestations, and
-release notes. Its checkbox remains open until the `v1.0.0` tag proves the
-complete publish job. The compatibility checkbox also remains open because
+release notes. The compatibility checkbox remains open because
 Xvfb and capability unit tests are not relabelled as real Wayland/X11 plus
 PipeWire/PulseAudio microphone sessions; the new structured issue form records
 that missing evidence without collecting sensitive system dumps.
@@ -296,12 +295,23 @@ smoke, and CodeQL run `33019179363` across Python, Actions, and JavaScript with
 no open alerts at verification time. This proves the pre-tag candidate; it does
 not pre-claim the tag-only publication job.
 
+**Published v1 evidence:** annotated tag `v1.0.0` dereferences to
+`c2244664fda6cc1603fada2ee60632e00c403d39`. Release workflow `33019546561`
+passed the build, offline rebuild, repository lint, installed Flatpak smoke,
+59-test report, CycloneDX SBOM, build-provenance attestation, SBOM attestation,
+and immutable-shaped publication jobs. All six public assets were downloaded
+again; SHA-256 verification passed for the bundle
+(`19f941a5767f7380eb8709bde3de3cbee78647ee263f343a7dca36b7c0baa43c`),
+both Sigstore bundles parsed, the SBOM/report named version `1.0.0` and the
+exact commit, and `gh attestation verify` succeeded against the public
+download. The release is neither a draft nor a prerelease.
+
 ### P5 — Build an open-source distribution and contribution loop
 
 **Outcome:** each useful release gives users something concrete to share and
 contributors a bounded way to help.
 
-- [ ] Publish a release page that includes the demo, a one-sentence outcome,
+- [x] Publish a release page that includes the demo, a one-sentence outcome,
   package instructions, support matrix, privacy delta, benchmark delta, and
   a short “help wanted” list.
 - [x] Create a public `docs/contributing/` map: architecture tour, local
@@ -334,13 +344,17 @@ benchmark, and v1 release QA; every issue names `@OthmaneBlial`, acceptance
 criteria, and privacy-safe reporting constraints. Discussions remains
 intentionally disabled and routes to structured issues because a regular
 response loop is not yet proven. The technical and user-demo launch articles,
-with original cover art, are committed under `blogs/` and remain marked for
-publication only after public v1 verification. `docs/FAQ.md` and
+with original cover art, are committed under `blogs/` and are now marked ready
+for publication after public v1 verification. `docs/FAQ.md` and
 `docs/FEEDBACK.md` define how a report becomes a compatibility row, FAQ,
 regression test, fix, or credited contribution without telemetry. The release
-page and external-feedback checkbox remain open until v1 assets are public and
-real outside feedback exists; prepared machinery is not relabelled as those
-outcomes.
+page is now public at `v1.0.0`: its rendered headings cover workflow demo,
+changes/outcome, verified install, privacy delta, support boundary, benchmark,
+and help wanted. The project site was published from Pages commit `9f02868`
+and deployment run `33020063045`; desktop and 375 px browser QA found no
+horizontal overflow, missing loaded assets, or console errors, and verified the
+mobile menu/copy UI. The external-feedback checkbox remains open until real
+outside feedback exists; prepared machinery is not relabelled as that outcome.
 
 ## Recommended release sequence
 

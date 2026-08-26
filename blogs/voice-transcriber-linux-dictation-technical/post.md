@@ -2,7 +2,7 @@
 title: "Building an open-source Linux voice-to-text app"
 description: "How Voice Transcriber combines local voice detection, explicit cloud boundaries, bounded audio processing and verifiable Linux releases."
 slug: "open-source-linux-voice-to-text-architecture"
-status: "ready after final v1 release verification"
+status: "ready for publication"
 ---
 
 # Building an open-source Linux voice-to-text app
@@ -120,24 +120,28 @@ The LibriSpeech corpus and license context are available from
 
 ## Make the package independently inspectable
 
-The public install path is one source-mapped `x86_64` Flatpak with a SHA-256
-checksum. The sandbox asks for Wayland, fallback X11/IPC, PulseAudio, and the
-network needed by Groq. It does not request broad home or host filesystem
-access. Flatpak's own documentation explains both
+The public v1.0 install path is one source-mapped `x86_64` Flatpak with a
+SHA-256 checksum. The sandbox asks for Wayland, fallback X11/IPC, PulseAudio,
+and the network needed by Groq. It does not request broad home or host
+filesystem access. Flatpak's own documentation explains both
 [manifest structure](https://docs.flatpak.org/en/latest/manifests.html) and
 [sandbox permissions](https://docs.flatpak.org/en/latest/sandbox-permissions.html).
 
-Release checks now cover version and changelog consistency, the Python matrix,
+Release checks cover version and changelog consistency, the Python matrix,
 tests, coverage, dependency auditing, static analysis, package builds,
 manifest/AppStream/repository linting, an offline no-download rebuild,
 installed-bundle smoke, and clean removal. The stable release workflow is also
-designed to publish a test report, CycloneDX SBOM, checksum, and GitHub artifact
+publishing a test report, CycloneDX SBOM, checksum, and GitHub artifact
 attestations. GitHub documents how those
 [artifact attestations are verified](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
 
-Configuration is not release proof. Those v1 artifacts should be claimed only
-after the tag workflow succeeds and the public downloads verify against the
-release commit.
+Configuration is not release proof, so the project waited for the tag workflow
+and public re-download. The [v1.0.0 release](https://github.com/OthmaneBlial/audio-capture/releases/tag/v1.0.0)
+now contains the Flatpak, checksum, SBOM, 59-test report, provenance bundle, and
+SBOM-attestation bundle. Its tag and report resolve to commit
+`c2244664fda6cc1603fada2ee60632e00c403d39`; the public Flatpak checksum is
+`19f941a5767f7380eb8709bde3de3cbee78647ee263f343a7dca36b7c0baa43c`,
+and GitHub attestation verification succeeds against that download.
 
 ## The remaining proof belongs in public
 
