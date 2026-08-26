@@ -1,6 +1,6 @@
 # Flatpak installation
 
-Voice Transcriber `v0.6.0` publishes one `x86_64` bundle built from the matching
+Voice Transcriber `v1.0.0` publishes one `x86_64` bundle built from the matching
 Git tag and a SHA-256 checksum. The application uses the GNOME 50 runtime and
 has no broad home or host filesystem permission.
 
@@ -11,10 +11,10 @@ then download and verify both release files:
 
 ```bash
 flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v0.6.0/voice-transcriber-0.6.0-x86_64.flatpak
-curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v0.6.0/voice-transcriber-0.6.0-x86_64.flatpak.sha256
-sha256sum --check voice-transcriber-0.6.0-x86_64.flatpak.sha256
-flatpak install --user ./voice-transcriber-0.6.0-x86_64.flatpak
+curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak
+curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak.sha256
+sha256sum --check voice-transcriber-1.0.0-x86_64.flatpak.sha256
+flatpak install --user ./voice-transcriber-1.0.0-x86_64.flatpak
 flatpak run io.github.othmaneblial.audio_capture
 ```
 
@@ -51,8 +51,8 @@ after `--delete-data`.
 
 ## Source mapping
 
-The `v0.6.0` tag, `main.py`, `pyproject.toml`, AppStream release entry, bundle
-filename, and release title all use `0.6.0`. GitHub Actions builds the manifest
+The `v1.0.0` tag, `main.py`, `pyproject.toml`, AppStream release entry, bundle
+filename, and release title all use `1.0.0`. GitHub Actions builds the manifest
 from the tag commit, installs the resulting bundle into a clean user scope,
 checks CLI contracts and permissions, launches GTK under Xvfb, and removes the
 app and sandbox. See the [release checklist](RELEASE-CHECKLIST.md) for the

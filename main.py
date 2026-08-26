@@ -20,7 +20,7 @@ except ImportError:
 
 from config import ConfigManager
 
-__version__ = "0.6.0"
+__version__ = "1.0.0"
 LOGGER = logging.getLogger(__name__)
 Gtk: Any = None
 GLib: Any = None

@@ -37,6 +37,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="1.0.0" date="2026-08-27">
+      <description>
+        <p>Adds independently verifiable privacy, release, compatibility, and contribution evidence for the trusted stable release.</p>
+      </description>
+    </release>
     <release version="0.6.0" date="2026-08-26">
       <description>
         <p>Adds a provider contract, visible data-boundary choice, and feature-flagged local whisper.cpp prototype.</p>

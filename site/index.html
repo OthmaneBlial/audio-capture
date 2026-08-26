@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Privacy-explicit Linux dictation: inspect your microphone, detect speech locally, and turn completed segments into text with Groq Whisper.">
+    <meta name="description" content="Voice Transcriber v1.0: privacy-explicit Linux dictation with local speech detection, an installable Flatpak, and independently verifiable release evidence.">
     <meta property="og:title" content="Voice Transcriber — privacy-explicit Linux dictation">
     <meta property="og:description" content="Dictate a thought, review it, and paste it anywhere on Linux.">
     <meta property="og:image" content="https://othmaneblial.github.io/audio-capture/assets/demo-02-active.png">
@@ -34,14 +34,14 @@
     <main id="main">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">Linux dictation · explicit cloud boundary · local speech detection</p>
+          <p class="eyebrow">Linux dictation · v1.0 Flatpak · explicit provider boundary</p>
           <h1>Dictate the thought.<br><em>Keep</em> the words.</h1>
-          <p class="lede">Turn a spoken note, prompt, email, or draft into text that is ready to copy anywhere on Linux. Voice Transcriber filters silence locally and shows exactly when completed speech segments go to Groq.</p>
+          <p class="lede">Turn a spoken note, prompt, email, or draft into editable text on Linux. Voice Transcriber filters silence locally, shows exactly when completed speech segments go to Groq, and leaves storage under your control.</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#install">Inspect it without a key <span aria-hidden="true">↓</span></a>
-            <a class="button button-quiet" href="docs.html">Read the docs</a>
+            <a class="button button-primary" href="#install">Install v1.0 <span aria-hidden="true">↓</span></a>
+            <a class="button button-quiet" href="#proof">Watch the workflow</a>
           </div>
-          <p class="microcopy">No recordings are saved by the app. Speech segments are sent to Groq only after local voice activity detection.</p>
+          <p class="microcopy">No raw-audio recording or analytics. History is off by default. Inspect the app and its boundary before adding a key.</p>
         </div>
         <div class="desk-preview" aria-label="Guided illustration of the Voice Transcriber interface using synthetic sample text">
           <div class="preview-top"><span class="signal" aria-hidden="true"></span><span>VOICE TRANSCRIBER</span><span class="preview-settings" aria-hidden="true">⚙</span></div>
@@ -87,7 +87,7 @@
         <ol class="steps">
           <li><span class="step-number">01</span><h3>Listen</h3><p>Choose a microphone and confirm its local signal before 30 ms frames enter a bounded real-time queue.</p></li>
           <li><span class="step-number">02</span><h3>Detect</h3><p>Voice activity detection runs on your device, so silence never becomes a transcription request.</p></li>
-          <li><span class="step-number">03</span><h3>Transcribe</h3><p>Completed segments travel to Groq Whisper through a bounded two-worker request pool.</p></li>
+          <li><span class="step-number">03</span><h3>Transcribe</h3><p>Completed segments cross the visibly selected provider boundary through a small bounded request pool.</p></li>
           <li><span class="step-number">04</span><h3>Use it</h3><p>Review the growing transcript, then copy it or export a local UTF-8 text file.</p></li>
         </ol>
       </section>
@@ -104,20 +104,25 @@
         <p class="boundary-more"><a href="docs.html#privacy">Read the complete data flow and provider boundary</a></p>
       </section>
 
+      <section class="statement" aria-labelledby="trust-title">
+        <p class="eyebrow">Release proof, not a trust badge</p>
+        <h2 id="trust-title">Checksum. Test report. SBOM. Provenance.</h2>
+        <p>Every v1 release maps its source tag to one Flatpak and publishes the evidence needed to inspect it. Automated package proof is kept separate from the real-microphone compatibility reports still being collected.</p>
+        <p><a href="https://github.com/OthmaneBlial/audio-capture/releases/tag/v1.0.0">Inspect the v1 release</a> · <a href="https://github.com/OthmaneBlial/audio-capture/blob/v1.0.0/docs/SUPPORT.md">Read the support boundary</a> · <a href="https://github.com/OthmaneBlial/audio-capture/blob/v1.0.0/docs/contributing/README.md">Choose a contribution</a></p>
+      </section>
+
       <section id="install" class="install" aria-labelledby="install-title">
-        <div class="section-heading"><p class="eyebrow">Inspect before configuring</p><h2 id="install-title">See devices and settings before adding a key.</h2></div>
+        <div class="section-heading"><p class="eyebrow">Checksum-verified x86_64 Flatpak</p><h2 id="install-title">Install v1.0, then inspect it before adding a key.</h2></div>
         <div class="terminal" aria-label="Quick-start commands">
           <div class="terminal-bar"><span></span><span></span><span></span><p>terminal</p></div>
-          <pre><code id="quickstart">git clone https://github.com/OthmaneBlial/audio-capture.git
-cd audio-capture
-./setup.sh
-cp .env.example .env
-source venv/bin/activate
-python main.py --list-devices
-python main.py</code></pre>
+          <pre><code id="quickstart">curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak
+curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak.sha256
+sha256sum --check voice-transcriber-1.0.0-x86_64.flatpak.sha256
+flatpak install --user ./voice-transcriber-1.0.0-x86_64.flatpak
+flatpak run io.github.othmaneblial.audio_capture</code></pre>
           <button class="copy-button" type="button" data-copy-target="quickstart">Copy command</button>
         </div>
-        <p class="install-note">For Debian/Ubuntu desktops with GTK 3. The UI, device picker, and privacy explanation work without a key; Start stays blocked until you configure Groq. Read the <a href="docs.html#support">support matrix</a>.</p>
+        <p class="install-note">The primary package targets x86_64 Linux with GTK 3 and the system PipeWire/PulseAudio route. The UI, device picker, diagnostics, and privacy explanation work without a key; Start stays blocked until the selected provider is ready. Read the <a href="docs.html#support">support matrix</a> or use the <a href="https://github.com/OthmaneBlial/audio-capture#source-installation-details">source development path</a>.</p>
       </section>
 
       <section class="closing">
@@ -127,6 +132,6 @@ python main.py</code></pre>
       </section>
     </main>
 
-    <footer><span>Voice Transcriber</span><span>MIT licensed</span><a href="privacy.html">Privacy</a><a href="docs.html">Documentation</a><a href="https://github.com/OthmaneBlial/audio-capture/releases/latest">Latest release</a><a href="https://github.com/OthmaneBlial/audio-capture/blob/main/CONTRIBUTING.md">Contribute</a><a href="https://github.com/OthmaneBlial/audio-capture">GitHub</a></footer>
+    <footer><span>Voice Transcriber v1.0</span><span>MIT licensed</span><a href="privacy.html">Privacy</a><a href="docs.html">Documentation</a><a href="https://github.com/OthmaneBlial/audio-capture/releases/tag/v1.0.0">v1 release</a><a href="https://github.com/OthmaneBlial/audio-capture/blob/main/docs/contributing/README.md">Contribute</a><a href="https://github.com/OthmaneBlial/audio-capture">GitHub</a></footer>
   </body>
 </html>

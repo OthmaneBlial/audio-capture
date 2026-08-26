@@ -34,10 +34,10 @@ Run the release checker and deterministic suite locally, then push a branch so
 the containerized Flatpak workflow can run:
 
 ```bash
-python3 scripts/check_release.py 0.6.0
+python3 scripts/check_release.py 1.0.0
 python3 -m unittest discover -s tests -v
 ruff check .
 ```
 
-Use the current project version in place of `0.6.0`. Read the full
+Use the current project version in place of `1.0.0`. Read the full
 [Flatpak instructions](../packaging/FLATPAK.md), [linter policy](../packaging/FLATPAK-LINT.md), [release checklist](../packaging/RELEASE-CHECKLIST.md), and [version policy](../VERSION-POLICY.md). Only a maintainer creates release tags.

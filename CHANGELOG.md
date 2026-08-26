@@ -4,6 +4,53 @@ All notable changes to Voice Transcriber are documented here.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-27
+
+### Added
+
+- A public privacy notice and threat model spanning microphone capture, local
+  VAD, bounded memory, provider requests, credentials, exports, opt-in text
+  history, logs, local executables, and release supply chain.
+- Privacy regression tests for raw-audio non-persistence, secret and provider
+  detail redaction, history-off defaults, explicit text storage permissions,
+  and deletion.
+- Tag-driven release automation that produces a checksum, CycloneDX SBOM,
+  deterministic test report, GitHub provenance and SBOM attestations, and
+  downloadable Sigstore bundles.
+- A contributor map with architecture, no-key development, fake-fixture, UI,
+  packaging, and issue-to-PR guides; plus eight maintained public tasks.
+- An FAQ, explicit public-feedback loop, and technical/user launch stories
+  with original cover art.
+
+### Changed
+
+- Expanded CI to Python 3.9, 3.11, and 3.14 with branch coverage, wheel/sdist
+  builds, hash-pinned dependency audit, Bandit, Ruff, and compilation.
+- Hardened Flatpak verification with documented linter exceptions, mirrored
+  AppStream media, an offline no-download rebuild, installed-bundle smoke, and
+  compatibility-safe reporting.
+- Release notes now lead from a visual demo to verified installation, support,
+  privacy delta, benchmark receipt, and bounded help-wanted tasks.
+
+### Privacy
+
+- The runtime data path is unchanged: local VAD precedes Groq transmission,
+  raw audio is not persisted by the app, transcript history stays disabled by
+  default, and exports remain explicit.
+- Release and diagnostic evidence adds no analytics, crash upload, transcript
+  collection, recording collection, or project server.
+- The experimental local provider remains source-only, explicitly flagged,
+  user-supplied, and disabled in Flatpak; v1 does not relabel it as supported.
+
+### Verification
+
+- Fifty-nine deterministic unit tests, Ruff, source compilation, release
+  version checks, and release-note surface tests pass locally before the tag.
+- Exact-commit CI, Flatpak, CodeQL, public release asset, checksum, SBOM,
+  provenance, and attestation evidence is recorded in `ROADMAP.md` after each
+  remote gate completes; physical microphone/desktop combinations remain a
+  separately labelled community gate.
+
 ## [0.6.0] - 2026-08-26
 
 ### Added

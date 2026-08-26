@@ -22,12 +22,12 @@ render_release_notes = load_script("render_release_notes")
 
 class ReleaseToolTests(unittest.TestCase):
     def test_current_version_surfaces_match(self):
-        versions = check_release.check("0.6.0")
-        self.assertEqual(set(versions.values()), {"0.6.0"})
+        versions = check_release.check("1.0.0")
+        self.assertEqual(set(versions.values()), {"1.0.0"})
 
     def test_sbom_is_deterministic_and_names_runtime_and_dependencies(self):
-        first = generate_sbom.build_sbom("0.6.0", "abc123", "2026-08-26T20:00:00+00:00")
-        second = generate_sbom.build_sbom("0.6.0", "abc123", "2026-08-26T20:00:00+00:00")
+        first = generate_sbom.build_sbom("1.0.0", "abc123", "2026-08-27T20:00:00+00:00")
+        second = generate_sbom.build_sbom("1.0.0", "abc123", "2026-08-27T20:00:00+00:00")
         self.assertEqual(first, second)
         self.assertEqual(first["bomFormat"], "CycloneDX")
         names = {component["name"] for component in first["components"]}
@@ -38,13 +38,13 @@ class ReleaseToolTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             destination = Path(directory) / "sbom.json"
             payload = generate_sbom.build_sbom(
-                "0.6.0", "abc123", "2026-08-26T20:00:00+00:00"
+                "1.0.0", "abc123", "2026-08-27T20:00:00+00:00"
             )
             destination.write_text(__import__("json").dumps(payload))
             self.assertTrue(destination.is_file())
 
     def test_release_notes_include_every_public_release_surface(self):
-        notes = render_release_notes.render("0.6.0", "abc123")
+        notes = render_release_notes.render("1.0.0", "abc123")
         self.assertIn("guided demo", notes)
         self.assertIn("Install and verify", notes)
         self.assertIn("Support boundary", notes)
