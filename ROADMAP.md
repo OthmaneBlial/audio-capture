@@ -170,26 +170,36 @@ a one-time demo.
   device selection, start/stop confidence, correction, copying, and privacy
   comprehension. Publish anonymised findings and change the roadmap from
   evidence, not intuition.
-- [ ] Add transcript editing, undo/redo, select-all, clear confirmation, and
+- [x] Add transcript editing, undo/redo, select-all, clear confirmation, and
   a visible pending/error state per segment. Preserve the existing explicit
   bounded-queue behaviour.
-- [ ] Add a push-to-talk workflow and a tray/window toggle where the declared
+- [x] Add a push-to-talk workflow and a tray/window toggle where the declared
   desktop session permits it. Global shortcut support must be capability-gated:
   Wayland and sandbox restrictions should produce a useful explanation, never a
   silent failure.
-- [ ] Add optional “copy on final transcript” and an intentional paste/insert
+- [x] Add optional “copy on final transcript” and an intentional paste/insert
   workflow only where platform APIs make it reliable. Never simulate hidden
   keyboard input or claim universal paste support.
-- [ ] Add structured exports (`.txt`, Markdown, and timestamped text) with a
+- [x] Add structured exports (`.txt`, Markdown, and timestamped text) with a
   preview of destination and owner-only permissions where feasible. Add SRT
   only after timestamps have a tested accuracy contract.
-- [ ] Add an explicit opt-in local history: disabled by default, configurable
+- [x] Add an explicit opt-in local history: disabled by default, configurable
   retention period, clear-all action, storage location disclosure, and safe
   migration/deletion tests. Raw audio remains non-persistent.
 
 **Acceptance gate:** a user can dictate, correct, copy, retrieve or permanently
 discard text according to a plainly visible retention choice, all without
 opening a terminal.
+
+**Implementation evidence:** `v0.5.0` adds editable transcript state with
+bounded undo/redo, per-segment request state, focused push-to-talk, an X11-only
+legacy tray toggle, optional copy-on-final, three destination-confirmed export
+formats, and schema-versioned opt-in text history with retention and deletion.
+Forty unit tests passed in CI and Flatpak run `33013850025` built, installed,
+exercised the GTK accessibility and daily-workflow smoke contract, and removed
+the exact bundle. The five real-participant sessions remain open and are
+separately specified in `research/usability/PROTOCOL.md`; automated review is
+not presented as human evidence.
 
 ### P3 — Remove the “bring a cloud key” ceiling without weakening privacy
 
@@ -280,7 +290,7 @@ release/feedback cycle.
 | --- | --- | --- |
 | `v0.3` — Proof | “See exactly what Voice Transcriber does and where data goes.” | P0 documentation/demo/community foundation and compatibility statement. |
 | `v0.4` — Install | “Install and diagnose it like a Linux app.” | One verified package format, `--doctor`, first-run flow, clean-machine evidence. |
-| `v0.5` — Daily dictation | “Dictate, correct, and intentionally keep or discard text.” | P2 workflow and opt-in retention, backed by usability evidence. |
+| `v0.5` — Daily dictation | “Dictate, correct, and intentionally keep or discard text.” | P2 workflow and opt-in retention; the real-participant study remains a separate evidence gate. |
 | `v0.6` — Choice | “Choose a clear cloud or local transcription boundary.” | Provider contract plus one proven second backend; do not label experimental local mode as production. |
 | `v1.0` — Trusted public tool | “A repeatable, auditable Linux dictation tool.” | P4 release/trust gates and P5 contribution loop proven over several releases. |
 

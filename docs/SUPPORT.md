@@ -5,7 +5,7 @@ means tested, not merely expected to work.
 
 ## Current support contract
 
-| Surface | Supported in v0.4.0 | Evidence | Status |
+| Surface | Supported in v0.5.0 | Evidence | Status |
 | --- | --- | --- | --- |
 | Operating system | Debian/Ubuntu Linux desktops | `setup.sh` uses `apt`; CI runs Ubuntu | Supported source install |
 | Desktop toolkit | GTK 3 | Application imports GTK 3 explicitly | Supported |
