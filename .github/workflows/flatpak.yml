@@ -64,6 +64,7 @@ jobs:
         run: |
           source_dir="$RUNNER_TEMP/voice-transcriber-source"
           mkdir -p "$source_dir"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git archive --format=tar HEAD | tar -xf - -C "$source_dir"
           flatpak-builder --force-clean --disable-download --disable-rofiles-fuse \
             --state-dir="$GITHUB_WORKSPACE/.flatpak-builder" \
