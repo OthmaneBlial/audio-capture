@@ -1,4 +1,5 @@
 import json
+import stat
 import tempfile
 import unittest
 from dataclasses import dataclass
@@ -129,3 +130,40 @@ class DiagnosticsTests(unittest.TestCase):
 
             self.assertFalse(report["ready"])
             self.assertEqual(report["checks"]["selected_microphone"]["status"], "fail")
+
+    def test_local_provider_diagnostics_validate_files_without_network_or_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / "whisper-cli"
+            model = Path(directory) / "ggml-model.bin"
+            binary.write_text("placeholder")
+            binary.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            model.write_bytes(b"model")
+            config = self._config(
+                directory,
+                provider_mode="local_whisper_cpp",
+                local_binary_path=str(binary),
+                local_model_path=str(model),
+            )
+            provider_calls: list[str] = []
+            report = collect_diagnostics(
+                config,
+                app_version="test",
+                probe_provider=True,
+                environ={
+                    "XDG_SESSION_TYPE": "wayland",
+                    "VOICE_TRANSCRIBER_EXPERIMENTAL_LOCAL": "1",
+                },
+                system_name="Linux",
+                release_info={"ID": "ubuntu"},
+                gtk_probe=lambda: "3.24.0",
+                device_probe=lambda: [FakeDevice(1, True)],
+                provider_probe=lambda key: provider_calls.append(key) or ("pass", "unexpected"),
+            )
+
+            payload = diagnostics_json(report)
+            self.assertTrue(report["ready"])
+            self.assertEqual(report["checks"]["provider"]["provider"], "local_whisper_cpp")
+            self.assertFalse(report["checks"]["provider"]["contacted"])
+            self.assertEqual(provider_calls, [])
+            self.assertNotIn(str(binary), payload)
+            self.assertNotIn(str(model), payload)

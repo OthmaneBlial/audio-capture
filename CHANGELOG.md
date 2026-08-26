@@ -4,6 +4,24 @@ All notable changes to Voice Transcriber are documented here.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-26
+
+### Added
+
+- A typed transcription-provider contract with capability, language,
+  cancellation, limit, normalized-error, and data-boundary metadata.
+- A provider-aware first run, Settings selector, active-boundary desk label,
+  config check, and privacy-safe diagnostics.
+- A source-only, explicit-feature-flag whisper.cpp prototype using a
+  memory-backed Linux file descriptor instead of a raw-audio file.
+- A checksum-pinned LibriSpeech preparation tool, WER/latency receipt harness,
+  deterministic unit tests, and a manually triggered pinned local benchmark.
+
+### Changed
+
+- Groq remains the supported packaged path but now implements the same bounded
+  provider contract and cancellation/error behavior as future backends.
+
 ## [0.5.0] - 2026-08-26
 
 ### Added

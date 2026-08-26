@@ -20,7 +20,7 @@ except ImportError:
 
 from config import ConfigManager
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 LOGGER = logging.getLogger(__name__)
 Gtk: Any = None
 GLib: Any = None
@@ -31,7 +31,6 @@ class VoiceTranscriberApp:
     """Coordinate microphone capture, VAD, API work, and the GTK window."""
 
     def __init__(self, *, input_device_override: Optional[int] = None) -> None:
-        from transcription import GroqTranscriptionService
         from ui import MainWindow
 
         self._running = threading.Event()
@@ -41,15 +40,7 @@ class VoiceTranscriberApp:
         self._vad: Any = None
         self._input_device_override = input_device_override
         self._config = ConfigManager()
-        self._transcriber = GroqTranscriptionService(
-            api_key=self._config.get("api_key"),
-            sample_rate=16000,
-            language=self._config.get("language"),
-            on_transcription=self._on_transcription,
-            on_error=self._on_transcription_error,
-            on_request_state=self._on_request_state,
-        )
-        self._transcriber.update_config(translate=self._config.get("translate_to_english"))
+        self._transcriber = self._build_transcriber()
         self._window = MainWindow(
             config=self._config,
             on_start=self._start_listening,
@@ -58,13 +49,45 @@ class VoiceTranscriberApp:
             on_list_input_devices=self._list_input_devices,
         )
 
+    def _build_transcriber(self) -> Any:
+        common = {
+            "sample_rate": 16000,
+            "language": self._config.get("language"),
+            "on_transcription": self._on_transcription,
+            "on_error": self._on_transcription_error,
+            "on_request_state": self._on_request_state,
+        }
+        if self._config.get("provider_mode") == "local_whisper_cpp":
+            from transcription.local_whisper import LocalWhisperTranscriptionService
+
+            return LocalWhisperTranscriptionService(
+                binary_path=self._config.get("local_binary_path"),
+                model_path=self._config.get("local_model_path"),
+                translate=self._config.get("translate_to_english"),
+                **common,
+            )
+        from transcription import GroqTranscriptionService
+
+        service = GroqTranscriptionService(api_key=self._config.get("api_key"), **common)
+        service.update_config(translate=self._config.get("translate_to_english"))
+        return service
+
     def _on_settings_change(self) -> None:
         """Apply preferences without exposing the API key in logs."""
-        self._transcriber.update_config(
-            api_key=self._config.get("api_key"),
-            language=self._config.get("language"),
-            translate=self._config.get("translate_to_english"),
-        )
+        desired_provider = self._config.get("provider_mode")
+        if self._transcriber.provider_id != desired_provider or desired_provider == "local_whisper_cpp":
+            if self._running.is_set():
+                self._stop_listening()
+            previous = self._transcriber
+            self._transcriber = self._build_transcriber()
+            previous.close(wait=False)
+        else:
+            self._transcriber.update_config(
+                api_key=self._config.get("api_key"),
+                language=self._config.get("language"),
+                translate=self._config.get("translate_to_english"),
+            )
+        self._window.refresh_provider_boundary()
         LOGGER.info("Transcription preferences updated")
 
     @staticmethod
@@ -85,10 +108,14 @@ class VoiceTranscriberApp:
         with self._lifecycle_lock:
             if self._running.is_set():
                 return True
-            if not self._config.has_api_key():
-                self._window.show_error(
-                    "No Groq API key is configured. Open Settings or set GROQ_API_KEY, then try again."
-                )
+            if not self._transcriber.configured:
+                if self._transcriber.provider_id == "groq":
+                    message = "No Groq API key is configured. Open Settings or set GROQ_API_KEY, then try again."
+                else:
+                    message = (
+                        "Experimental local mode is not ready. Enable its source-install flag and choose a compatible whisper-cli and GGML model."
+                    )
+                self._window.show_error(message)
                 return False
 
             audio: Any = None
@@ -235,7 +262,7 @@ class VoiceTranscriberApp:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="voice-transcriber",
-        description="Capture short speech segments from your microphone and transcribe them with Groq Whisper.",
+        description="Capture short speech segments and transcribe them through an explicit provider boundary.",
     )
     parser.add_argument("--version", action="version", version=f"voice-transcriber {__version__}")
     checks = parser.add_mutually_exclusive_group()
@@ -252,7 +279,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--probe-provider",
         action="store_true",
-        help="with --doctor, explicitly contact Groq to verify the configured credential",
+        help="with --doctor, explicitly contact Groq when it is the active provider",
     )
     parser.add_argument("--verbose", action="store_true", help="show diagnostic logs (never credentials)")
     return parser
@@ -277,6 +304,24 @@ def _device_index_argument(value: str) -> int:
 
 def _run_config_check() -> int:
     config = ConfigManager()
+    if config.get("provider_mode") == "local_whisper_cpp":
+        from transcription.local_whisper import LocalWhisperTranscriptionService
+
+        service = LocalWhisperTranscriptionService(
+            binary_path=config.get("local_binary_path"),
+            model_path=config.get("local_model_path"),
+        )
+        try:
+            if not service.configured:
+                print(
+                    "Configuration incomplete: enable experimental local mode and select an executable whisper-cli plus GGML model.",
+                    file=sys.stderr,
+                )
+                return 2
+        finally:
+            service.close(wait=False)
+        print("Configuration looks valid. Active provider: experimental local whisper.cpp.")
+        return 0
     if not config.has_api_key():
         print("Configuration incomplete: set GROQ_API_KEY or add a key in the app Settings.", file=sys.stderr)
         return 2

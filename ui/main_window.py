@@ -15,9 +15,10 @@ from gi.repository import Gdk, GLib, Gtk
 from config import ConfigError, ConfigManager
 from exports import ExportFormat, build_export, write_export
 from history import HistoryEntry, HistoryStore
-from onboarding import OnboardingError, validate_cloud_setup
+from onboarding import OnboardingError, validate_cloud_setup, validate_local_setup
 from platform_capabilities import detect_desktop_capabilities
 from transcript import SegmentTracker, UndoHistory
+from transcription.local_whisper import local_mode_enabled
 
 LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ class MainWindow(Gtk.Window):
         self._segment_tracker = SegmentTracker(max_visible=4)
         self._history = HistoryStore()
         self._capabilities = detect_desktop_capabilities()
+        self._experimental_local_available = local_mode_enabled()
         self._tray_icon: Optional[Any] = None
 
         self._setup_window()
@@ -152,7 +154,7 @@ class MainWindow(Gtk.Window):
         topbar.pack_start(brand, True, True, 0)
         self._save_button = self._make_top_button("Export", "Save the transcript as a UTF-8 text file", self._on_save_clicked)
         topbar.pack_end(self._save_button, False, False, 0)
-        settings_button = self._make_top_button("Settings", "Configure Groq and transcription preferences", self._on_settings_clicked)
+        settings_button = self._make_top_button("Settings", "Configure provider and transcription preferences", self._on_settings_clicked)
         topbar.pack_end(settings_button, False, False, 0)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -201,12 +203,9 @@ class MainWindow(Gtk.Window):
         input_monitor.pack_start(self._input_level, False, False, 0)
         content.pack_start(input_monitor, False, False, 0)
 
-        content.pack_start(
-            self._label("Audio stays in memory until a detected speech segment is sent to Groq for transcription.", "privacy-note"),
-            False,
-            False,
-            0,
-        )
+        self._provider_boundary_label = self._label("", "privacy-note")
+        self._provider_boundary_label.get_accessible().set_name("Active transcription data boundary")
+        content.pack_start(self._provider_boundary_label, False, False, 0)
 
         frame = Gtk.Frame()
         frame.set_shadow_type(Gtk.ShadowType.NONE)
@@ -332,6 +331,23 @@ class MainWindow(Gtk.Window):
         settings_scroll.add(box)
         box.pack_start(self._label("Session settings", "settings-title"), False, False, 0)
 
+        provider_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        provider_row.pack_start(self._label("Transcription provider", "settings-label"), False, False, 0)
+        self._provider_combo = Gtk.ComboBoxText()
+        self._provider_combo.append("groq", "Groq cloud · fast, user-managed key")
+        if self._experimental_local_available or self._config.get("provider_mode") == "local_whisper_cpp":
+            self._provider_combo.append(
+                "local_whisper_cpp", "Local whisper.cpp · experimental source install"
+            )
+        self._provider_combo.set_active_id(self._config.get("provider_mode"))
+        if self._provider_combo.get_active_id() is None:
+            self._provider_combo.set_active_id("groq")
+        self._provider_combo.get_accessible().set_name("Transcription provider")
+        provider_row.pack_start(self._provider_combo, False, False, 0)
+        self._provider_help = self._label("", "settings-help")
+        provider_row.pack_start(self._provider_help, False, False, 0)
+        box.pack_start(provider_row, False, False, 0)
+
         api_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         api_row.pack_start(self._label("Groq API key", "settings-label"), False, False, 0)
         self._api_entry = Gtk.Entry()
@@ -353,6 +369,32 @@ class MainWindow(Gtk.Window):
                 self._label("Saved locally with owner-only file permissions.", "settings-help"), False, False, 0
             )
         box.pack_start(api_row, False, False, 0)
+        self._api_row = api_row
+
+        self._local_runtime_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self._local_runtime_row.pack_start(
+            self._label("Experimental local runtime", "settings-label"), False, False, 0
+        )
+        self._local_binary_entry = Gtk.Entry()
+        self._local_binary_entry.set_placeholder_text("/path/to/whisper-cli")
+        self._local_binary_entry.set_text(self._config.get("local_binary_path"))
+        self._local_binary_entry.get_accessible().set_name("Local whisper CLI path")
+        self._local_runtime_row.pack_start(self._local_binary_entry, False, False, 0)
+        self._local_model_entry = Gtk.Entry()
+        self._local_model_entry.set_placeholder_text("/path/to/ggml-model.bin")
+        self._local_model_entry.set_text(self._config.get("local_model_path"))
+        self._local_model_entry.get_accessible().set_name("Local GGML model path")
+        self._local_runtime_row.pack_start(self._local_model_entry, False, False, 0)
+        self._local_runtime_row.pack_start(
+            self._label(
+                "No audio is sent to a provider. You supply and audit both files; model size and speed depend on your hardware.",
+                "settings-help",
+            ),
+            False,
+            False,
+            0,
+        )
+        box.pack_start(self._local_runtime_row, False, False, 0)
 
         device_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         device_row.pack_start(self._label("Microphone input", "settings-label"), False, False, 0)
@@ -455,13 +497,39 @@ class MainWindow(Gtk.Window):
 
         save_button = self._make_secondary_button("Save settings", "Validate and apply preferences", self._on_save_settings)
         box.pack_start(save_button, False, False, 0)
+        self._provider_combo.connect("changed", self._sync_provider_controls)
         box.show_all()
+        self._sync_provider_controls()
 
     def _load_initial_settings(self) -> None:
         self._update_font_size(self._config.get("font_size"))
         self.set_opacity(self._config.get("opacity"))
         self.set_keep_above(self._config.get("sticky_mode"))
         self._apply_capture_mode()
+        self.refresh_provider_boundary()
+
+    def refresh_provider_boundary(self) -> None:
+        """Keep the active provider and transmission boundary visible on the desk."""
+        if self._config.get("provider_mode") == "local_whisper_cpp":
+            message = "Local model · audio stays on this device · experimental source-install mode"
+        else:
+            message = "Groq cloud · each completed speech segment leaves this device over HTTPS · raw audio is not saved by this app"
+        self._provider_boundary_label.set_text(message)
+        self._provider_boundary_label.set_tooltip_text(message)
+
+    def _sync_provider_controls(self, *_args: Any) -> None:
+        local = self._provider_combo.get_active_id() == "local_whisper_cpp"
+        if local:
+            help_text = (
+                "Experimental local mode is enabled for this source session. It is deliberately unavailable in the current Flatpak."
+                if self._experimental_local_available
+                else "Experimental local mode is disabled. Set VOICE_TRANSCRIBER_EXPERIMENTAL_LOCAL=1 in a source install or switch to Groq."
+            )
+        else:
+            help_text = "Completed speech segments leave the device for Groq; silence detection and the live meter stay local."
+        self._provider_help.set_text(help_text)
+        self._api_row.set_visible(not local)
+        self._local_runtime_row.set_visible(local)
 
     def _apply_capture_mode(self) -> None:
         if self._is_listening:
@@ -478,7 +546,7 @@ class MainWindow(Gtk.Window):
         self._listen_button.set_tooltip_text(tooltip)
 
     def _show_first_run(self) -> bool:
-        """Offer an explicit, keyboard-operable cloud setup before first transcription."""
+        """Offer a keyboard-operable provider choice with its exact data boundary."""
         dialog = Gtk.Dialog(title="Set up Voice Transcriber", transient_for=self, modal=True)
         dialog.set_default_size(480, 500)
         dialog.add_button("Explore first", Gtk.ResponseType.CANCEL)
@@ -496,37 +564,27 @@ class MainWindow(Gtk.Window):
         title = self._label("Know the boundary before you speak", "settings-title")
         title.get_accessible().set_name("First-run setup")
         box.pack_start(title, False, False, 0)
-        box.pack_start(
-            self._label(
-                "Voice activity detection runs locally. When a speech segment ends, that segment is sent to Groq cloud for transcription. Raw audio is not saved by this app.",
-                "privacy-note",
-            ),
-            False,
-            False,
-            0,
-        )
+        intro = self._label("", "privacy-note")
+        box.pack_start(intro, False, False, 0)
+
+        provider_combo: Optional[Gtk.ComboBoxText] = None
+        if self._experimental_local_available:
+            box.pack_start(self._label("Transcription provider", "settings-label"), False, False, 0)
+            provider_combo = Gtk.ComboBoxText()
+            provider_combo.append("groq", "Groq cloud · user-managed key")
+            provider_combo.append("local_whisper_cpp", "Local whisper.cpp · experimental")
+            provider_combo.set_active_id(self._config.get("provider_mode"))
+            provider_combo.get_accessible().set_name("First-run transcription provider")
+            box.pack_start(provider_combo, False, False, 0)
 
         boundary = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         boundary.get_style_context().add_class("onboarding-boundary")
-        boundary.pack_start(self._label("Provider · Groq cloud", "settings-label"), False, False, 0)
-        boundary.pack_start(
-            self._label(
-                "Sent: completed speech segments and the selected language/translation request.",
-                "settings-help",
-            ),
-            False,
-            False,
-            0,
-        )
-        boundary.pack_start(
-            self._label(
-                "Local: silence detection, input meter, active transcript, and preferences.",
-                "settings-help",
-            ),
-            False,
-            False,
-            0,
-        )
+        boundary_title = self._label("", "settings-label")
+        boundary_sent = self._label("", "settings-help")
+        boundary_local = self._label("", "settings-help")
+        boundary.pack_start(boundary_title, False, False, 0)
+        boundary.pack_start(boundary_sent, False, False, 0)
+        boundary.pack_start(boundary_local, False, False, 0)
         box.pack_start(boundary, False, False, 0)
 
         key_label = self._label("Groq API key", "settings-label")
@@ -543,6 +601,31 @@ class MainWindow(Gtk.Window):
         else:
             key_entry.set_text(self._config.saved_value("api_key") or "")
         box.pack_start(key_entry, False, False, 0)
+
+        local_runtime = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        local_runtime.pack_start(
+            self._label("whisper.cpp executable and GGML model", "settings-label"), False, False, 0
+        )
+        local_binary_entry = Gtk.Entry()
+        local_binary_entry.set_placeholder_text("/path/to/whisper-cli")
+        local_binary_entry.set_text(self._config.get("local_binary_path"))
+        local_binary_entry.get_accessible().set_name("Local whisper CLI path")
+        local_runtime.pack_start(local_binary_entry, False, False, 0)
+        local_model_entry = Gtk.Entry()
+        local_model_entry.set_placeholder_text("/path/to/ggml-model.bin")
+        local_model_entry.set_text(self._config.get("local_model_path"))
+        local_model_entry.get_accessible().set_name("Local GGML model path")
+        local_runtime.pack_start(local_model_entry, False, False, 0)
+        local_runtime.pack_start(
+            self._label(
+                "You supply these files. Nothing is downloaded automatically; model size, RAM use, and latency depend on your hardware.",
+                "settings-help",
+            ),
+            False,
+            False,
+            0,
+        )
+        box.pack_start(local_runtime, False, False, 0)
 
         language_label = self._label("Spoken language", "settings-label")
         box.pack_start(language_label, False, False, 0)
@@ -594,7 +677,40 @@ class MainWindow(Gtk.Window):
         error_label = self._label("", "onboarding-error")
         error_label.set_no_show_all(True)
         box.pack_start(error_label, False, False, 0)
+        def selected_provider() -> str:
+            return provider_combo.get_active_id() if provider_combo is not None else "groq"
+
+        def sync_first_run_provider(*_args: Any) -> None:
+            local = selected_provider() == "local_whisper_cpp"
+            key_label.set_visible(not local)
+            key_entry.set_visible(not local)
+            consent.set_visible(not local)
+            local_runtime.set_visible(local)
+            if local:
+                intro.set_text(
+                    "Voice activity detection and transcription run locally. Raw audio is passed in memory to your whisper.cpp process and is not saved by this app."
+                )
+                boundary_title.set_text("Provider · Local whisper.cpp (experimental)")
+                boundary_sent.set_text("Sent: nothing to a transcription provider.")
+                boundary_local.set_text(
+                    "Local: speech audio in memory, model execution, input meter, active transcript, and preferences."
+                )
+            else:
+                intro.set_text(
+                    "Voice activity detection runs locally. When a speech segment ends, that segment is sent to Groq cloud for transcription. Raw audio is not saved by this app."
+                )
+                boundary_title.set_text("Provider · Groq cloud")
+                boundary_sent.set_text(
+                    "Sent: completed speech segments and the selected language/translation request."
+                )
+                boundary_local.set_text(
+                    "Local: silence detection, input meter, active transcript, and preferences."
+                )
+
+        if provider_combo is not None:
+            provider_combo.connect("changed", sync_first_run_provider)
         dialog.show_all()
+        sync_first_run_provider()
         error_label.hide()
 
         try:
@@ -602,22 +718,34 @@ class MainWindow(Gtk.Window):
                 response = dialog.run()
                 if response != Gtk.ResponseType.APPLY:
                     return False
-                configured_key = (
-                    self._config.get("api_key")
-                    if self._config.source_for("api_key") == "environment"
-                    else key_entry.get_text()
-                )
                 try:
-                    clean_key = validate_cloud_setup(
-                        configured_key,
-                        data_boundary_confirmed=consent.get_active(),
-                    )
+                    provider_mode = selected_provider()
+                    if provider_mode == "local_whisper_cpp":
+                        binary_path, model_path = validate_local_setup(
+                            local_binary_entry.get_text(), local_model_entry.get_text()
+                        )
+                        clean_key = self._config.saved_value("api_key")
+                    else:
+                        configured_key = (
+                            self._config.get("api_key")
+                            if self._config.source_for("api_key") == "environment"
+                            else key_entry.get_text()
+                        )
+                        clean_key = validate_cloud_setup(
+                            configured_key,
+                            data_boundary_confirmed=consent.get_active(),
+                        )
+                        binary_path = self._config.get("local_binary_path")
+                        model_path = self._config.get("local_model_path")
                     selected = device_combo.get_active_id()
                     self._config.update(
                         {
                             "api_key": self._config.saved_value("api_key")
                             if self._config.source_for("api_key") == "environment"
                             else clean_key,
+                            "provider_mode": provider_mode,
+                            "local_binary_path": binary_path,
+                            "local_model_path": model_path,
                             "language": language_combo.get_active_id() or "auto",
                             "input_device_index": None
                             if not selected or selected == "default"
@@ -631,6 +759,10 @@ class MainWindow(Gtk.Window):
                     continue
 
                 self._language_combo.set_active_id(self._config.get("language"))
+                self._provider_combo.set_active_id(self._config.get("provider_mode"))
+                self._local_binary_entry.set_text(self._config.get("local_binary_path"))
+                self._local_model_entry.set_text(self._config.get("local_model_path"))
+                self._sync_provider_controls()
                 self._device_combo.set_active_id(selected or "default")
                 if self._config.source_for("api_key") != "environment":
                     self._api_entry.set_text(self._config.saved_value("api_key"))
@@ -643,11 +775,25 @@ class MainWindow(Gtk.Window):
 
     def _on_save_settings(self, _button: Gtk.Button) -> None:
         try:
+            provider_mode = self._provider_combo.get_active_id() or "groq"
+            local_binary_path = self._local_binary_entry.get_text()
+            local_model_path = self._local_model_entry.get_text()
+            if provider_mode == "local_whisper_cpp":
+                if not self._experimental_local_available:
+                    raise OnboardingError(
+                        "Experimental local mode is disabled for this session. Start a source install with VOICE_TRANSCRIBER_EXPERIMENTAL_LOCAL=1."
+                    )
+                local_binary_path, local_model_path = validate_local_setup(
+                    local_binary_path, local_model_path
+                )
             self._config.update(
                 {
                     "api_key": self._config.saved_value("api_key")
                     if self._config.source_for("api_key") == "environment"
                     else self._api_entry.get_text(),
+                    "provider_mode": provider_mode,
+                    "local_binary_path": local_binary_path,
+                    "local_model_path": local_model_path,
                     "language": self._language_combo.get_active_id() or "auto",
                     "translate_to_english": self._translate_switch.get_active(),
                     "font_size": int(self._font_scale.get_value()),
@@ -659,7 +805,7 @@ class MainWindow(Gtk.Window):
                     "history_retention_days": int(self._history_retention.get_value()),
                 }
             )
-        except ConfigError as error:
+        except (ConfigError, OnboardingError) as error:
             self.show_error(str(error))
             return
         self._update_font_size(self._config.get("font_size"))

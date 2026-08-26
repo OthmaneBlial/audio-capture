@@ -7,7 +7,9 @@
 **Dictate a thought, review it, and paste it anywhere on Linux.** Voice
 Transcriber is a focused GTK desktop desk for notes, prompts, emails, tickets,
 and drafts. It detects speech locally, sends only completed speech segments to
-Groq Whisper, and leaves the resulting text ready to copy or explicitly export.
+the visibly selected provider, and leaves the resulting text ready to copy or
+explicitly export. The packaged path uses Groq; a source-only local prototype
+is deliberately feature-flagged and labelled experimental.
 
 **[Visit the project site](https://othmaneblial.github.io/audio-capture/)** ·
 **[Read the data flow](docs/DATA-FLOW.md)** ·
@@ -39,7 +41,7 @@ Voice Transcriber is privacy-explicit, not an offline transcription engine.
 | --- | --- |
 | Microphone frames | Held in a bounded in-memory queue; not saved by the app |
 | Voice activity detection | Runs locally; silence is not submitted for transcription |
-| Completed speech segment | Encoded in memory and sent to Groq Whisper |
+| Completed speech segment | Encoded in memory; sent to Groq in cloud mode or passed through a memory-backed descriptor to the local prototype |
 | Input signal meter | Calculated locally and never persisted |
 | Transcript | Remains in the GTK buffer until you copy, clear, or export it |
 | Optional history | Disabled by default; when enabled, stores transcript text only with visible retention and clear-all controls |
@@ -54,14 +56,15 @@ and its current policies, not by this application.
 ## See the interface before configuring a key
 
 You can open the application, inspect Settings, discover microphone inputs, and
-read the privacy boundary without configuring Groq. **Start listening** remains
-blocked until a plausible API key is available; the app never substitutes a
-fake transcription.
+read the active privacy boundary without configuring Groq. In the packaged
+cloud path, **Start listening** remains blocked until a plausible API key is
+available; the app never substitutes a fake transcription.
 
-On the first run, the app asks for a microphone, spoken language, and Groq key.
-It requires an explicit confirmation that completed speech segments will leave
-the device before enabling transcription. **Explore first** keeps the app usable
-for inspection without accepting that boundary.
+On the first run, the app asks for a microphone, spoken language, and provider
+configuration. Cloud setup requires an explicit confirmation that completed
+speech segments will leave the device. A source session with the experimental
+flag can instead choose user-supplied local runtime/model files. **Explore
+first** keeps the app usable without accepting or configuring either boundary.
 
 Install the checksum-verified, source-mapped `x86_64` Flatpak release asset, verify its
 checksum, and open it without cloning the repository:
@@ -106,6 +109,8 @@ selected source is receiving audio without saving a recording. Use **Copy**
 - Local speech detection with `webrtcvad`; silence is not sent as a
   transcription request.
 - Groq Whisper transcription and optional translation into English.
+- A small provider contract covering languages, translation, cancellation,
+  limits, normalized errors, and a visible provider-specific data boundary.
 - A keyboard-friendly recording desk with session state, copy, export,
   direct editing, undo/redo, focused push-to-talk, adjustable text, opacity,
   and always-on-top mode.
@@ -145,6 +150,24 @@ This remains the development path. The Flatpak release is the primary normal
 installation; no Debian package or AppImage is claimed. Packaging evidence and
 remaining real-device gates are tracked in [ROADMAP.md](ROADMAP.md).
 
+### Experimental local whisper.cpp prototype
+
+The source tree can expose a second provider only after an explicit process
+flag. You supply a compatible `whisper-cli` executable and GGML model in
+Settings; the app downloads neither and validates both before enabling Start.
+
+```bash
+VOICE_TRANSCRIBER_EXPERIMENTAL_LOCAL=1 python main.py
+```
+
+On Linux, each completed PCM segment is wrapped as WAV in memory and passed to
+the local process through `memfd`; the app does not create a raw-audio file.
+This mode is disabled inside the current Flatpak and is not called supported or
+universally offline. Model licensing, size, RAM, speed, language quality, and
+hardware acceleration depend on the files/build you choose. Read the
+[provider matrix](docs/PROVIDERS.md) and [reproducible benchmark
+harness](benchmarks/README.md).
+
 ## Configuration
 
 Settings resolve in this order:
@@ -155,12 +178,14 @@ defaults < ~/.config/voice-transcriber/config.json < environment variables
 
 `GROQ_API_KEY` has the highest precedence and is never logged. Local settings
 are atomically written with owner-only file permissions; `.env` is ignored by
-Git. `python main.py --check-config` exits with status `0` when a plausible key
-is available and `2` when one is missing.
+Git. `python main.py --check-config` validates the active provider: a plausible
+key for Groq, or the feature flag plus executable/model files for experimental
+local mode. It exits with status `0` when ready and `2` when incomplete.
 
 | Setting | Where | Notes |
 | --- | --- | --- |
 | `GROQ_API_KEY` | Environment or `.env` | Required to transcribe; use a key you control |
+| Provider | Settings | Groq cloud, or experimental local only in explicitly flagged source sessions |
 | Language | Settings | Auto-detect, English, French, Spanish, German, Italian, Portuguese, Arabic, and Chinese |
 | Translate to English | Settings | Uses the provider translation endpoint |
 | Microphone input | Settings or `--device INDEX` | Saved selection is reused; CLI option overrides it for one launch |
@@ -184,20 +209,21 @@ python main.py --version
 python main.py --help
 ```
 
-`--check-config` never prints the key. `--list-devices --json` prints device
-metadata only and does not contact Groq.
-`--doctor` reports readiness and remediation without contacting Groq unless
-`--probe-provider` is explicitly supplied. See [the versioned CLI
+`--check-config` never prints the key or local paths. `--list-devices --json`
+prints device metadata only and does not contact a provider. `--doctor` reports
+readiness and remediation without contacting Groq unless `--probe-provider` is
+explicitly supplied; local diagnostics validate only file/flag readiness. See [the versioned CLI
 contracts](docs/CLI.md) for fields and exit codes.
 
 ## Architecture
 
 ```text
-Microphone -> bounded frame queue -> local VAD -> bounded API worker pool -> GTK transcript
+Microphone -> bounded frame queue -> local VAD -> bounded provider boundary -> GTK transcript
 ```
 
-The UI runs on GTK's main loop. Capture and VAD run away from it, while a
-two-worker transcription pool accepts only a small number of pending segments.
+The UI runs on GTK's main loop. Capture and VAD run away from it. Groq uses a
+bounded two-worker pool; the experimental local provider uses one worker and a
+smaller bounded queue because model execution is CPU/RAM intensive.
 See [the architecture note](docs/ARCHITECTURE.md) for lifecycle and failure
 behaviour.
 
@@ -231,8 +257,10 @@ python -m compileall -q audio transcription ui config.py main.py
 The unit suite fakes external native/API boundaries. It exercises configuration
 precedence and permissions, microphone discovery and selection, local meter
 normalisation, VAD segmentation, error normalisation, WAV conversion, the
-request bound, edit snapshots, export modes, history retention/deletion, and
-desktop capability gating without requiring a microphone or a Groq account.
+request bound, provider capabilities/data boundaries, memory-backed local CLI
+input, benchmark math, edit snapshots, export modes, history
+retention/deletion, and desktop capability gating without requiring a
+microphone, Groq account, local model, or corpus download.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [Code of Conduct](CODE_OF_CONDUCT.md) before opening a pull request.

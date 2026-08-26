@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from config import ConfigManager
+from transcription.local_whisper import local_mode_enabled
 
 SCHEMA_VERSION = 1
 SUPPORTED_DISTRIBUTIONS = {"debian", "ubuntu"}
@@ -192,11 +193,37 @@ def collect_diagnostics(
         )
         next_actions.append("Choose an available microphone in Settings or clear the saved selection.")
 
+    provider_mode = config.get("provider_mode")
     has_api_key = config.has_api_key()
-    if has_api_key:
+    local_binary = Path(config.get("local_binary_path")).expanduser()
+    local_model = Path(config.get("local_model_path")).expanduser()
+    local_enabled = local_mode_enabled(current_environ)
+    local_binary_ready = local_binary.is_file() and os.access(local_binary, os.X_OK)
+    local_model_ready = local_model.is_file()
+    if provider_mode == "local_whisper_cpp":
+        local_ready = local_enabled and local_binary_ready and local_model_ready
+        checks["configuration"] = _check(
+            "pass" if local_ready else "fail",
+            (
+                "The experimental local runtime and model are configured."
+                if local_ready
+                else "The experimental local provider is missing its feature flag, executable, or model."
+            ),
+            provider=provider_mode,
+            experimental_flag_enabled=local_enabled,
+            binary_executable=local_binary_ready,
+            model_present=local_model_ready,
+            api_key_present=has_api_key,
+        )
+        if not local_ready:
+            next_actions.append(
+                "For a source install, set VOICE_TRANSCRIBER_EXPERIMENTAL_LOCAL=1 and select an executable whisper-cli plus GGML model."
+            )
+    elif has_api_key:
         checks["configuration"] = _check(
             "pass",
             "A plausible Groq credential is configured.",
+            provider=provider_mode,
             api_key_present=True,
             api_key_source=config.source_for("api_key"),
         )
@@ -204,12 +231,25 @@ def collect_diagnostics(
         checks["configuration"] = _check(
             "fail",
             "No plausible Groq credential is configured.",
+            provider=provider_mode,
             api_key_present=False,
             api_key_source=config.source_for("api_key"),
         )
         next_actions.append("Set GROQ_API_KEY or save a key in Settings before transcribing.")
 
-    if not probe_provider:
+    if provider_mode == "local_whisper_cpp":
+        checks["provider"] = _check(
+            "pass" if local_enabled and local_binary_ready and local_model_ready else "fail",
+            (
+                "Local provider files are ready; no provider network request was made."
+                if local_enabled and local_binary_ready and local_model_ready
+                else "Local provider readiness failed; no provider network request was made."
+            ),
+            contacted=False,
+            provider=provider_mode,
+            probe_note="Diagnostics validate files only and never send microphone audio.",
+        )
+    elif not probe_provider:
         checks["provider"] = _check(
             "skip",
             "Provider reachability was not tested; add --probe-provider to opt in.",
@@ -235,7 +275,7 @@ def collect_diagnostics(
             next_actions.append("Check the network, Groq account, and configured key, then retry explicitly.")
 
     required_checks = ["platform", "gtk", "microphones", "selected_microphone", "configuration"]
-    if probe_provider:
+    if probe_provider and provider_mode == "groq":
         required_checks.append("provider")
     ready = all(checks[name]["status"] != "fail" for name in required_checks)
     return {

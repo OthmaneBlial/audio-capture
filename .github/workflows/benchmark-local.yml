@@ -1,0 +1,59 @@
+name: Experimental local benchmark
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: LibriSpeech test-clean / whisper.cpp tiny.en
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      WHISPER_CPP_REV: 978113305b2ead22249b881deafa131dc8884911
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install decoder and build tools
+        run: sudo apt-get update && sudo apt-get install --yes ffmpeg cmake
+      - name: Verify and prepare the licensed corpus
+        run: |
+          curl --fail --location --retry 3 \
+            --output /tmp/test-clean.tar.gz \
+            https://openslr.org/resources/12/test-clean.tar.gz
+          python benchmarks/prepare_librispeech.py \
+            --archive /tmp/test-clean.tar.gz \
+            --output-dir /tmp/voice-transcriber-librispeech \
+            --sample-count 25
+      - name: Build pinned whisper.cpp and fetch tiny.en
+        run: |
+          git init /tmp/whisper.cpp
+          git -C /tmp/whisper.cpp remote add origin https://github.com/ggml-org/whisper.cpp.git
+          git -C /tmp/whisper.cpp fetch --depth 1 origin "$WHISPER_CPP_REV"
+          git -C /tmp/whisper.cpp checkout --detach FETCH_HEAD
+          cmake -S /tmp/whisper.cpp -B /tmp/whisper.cpp/build \
+            -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON
+          cmake --build /tmp/whisper.cpp/build --config Release --parallel 2
+          /tmp/whisper.cpp/models/download-ggml-model.sh tiny.en
+      - name: Run benchmark and emit receipt
+        run: |
+          model_sha="$(sha256sum /tmp/whisper.cpp/models/ggml-tiny.en.bin | cut -d ' ' -f 1)"
+          cpu="$(lscpu | sed -n 's/^Model name:[[:space:]]*//p' | head -1)"
+          python benchmarks/run_benchmark.py \
+            --manifest /tmp/voice-transcriber-librispeech/manifest.json \
+            --provider local_whisper_cpp \
+            --local-binary /tmp/whisper.cpp/build/bin/whisper-cli \
+            --local-model /tmp/whisper.cpp/models/ggml-tiny.en.bin \
+            --provider-model "whisper.cpp@$WHISPER_CPP_REV; ggml-tiny.en.bin sha256=$model_sha" \
+            --hardware-label "GitHub ubuntu-latest x86_64; $cpu; 2 build threads" \
+            --output benchmarks/results/local-tiny-en-github-runner.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: local-tiny-en-benchmark-receipt
+          path: benchmarks/results/local-tiny-en-github-runner.json
+          if-no-files-found: error
+          retention-days: 30

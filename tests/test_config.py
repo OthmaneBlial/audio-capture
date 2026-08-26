@@ -100,3 +100,18 @@ class ConfigManagerTests(unittest.TestCase):
             ):
                 with self.assertRaises(ConfigError):
                     config.set(key, invalid)
+
+    def test_provider_choice_and_local_paths_are_validated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = ConfigManager(Path(temporary_directory), environ={})
+            self.assertEqual(config.get("provider_mode"), "groq")
+            config.update(
+                {
+                    "provider_mode": "local_whisper_cpp",
+                    "local_binary_path": " /opt/whisper-cli ",
+                    "local_model_path": " /models/ggml.bin ",
+                }
+            )
+            self.assertEqual(config.get("local_binary_path"), "/opt/whisper-cli")
+            with self.assertRaises(ConfigError):
+                config.set("provider_mode", "mystery")

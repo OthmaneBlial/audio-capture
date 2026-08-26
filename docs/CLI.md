@@ -8,7 +8,7 @@ future schema changes.
 
 | Command | `0` | `1` | `2` |
 | --- | --- | --- | --- |
-| `--check-config` | Plausible key configured | Not used | Key missing or implausible |
+| `--check-config` | Active provider is configured | Not used | Groq key or experimental local flag/files are incomplete |
 | `--list-devices` | Discovery ran, including an empty result | Native dependency or PortAudio discovery failure | Invalid arguments |
 | `--doctor` | Required readiness checks pass | One or more required checks fail | Invalid arguments |
 | GUI launch | Window exited normally | GTK import or runtime startup failure | Invalid arguments |
@@ -29,7 +29,7 @@ The result is a JSON array. Each item has:
 ```
 
 This command opens PortAudio only for discovery, closes it before returning,
-does not start a stream, and does not contact Groq.
+does not start a stream, and does not contact a transcription provider.
 
 ## `--doctor --json`
 
@@ -48,16 +48,19 @@ human-readable `summary`. The report includes microphone indexes but does not
 include microphone names, the API key, environment values, paths, IP addresses,
 or provider response bodies.
 
-By default, the provider check is `skip` and `contacted` is `false`. Only this
-explicit command transmits the configured credential to the Groq models
-endpoint:
+For Groq, the provider check is `skip` and `contacted` is `false` by default.
+Only this explicit command transmits the configured credential to the Groq
+models endpoint:
 
 ```bash
 voice-transcriber --doctor --probe-provider --json
 ```
 
 It never transmits audio. It reports authentication/reachability status without
-printing the credential or response body.
+printing the credential or response body. For experimental local mode, the
+provider check never contacts a network endpoint: it reports only whether the
+explicit feature flag, executable bit, and model file are present, without
+printing their paths.
 
 ## Session-only device override
 
@@ -68,4 +71,3 @@ voice-transcriber --device 2
 The override must be a non-negative integer. It takes precedence for one launch
 without changing the saved device. A failed open leaves the application stopped
 with an actionable error.
-

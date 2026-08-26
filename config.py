@@ -40,6 +40,9 @@ class ConfigManager:
         "copy_on_final": False,
         "history_enabled": False,
         "history_retention_days": 30,
+        "provider_mode": "groq",
+        "local_binary_path": "",
+        "local_model_path": "",
     }
     ENVIRONMENT_KEYS = {"api_key": "GROQ_API_KEY"}
     SUPPORTED_LANGUAGES = {"auto", "en", "fr", "es", "de", "it", "pt", "ar", "zh"}
@@ -165,6 +168,14 @@ class ConfigManager:
             if not isinstance(value, str):
                 raise ConfigError("API key must be text")
             return value.strip()
+        if key in {"local_binary_path", "local_model_path"}:
+            if not isinstance(value, str):
+                raise ConfigError(f"{key} must be text")
+            return value.strip()
+        if key == "provider_mode":
+            if value not in {"groq", "local_whisper_cpp"}:
+                raise ConfigError("provider_mode must be groq or local_whisper_cpp")
+            return value
         if key == "language":
             if value not in self.SUPPORTED_LANGUAGES:
                 raise ConfigError(f"Unsupported language: {value!r}")

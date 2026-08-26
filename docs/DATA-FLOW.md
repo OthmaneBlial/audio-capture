@@ -1,40 +1,44 @@
 # Data flow and privacy boundary
 
-Voice Transcriber is privacy-explicit, not fully offline. Voice activity
-detection happens locally; completed speech segments are sent to the active
-Groq transcription endpoint.
+Voice Transcriber makes the active transcription boundary visible on first run,
+in Settings, and on the main desk. Local voice activity detection always happens
+before a provider receives a completed segment.
 
-| Data | Where it exists | When it leaves the device | Persistence controlled by Voice Transcriber |
-| --- | --- | --- | --- |
-| Raw 30 ms microphone frames | Bounded in-memory capture queue | Never directly | Not persisted |
-| Detected speech segment | In memory as PCM, then WAV | Sent to Groq after the segment closes | Not persisted |
-| Silence | Local VAD only | Never sent as a transcription request | Not persisted |
-| Transcript text | Editable GTK memory buffer | Not sent elsewhere by the app | Explicit export; optional local history only after opt-in |
-| Recent request state | Bounded local state tracker | Never | Not persisted; contains status only, not audio/transcript text |
-| Local transcript history | Owner-only JSON after explicit opt-in | Never | Disabled by default; configurable expiry, entry deletion, and clear-all |
-| Groq API key | Environment, `.env`, or owner-only config | Used for authenticated Groq requests | Saved only when the user chooses Settings |
-| Preferences | Owner-only local config | Never | Persisted locally |
-| Input signal meter | In-memory RMS value | Never | Not persisted |
+| Data | Where it exists | Groq cloud | Experimental local | App persistence |
+| --- | --- | --- | --- | --- |
+| Raw 30 ms microphone frames | Bounded memory queue | Never sent directly | Never sent to a network provider | None |
+| Completed speech segment | PCM/WAV in memory | Sent over HTTPS after silence closes it | Passed to user-supplied `whisper-cli` through Linux `memfd` | None |
+| Silence | Local VAD only | Not submitted | Not submitted | None |
+| Transcript | Editable GTK buffer | Not sent elsewhere by the app | Not sent elsewhere by the app | Explicit export; opt-in text history |
+| Request state | Bounded status tracker | Local metadata | Local metadata | None; no audio/text |
+| API key | Environment, `.env`, or owner-only config | Used for authenticated requests | Not used | Only when user saves it |
+| CLI/model paths | Owner-only config | Not used | Used to launch the selected local files | Saved when user chooses local setup |
+| Preferences/history | Owner-only local files | Never | Never | Explicit settings; history off by default |
 
-The current application has no analytics, crash reporter, background upload,
-audio library, cloud transcript history, or automatic sync. Local text history
-is off by default and its storage path is disclosed before activation.
-
-## Session path
+## Groq cloud path
 
 ```text
-microphone
-  -> bounded local frame queue
-  -> local voice activity detector
-  -> completed in-memory speech segment
-  -> in-memory WAV encoding
-  -> Groq Whisper request
-  -> transcript in the GTK buffer
-  -> edit / explicit copy / clear / local export
-  -> optional local text history only after opt-in
+microphone -> bounded frames -> local VAD -> completed segment
+  -> in-memory WAV/HTTPS request -> Groq -> editable transcript
 ```
 
-Provider-side processing and retention are governed by the provider account and
-its current policies. Users should review Groq's documentation for their own
-account and jurisdiction; this project does not make a vendor-retention promise
-it cannot enforce.
+Provider processing and retention follow the user's account and the provider's
+current policies. This project makes no retention promise it cannot enforce.
+
+## Experimental local path
+
+```text
+microphone -> bounded frames -> local VAD -> completed segment
+  -> in-memory WAV -> /proc/self/fd/<memfd> -> user-supplied whisper-cli/model
+  -> editable transcript
+```
+
+This path is disabled inside the current Flatpak and without
+`VOICE_TRANSCRIBER_EXPERIMENTAL_LOCAL=1`. It downloads nothing, writes no raw
+audio file, and is not labelled supported/offline until its model, hardware,
+packaging, and first-success evidence are published.
+
+Both paths end in explicit edit/copy/clear/export actions. Optional transcript
+history is text-only, disabled by default, retention-limited, and clearable.
+The app has no analytics, crash reporter, background upload, cloud transcript
+history, or automatic sync.

@@ -115,6 +115,13 @@ def main() -> int:
             ):
                 if label not in button_labels:
                     failures.append(f"missing daily-dictation button: {label}")
+            visible_text = " ".join(
+                widget.get_text()
+                for widget in widgets
+                if isinstance(widget, Gtk.Label) and widget.get_visible()
+            )
+            if "Groq cloud · each completed speech segment leaves this device" not in visible_text:
+                failures.append("active Groq data boundary is not visible on the desk")
             window.update_segment_state("gtk-smoke", "pending", "Waiting for provider")
             GLib.timeout_add(80, inspect_segment_state)
             return False
@@ -148,6 +155,7 @@ def main() -> int:
                 if widget.get_accessible().get_name()
             }
             for required_name in (
+                "Transcription provider",
                 "Capture control mode",
                 "Copy transcript after each final segment",
                 "Keep local transcript history",
