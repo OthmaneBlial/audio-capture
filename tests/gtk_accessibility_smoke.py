@@ -82,9 +82,19 @@ def main() -> int:
                 if unnamed:
                     failures.append(f"unnamed interactive controls: {unnamed}")
 
-                entries = [widget for widget in widgets if isinstance(widget, Gtk.Entry)]
-                checks = [widget for widget in widgets if isinstance(widget, Gtk.CheckButton)]
-                combos = [widget for widget in widgets if isinstance(widget, Gtk.ComboBox)]
+                entries = [
+                    widget for widget in widgets if isinstance(widget, Gtk.Entry) and widget.get_visible()
+                ]
+                checks = [
+                    widget
+                    for widget in widgets
+                    if isinstance(widget, Gtk.CheckButton) and widget.get_visible()
+                ]
+                combos = [
+                    widget
+                    for widget in widgets
+                    if isinstance(widget, Gtk.ComboBox) and widget.get_visible()
+                ]
                 if len(entries) != 1 or len(checks) != 1 or len(combos) != 2:
                     failures.append(
                         f"unexpected setup controls: entries={len(entries)} checks={len(checks)} combos={len(combos)}"
