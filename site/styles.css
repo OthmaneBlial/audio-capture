@@ -54,6 +54,10 @@ h2 { font-size: clamp(2.7rem, 5vw, 5.4rem); }
 .preview-label { color: #b6df61; font-size: .64rem; font-weight: 800; letter-spacing: .14em; }
 .preview-button { width: 100%; padding: .78rem 1rem; background: #ec8a69; border: 1px solid #f7b19d; color: #2f180f; border-radius: .3rem; font-size: .85rem; font-weight: 800; }
 .preview-status { display: inline-flex; align-items: center; gap: .6rem; margin: 1.2rem 0; padding: .4rem .65rem; background: #223128; color: #cce8a0; border-radius: 3rem; font-size: .72rem; }
+.preview-meter { display: grid; grid-template-columns: 1fr auto; gap: .35rem .8rem; margin: 0 0 1.1rem; color: #bdc9ba; font-size: .6rem; font-weight: 800; letter-spacing: .08em; }
+.preview-meter span:last-of-type { color: #91a591; font-weight: 600; letter-spacing: 0; }
+.preview-meter i { grid-column: 1 / -1; display: block; height: .45rem; overflow: hidden; border: 1px solid #42554a; border-radius: 99px; background: #233128; }
+.preview-meter b { display: block; width: 66%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #86bd51, var(--leaf)); }
 .preview-transcript { min-height: 175px; padding: 1.25rem; background: #101711; border: 1px solid #35463b; color: #eff4eb; font-family: var(--serif); font-size: 1.35rem; line-height: 1.3; }
 .preview-transcript p { display: inline; }
 .cursor { display: inline-block; width: 2px; height: 1.05em; margin-left: .3rem; vertical-align: -.15em; background: var(--leaf); animation: blink 1s steps(2, start) infinite; }

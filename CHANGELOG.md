@@ -2,6 +2,19 @@
 
 All notable changes to Voice Transcriber are documented here.
 
+## [0.2.0] - 2026-08-26
+
+### Added
+
+- Microphone picker backed by on-demand local PortAudio discovery, with a durable per-user selection.
+- A rate-limited live input meter so a recording session can be verified before dictation.
+- `--list-devices`, `--list-devices --json`, and `--device INDEX` for machine-friendly microphone diagnostics and one-session overrides.
+- Native-boundary tests covering input filtering, selection, cleanup, and local signal-level normalization.
+
+### Changed
+
+- Microphone setup now explains unavailable saved devices and applies a changed source at the next session instead of silently changing an active capture.
+
 ## [0.1.0] - 2026-08-26
 
 ### Added

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-__all__ = ["AudioCapture", "VoiceActivityDetector"]
+__all__ = ["AudioCapture", "InputDevice", "VoiceActivityDetector", "list_input_devices"]
 
 
 def __getattr__(name: str) -> Any:
@@ -11,6 +11,10 @@ def __getattr__(name: str) -> Any:
         from .capture import AudioCapture
 
         return AudioCapture
+    if name in {"InputDevice", "list_input_devices"}:
+        from .capture import InputDevice, list_input_devices
+
+        return {"InputDevice": InputDevice, "list_input_devices": list_input_devices}[name]
     if name == "VoiceActivityDetector":
         from .vad import VoiceActivityDetector
 

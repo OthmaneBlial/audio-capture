@@ -34,6 +34,7 @@ class ConfigManager:
         "window_width": 560,
         "window_height": 520,
         "sticky_mode": False,
+        "input_device_index": None,
     }
     ENVIRONMENT_KEYS = {"api_key": "GROQ_API_KEY"}
     SUPPORTED_LANGUAGES = {"auto", "en", "fr", "es", "de", "it", "pt", "ar", "zh"}
@@ -181,5 +182,11 @@ class ConfigManager:
             limits = (360, 1800) if key == "window_width" else (320, 1200)
             if not limits[0] <= value <= limits[1]:
                 raise ConfigError(f"{key} must be between {limits[0]} and {limits[1]}")
+            return value
+        if key == "input_device_index":
+            if value is None:
+                return None
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ConfigError("input_device_index must be a non-negative integer or null")
             return value
         raise ConfigError(f"Unsupported setting: {key}")

@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import gi
 
@@ -28,13 +28,16 @@ class MainWindow(Gtk.Window):
         on_start: Optional[Callable[[], bool]] = None,
         on_stop: Optional[Callable[[], None]] = None,
         on_settings_change: Optional[Callable[[], None]] = None,
+        on_list_input_devices: Optional[Callable[[], list[Any]]] = None,
     ) -> None:
         super().__init__(title="Voice Transcriber")
         self._config = config
         self._on_start = on_start
         self._on_stop = on_stop
         self._on_settings_change_cb = on_settings_change
+        self._on_list_input_devices = on_list_input_devices
         self._is_listening = False
+        self._has_refreshed_input_devices = False
         self._status_reset_source: Optional[int] = None
         self._geometry_save_source: Optional[int] = None
         self._pending_geometry: Optional[tuple[int, int]] = None
@@ -80,6 +83,11 @@ class MainWindow(Gtk.Window):
         .status { color: #B4C6B4; font-size: 12px; font-weight: 700; }
         .status.active { color: #C9F57A; }
         .status.error { color: #FFAA8E; }
+        .input-monitor { padding: 3px 1px 0 1px; }
+        .input-label { color: #C5D1C4; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; }
+        .input-source { color: #9DAE9F; font-size: 11px; }
+        levelbar trough { min-height: 8px; border-radius: 99px; background-color: #263229; border: 1px solid #3A4A3E; }
+        levelbar block.filled { border-radius: 99px; background-color: #B8E85A; }
         .transcript-shell { background-color: #141B17; border: 1px solid #344338; border-radius: 10px; margin-top: 14px; }
         .transcript-view { background-color: transparent; color: #F4F7F0; font-family: Serif; font-size: 17px; line-height: 1.45; padding: 16px; }
         .empty-title { color: #EDF4E7; font-size: 17px; font-weight: 800; }
@@ -146,6 +154,24 @@ class MainWindow(Gtk.Window):
         status_box.pack_start(self._status_label, False, False, 0)
         content.pack_start(status_box, False, False, 0)
 
+        input_monitor = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        input_monitor.get_style_context().add_class("input-monitor")
+        input_meta = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        input_meta.pack_start(self._label("INPUT SIGNAL", "input-label"), False, False, 0)
+        input_meta.pack_start(Gtk.Box(), True, True, 0)
+        self._input_source_label = self._label("System default microphone", "input-source", xalign=1.0)
+        self._input_source_label.set_tooltip_text("The microphone selected for the next recording session")
+        self._input_source_label.get_accessible().set_name("Selected microphone")
+        input_meta.pack_end(self._input_source_label, False, False, 0)
+        input_monitor.pack_start(input_meta, False, False, 0)
+        self._input_level = Gtk.LevelBar.new_for_interval(0.0, 1.0)
+        self._input_level.set_mode(Gtk.LevelBarMode.CONTINUOUS)
+        self._input_level.set_value(0.0)
+        self._input_level.set_tooltip_text("Live microphone signal level. It is not an audio recording.")
+        self._input_level.get_accessible().set_name("Live microphone signal level")
+        input_monitor.pack_start(self._input_level, False, False, 0)
+        content.pack_start(input_monitor, False, False, 0)
+
         content.pack_start(
             self._label("Audio stays in memory until a detected speech segment is sent to Groq for transcription.", "privacy-note"),
             False,
@@ -167,7 +193,7 @@ class MainWindow(Gtk.Window):
         self._text_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         self._text_view.set_editable(False)
         self._text_view.set_cursor_visible(False)
-        self._text_view.set_accessible_name("Current transcript")
+        self._text_view.get_accessible().set_name("Current transcript")
         self._text_buffer = self._text_view.get_buffer()
         self._text_buffer.connect("changed", self._on_transcript_changed)
         scrolled.add(self._text_view)
@@ -260,6 +286,26 @@ class MainWindow(Gtk.Window):
             )
         box.pack_start(api_row, False, False, 0)
 
+        device_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        device_row.pack_start(self._label("Microphone input", "settings-label"), False, False, 0)
+        device_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self._device_combo = Gtk.ComboBoxText()
+        self._device_combo.append("default", "System default microphone")
+        self._device_combo.set_active_id("default")
+        self._device_combo.set_hexpand(True)
+        self._device_combo.get_accessible().set_name("Microphone input")
+        device_controls.pack_start(self._device_combo, True, True, 0)
+        refresh_button = self._make_secondary_button(
+            "Refresh", "Find currently available microphone inputs", self._on_refresh_input_devices
+        )
+        device_controls.pack_end(refresh_button, False, False, 0)
+        device_row.pack_start(device_controls, False, False, 0)
+        self._device_help = self._label(
+            "Choose a source, then start a new session to use it.", "settings-help"
+        )
+        device_row.pack_start(self._device_help, False, False, 0)
+        box.pack_start(device_row, False, False, 0)
+
         language_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         language_row.pack_start(self._label("Spoken language", "settings-label"), False, False, 0)
         self._language_combo = Gtk.ComboBoxText()
@@ -313,6 +359,7 @@ class MainWindow(Gtk.Window):
                     "translate_to_english": self._translate_switch.get_active(),
                     "font_size": int(self._font_scale.get_value()),
                     "opacity": self._opacity_scale.get_value(),
+                    "input_device_index": self._selected_input_device_index(),
                 }
             )
         except ConfigError as error:
@@ -323,13 +370,63 @@ class MainWindow(Gtk.Window):
         if self._on_settings_change_cb:
             self._on_settings_change_cb()
         self._popover.popdown()
-        self.set_status("Settings saved", "active", reset_after_ms=2_000)
+        self.set_status("Settings saved · microphone choice applies next session", "active", reset_after_ms=2_500)
 
     def _on_settings_clicked(self, _button: Gtk.Button) -> None:
         if self._popover.is_visible():
             self._popover.popdown()
         else:
+            self._refresh_input_devices()
             self._popover.popup()
+
+    def _on_refresh_input_devices(self, _button: Gtk.Button) -> None:
+        self._refresh_input_devices()
+
+    def _selected_input_device_index(self) -> Optional[int]:
+        selected = self._device_combo.get_active_id()
+        return None if not selected or selected == "default" else int(selected)
+
+    def _refresh_input_devices(self) -> None:
+        """Populate the picker only when requested; discovery opens PortAudio briefly."""
+        selected = self._device_combo.get_active_id()
+        if not self._has_refreshed_input_devices:
+            saved = self._config.get("input_device_index")
+            selected = "default" if saved is None else str(saved)
+
+        self._device_combo.remove_all()
+        self._device_combo.append("default", "System default microphone")
+        if self._on_list_input_devices is None:
+            self._device_help.set_text("Input discovery is unavailable in this session.")
+            self._device_combo.set_active_id("default")
+            self._has_refreshed_input_devices = True
+            return
+
+        try:
+            devices = self._on_list_input_devices()
+        except Exception:
+            LOGGER.debug("Could not list microphone inputs", exc_info=True)
+            self._device_help.set_text("Could not list inputs. The system default remains available.")
+            if selected and selected != "default":
+                self._device_combo.append(selected, f"Saved device #{selected} · unavailable")
+            self._device_combo.set_active_id(selected if selected else "default")
+            self._has_refreshed_input_devices = True
+            return
+
+        available_ids = {"default"}
+        for device in devices:
+            identifier = str(device.index)
+            available_ids.add(identifier)
+            suffix = " · default" if device.is_default else ""
+            self._device_combo.append(identifier, f"{device.name}{suffix}")
+        if not devices:
+            self._device_help.set_text("No explicit inputs found. Connect a microphone or use the system default.")
+        else:
+            self._device_help.set_text(f"{len(devices)} input{'s' if len(devices) != 1 else ''} found. Choice applies next session.")
+
+        if selected not in available_ids and selected != "default":
+            self._device_combo.append(selected, f"Saved device #{selected} · unavailable")
+        self._device_combo.set_active_id(selected if selected else "default")
+        self._has_refreshed_input_devices = True
 
     def _on_save_clicked(self, _button: Gtk.Button) -> None:
         text = self._transcript_text()
@@ -375,6 +472,7 @@ class MainWindow(Gtk.Window):
         self._listen_button.set_label("Start listening")
         self._listen_button.get_accessible().set_name("Start listening")
         self._listen_button.get_style_context().remove_class("recording")
+        self.set_input_level(0.0)
         if self._on_stop:
             self._on_stop()
         self.set_status("Ready when you are")
@@ -465,6 +563,28 @@ class MainWindow(Gtk.Window):
             self._text_buffer.insert(end, " ")
         self._text_buffer.insert(self._text_buffer.get_end_iter(), clean_text)
         self._text_view.scroll_to_iter(self._text_buffer.get_end_iter(), 0.0, False, 0.0, 0.0)
+        return False
+
+    def set_input_level(self, level: float) -> None:
+        """Update the visual meter from any capture thread without retaining audio."""
+        try:
+            normalized = max(0.0, min(1.0, float(level)))
+        except (TypeError, ValueError):
+            normalized = 0.0
+        GLib.idle_add(self._do_set_input_level, normalized)
+
+    def _do_set_input_level(self, level: float) -> bool:
+        self._input_level.set_value(level)
+        return False
+
+    def set_input_source(self, name: str) -> None:
+        """Show the active microphone identity without exposing any captured data."""
+        clean_name = " ".join(name.split()) or "System default microphone"
+        GLib.idle_add(self._do_set_input_source, clean_name)
+
+    def _do_set_input_source(self, name: str) -> bool:
+        self._input_source_label.set_text(name)
+        self._input_source_label.set_tooltip_text(name)
         return False
 
     def show_error(self, message: str) -> None:

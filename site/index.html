@@ -42,6 +42,7 @@
             <p class="preview-label">LIVE SESSION</p>
             <div class="preview-button">■ &nbsp; Stop listening</div>
             <p class="preview-status"><span class="status-dot" aria-hidden="true"></span> Listening · speech detected (3.2s)</p>
+            <div class="preview-meter" aria-label="Illustrated live microphone signal"><span>INPUT SIGNAL</span><span>USB microphone</span><i><b></b></i></div>
             <div class="preview-transcript">
               <p>“The important part is getting the idea out before it disappears.”</p>
               <span class="cursor" aria-hidden="true"></span>
@@ -63,7 +64,7 @@
           <h2 id="workflow-title">From microphone to useful text.</h2>
         </div>
         <ol class="steps">
-          <li><span class="step-number">01</span><h3>Listen</h3><p>Capture 30 ms microphone frames in a bounded real-time queue.</p></li>
+          <li><span class="step-number">01</span><h3>Listen</h3><p>Choose a microphone and confirm its local signal before 30 ms frames enter a bounded real-time queue.</p></li>
           <li><span class="step-number">02</span><h3>Detect</h3><p>Voice activity detection runs on your device, so silence never becomes a transcription request.</p></li>
           <li><span class="step-number">03</span><h3>Transcribe</h3><p>Completed segments travel to Groq Whisper through a bounded two-worker request pool.</p></li>
           <li><span class="step-number">04</span><h3>Use it</h3><p>Review the growing transcript, then copy it or export a local UTF-8 text file.</p></li>

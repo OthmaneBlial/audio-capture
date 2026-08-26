@@ -49,3 +49,16 @@ class ConfigManagerTests(unittest.TestCase):
             config = ConfigManager(Path(temporary_directory), environ={})
             with self.assertRaises(ConfigError):
                 config.get("not-a-setting")
+
+    def test_input_device_preference_round_trips_and_rejects_invalid_indexes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config_directory = Path(temporary_directory)
+            config = ConfigManager(config_directory, environ={})
+            config.set("input_device_index", 4)
+
+            reloaded = ConfigManager(config_directory, environ={})
+            self.assertEqual(reloaded.get("input_device_index"), 4)
+
+            for invalid in (-1, True, "4"):
+                with self.assertRaises(ConfigError):
+                    config.set("input_device_index", invalid)

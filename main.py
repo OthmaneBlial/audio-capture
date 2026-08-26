@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import signal
 import sys
@@ -14,7 +15,7 @@ from dotenv import load_dotenv
 
 from config import ConfigManager
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 LOGGER = logging.getLogger(__name__)
 Gtk: Any = None
 GLib: Any = None
@@ -23,7 +24,7 @@ GLib: Any = None
 class VoiceTranscriberApp:
     """Coordinate microphone capture, VAD, API work, and the GTK window."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, input_device_override: Optional[int] = None) -> None:
         from transcription import GroqTranscriptionService
         from ui import MainWindow
 
@@ -32,6 +33,7 @@ class VoiceTranscriberApp:
         self._processing_thread: Optional[threading.Thread] = None
         self._audio: Any = None
         self._vad: Any = None
+        self._input_device_override = input_device_override
         self._config = ConfigManager()
         self._transcriber = GroqTranscriptionService(
             api_key=self._config.get("api_key"),
@@ -46,6 +48,7 @@ class VoiceTranscriberApp:
             on_start=self._start_listening,
             on_stop=self._stop_listening,
             on_settings_change=self._on_settings_change,
+            on_list_input_devices=self._list_input_devices,
         )
 
     def _on_settings_change(self) -> None:
@@ -56,6 +59,17 @@ class VoiceTranscriberApp:
             translate=self._config.get("translate_to_english"),
         )
         LOGGER.info("Transcription preferences updated")
+
+    @staticmethod
+    def _list_input_devices() -> list[Any]:
+        """Load microphones on demand so opening the window never requires PyAudio first."""
+        from audio import list_input_devices
+
+        return list_input_devices()
+
+    def _on_input_level(self, level: float) -> None:
+        """Forward bounded capture telemetry to GTK without recording audio data."""
+        self._window.set_input_level(level)
 
     def _start_listening(self) -> bool:
         """Start microphone capture. Returns false when UI should remain stopped."""
@@ -72,7 +86,12 @@ class VoiceTranscriberApp:
 
             audio: Any = None
             try:
-                audio = AudioCapture()
+                device_index = (
+                    self._input_device_override
+                    if self._input_device_override is not None
+                    else self._config.get("input_device_index")
+                )
+                audio = AudioCapture(device_index=device_index, on_level=self._on_input_level)
                 vad = VoiceActivityDetector(
                     sample_rate=audio.sample_rate,
                     frame_duration_ms=audio.frame_duration_ms,
@@ -82,6 +101,9 @@ class VoiceTranscriberApp:
                     max_speech_ms=20_000,
                 )
                 audio.start()
+                selected_device = audio.selected_device
+                if selected_device is not None:
+                    self._window.set_input_source(selected_device.name)
                 self._audio = audio
                 self._vad = vad
                 self._running.set()
@@ -115,6 +137,7 @@ class VoiceTranscriberApp:
 
         if audio is not None:
             audio.stop()
+        self._window.set_input_level(0.0)
         if processing_thread and processing_thread.is_alive() and processing_thread is not threading.current_thread():
             processing_thread.join(timeout=1.5)
             if processing_thread.is_alive():
@@ -203,7 +226,16 @@ def _parser() -> argparse.ArgumentParser:
         description="Capture short speech segments from your microphone and transcribe them with Groq Whisper.",
     )
     parser.add_argument("--version", action="version", version=f"voice-transcriber {__version__}")
-    parser.add_argument("--check-config", action="store_true", help="validate configuration without opening GTK")
+    checks = parser.add_mutually_exclusive_group()
+    checks.add_argument("--check-config", action="store_true", help="validate configuration without opening GTK")
+    checks.add_argument("--list-devices", action="store_true", help="list available microphone inputs without opening GTK")
+    parser.add_argument(
+        "--device",
+        type=_device_index_argument,
+        metavar="INDEX",
+        help="use a microphone index for this session (overrides the saved choice)",
+    )
+    parser.add_argument("--json", action="store_true", help="format --list-devices output as JSON")
     parser.add_argument("--verbose", action="store_true", help="show diagnostic logs (never credentials)")
     return parser
 
@@ -215,12 +247,67 @@ def _configure_logging(verbose: bool) -> None:
     )
 
 
+def _device_index_argument(value: str) -> int:
+    try:
+        index = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("microphone index must be a non-negative integer") from error
+    if index < 0:
+        raise argparse.ArgumentTypeError("microphone index must be a non-negative integer")
+    return index
+
+
 def _run_config_check() -> int:
     config = ConfigManager()
     if not config.has_api_key():
         print("Configuration incomplete: set GROQ_API_KEY or add a key in the app Settings.", file=sys.stderr)
         return 2
     print(f"Configuration looks valid. API key source: {config.source_for('api_key')}.")
+    return 0
+
+
+def _run_device_list(*, as_json: bool) -> int:
+    """Print locally discovered microphones without starting GTK or contacting Groq."""
+    try:
+        from audio import list_input_devices
+
+        devices = list_input_devices()
+    except ImportError:
+        print(
+            "Could not list microphone inputs because PyAudio is unavailable. "
+            "Install the Linux prerequisites from the README, then try again.",
+            file=sys.stderr,
+        )
+        return 1
+    except RuntimeError as error:
+        print(str(error), file=sys.stderr)
+        return 1
+
+    if as_json:
+        print(
+            json.dumps(
+                [
+                    {
+                        "index": device.index,
+                        "name": device.name,
+                        "max_input_channels": device.max_input_channels,
+                        "is_default": device.is_default,
+                    }
+                    for device in devices
+                ],
+                indent=2,
+            )
+        )
+        return 0
+    if not devices:
+        print("No microphone inputs were found. Connect or enable a microphone, then try again.")
+        return 0
+
+    print("Microphone inputs:")
+    for device in devices:
+        default = " (default)" if device.is_default else ""
+        channels = "channel" if device.max_input_channels == 1 else "channels"
+        print(f"  {device.index}: {device.name} — {device.max_input_channels} {channels}{default}")
     return 0
 
 
@@ -244,6 +331,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     load_dotenv()
     if args.check_config:
         return _run_config_check()
+    if args.list_devices:
+        return _run_device_list(as_json=args.json)
 
     global Gtk, GLib
     try:
@@ -262,7 +351,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     _configure_alsa_errors()
     GLib.set_prgname("voice-transcriber")
     GLib.set_application_name("Voice Transcriber")
-    VoiceTranscriberApp().run()
+    VoiceTranscriberApp(input_device_override=args.device).run()
     return 0
 
 

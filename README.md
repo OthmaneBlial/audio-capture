@@ -14,7 +14,8 @@
 
 The fast path is deliberately short: configure one key, click **Start listening**, speak, then copy or export the result. Voice activity detection avoids uploading silence, and the app keeps a bounded work queue so a slow connection cannot spawn unlimited background requests.
 
-- Real microphone capture: 16 kHz mono PCM, tuned for Whisper.
+- Real microphone capture: choose a detected input or the system default, then verify it with a live local signal meter.
+- A script-friendly `--list-devices` command for checking microphones before you open the desktop app.
 - Local speech detection with `webrtcvad`; silence is never sent as a transcription request.
 - Groq Whisper transcription or translation to English.
 - A keyboard-friendly recording desk with session status, copy, export, adjustable text, and always-on-top mode.
@@ -33,10 +34,11 @@ cp .env.example .env
 # Edit .env and set GROQ_API_KEY to a newly created Groq API key.
 source venv/bin/activate
 python main.py --check-config
+python main.py --list-devices
 python main.py
 ```
 
-Inside the app, use **Start listening** (or `Ctrl+Enter`), then **Copy** (`Ctrl+Shift+C`) or **Export**. The Settings menu supports language selection, translation, font size, opacity, and an API key saved in a local owner-only configuration file.
+Inside the app, choose a microphone from **Settings** if needed, then use **Start listening** (or `Ctrl+Enter`). The input meter confirms that the selected source is receiving audio without saving a recording. Use **Copy** (`Ctrl+Shift+C`) or **Export** when the transcript is ready. Settings also support language selection, translation, font size, opacity, and an API key saved in a local owner-only configuration file.
 
 ## Installation details
 
@@ -73,6 +75,7 @@ defaults < ~/.config/voice-transcriber/config.json < environment variables
 | `GROQ_API_KEY` | environment or `.env` | Required to transcribe. Create and control this key in Groq. |
 | Language | Settings | Auto-detect by default; English, French, Spanish, German, Italian, Portuguese, Arabic, and Chinese are offered. |
 | Translate to English | Settings | Uses Groq's translation endpoint. |
+| Microphone input | Settings or `--device INDEX` | A saved selection is used for future sessions; the CLI option overrides it once. Run `python main.py --list-devices` to inspect indexes. |
 | Keep on top | Window control | Helpful while dictating into another app. |
 
 ## Architecture
@@ -89,6 +92,7 @@ The UI runs on GTK's main loop. Capture and VAD run away from it, while a two-wo
 | --- | --- |
 | “No Groq API key is configured” | Set `GROQ_API_KEY` in `.env` or add a key in Settings, then start again. |
 | The microphone cannot open | Verify a microphone is connected and grant microphone access to your desktop session. On Linux, check PipeWire/PulseAudio settings. |
+| The wrong microphone is active | Run `python main.py --list-devices`, choose an input in **Settings**, then start a new session. The input meter should respond when you speak. |
 | “Could not reach Groq” | Check your network connection and Groq service access. The app leaves the session running so you can continue after recovery. |
 | Rate-limit message | Wait a few seconds before speaking more; the request queue is intentionally bounded. |
 | PyAudio cannot install | Ensure `portaudio19-dev` is installed, then recreate the virtual environment with `--system-site-packages`. |
@@ -101,7 +105,7 @@ ruff check .
 python3 -m compileall -q audio transcription ui config.py main.py
 ```
 
-The unit suite fakes external native/API boundaries; it exercises configuration precedence and permissions, VAD segmentation, error normalization, WAV conversion, and the request bound without requiring a microphone or a Groq account. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+The unit suite fakes external native/API boundaries; it exercises configuration precedence and permissions, microphone discovery and selection, local meter normalization, VAD segmentation, error normalization, WAV conversion, and the request bound without requiring a microphone or a Groq account. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## Security and responsible disclosure
 
@@ -109,11 +113,10 @@ Please do not report security issues in public GitHub issues. Follow [SECURITY.m
 
 ## Roadmap
 
-- [ ] Optional configurable input-device picker.
 - [ ] Configurable local transcript retention with an explicit opt-in.
 - [ ] Distribution packages for supported Linux desktop environments.
 
-These are not implemented in `v0.1.0`.
+These are not implemented in `v0.2.0`.
 
 ## License
 
