@@ -12,7 +12,44 @@ permissions:
 
 jobs:
   quality:
-    name: Quality and tests
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Install verification tools
+        run: python -m pip install --upgrade pip ruff coverage build
+      - name: Lint
+        run: ruff check .
+      - name: Compile source
+        run: python -m compileall -q audio transcription ui benchmarks scripts config.py main.py
+      - name: Run unit tests with branch coverage
+        run: coverage run --branch -m unittest discover -s tests -v
+      - name: Report coverage
+        run: coverage report --omit='tests/*,scripts/*' --show-missing --fail-under=70
+      - name: Write coverage XML
+        if: matrix.python-version == '3.11'
+        run: coverage xml --omit='tests/*,scripts/*' -o coverage.xml
+      - uses: actions/upload-artifact@v4
+        if: matrix.python-version == '3.11'
+        with:
+          name: python-coverage
+          path: coverage.xml
+          if-no-files-found: error
+      - name: Build source and wheel distributions
+        if: matrix.python-version == '3.11'
+        run: python -m build
+
+  dependency-and-static-security:
+    name: Dependency audit and Bandit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -20,12 +57,12 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: requirements-dev.txt
-      - name: Install verification tools
-        run: python -m pip install --upgrade pip ruff
-      - name: Lint
-        run: ruff check .
-      - name: Compile source
-        run: python -m compileall -q audio transcription ui config.py main.py
-      - name: Run unit tests
-        run: python -m unittest discover -s tests -v
+      - name: Install security tools
+        run: python -m pip install --upgrade pip pip-audit bandit
+      - name: Audit exact Flatpak Python dependencies
+        run: pip-audit --require-hashes --disable-pip -r packaging/requirements-audit.txt
+      - name: Run static security analysis
+        run: >-
+          bandit -q -ll -r audio transcription ui benchmarks
+          config.py diagnostics.py exports.py history.py main.py onboarding.py
+          platform_capabilities.py transcript.py

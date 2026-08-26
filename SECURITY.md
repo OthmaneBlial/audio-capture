@@ -1,8 +1,12 @@
 # Security policy
 
-## Supported version
+## Supported versions
 
-Security fixes are applied to the latest `main` branch and the latest public release when practical.
+Security fixes are evaluated for the latest stable release first. The previous
+stable minor receives best-effort security guidance for 90 days after its
+successor; older releases, development snapshots, and experimental local mode
+have no support promise. See the complete
+[version/deprecation policy](docs/VERSION-POLICY.md).
 
 ## Reporting a vulnerability
 

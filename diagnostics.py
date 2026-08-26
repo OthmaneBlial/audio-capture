@@ -66,7 +66,8 @@ def _groq_probe(api_key: str, *, timeout_seconds: float = 5.0) -> tuple[str, str
         method="GET",
     )
     try:
-        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+        # URL is a module constant with an HTTPS scheme; user input cannot select a scheme/path.
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:  # nosec B310
             status_code = int(getattr(response, "status", 200))
     except urllib.error.HTTPError as error:
         if error.code in {401, 403}:

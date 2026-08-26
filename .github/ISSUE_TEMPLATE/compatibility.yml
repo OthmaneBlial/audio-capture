@@ -1,0 +1,82 @@
+name: Linux audio compatibility report
+description: Report a reproducible microphone, audio-server, desktop-session, or package problem.
+labels: [bug, hardware-compatibility]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach API keys, config files, recordings, transcripts, full environment dumps, or home-directory paths. Run `voice-transcriber --doctor --json` and review it before pasting; it is designed to omit those values.
+  - type: input
+    id: version
+    attributes:
+      label: Exact app version
+      placeholder: "0.6.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation path
+      options:
+        - Release Flatpak asset
+        - Source setup on Debian/Ubuntu
+        - Unsupported or modified package
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: Distribution and desktop
+      placeholder: "Ubuntu 26.04, GNOME 50"
+    validations:
+      required: true
+  - type: dropdown
+    id: session
+    attributes:
+      label: Display session
+      options:
+        - Wayland
+        - X11
+        - Unknown
+    validations:
+      required: true
+  - type: dropdown
+    id: audio_server
+    attributes:
+      label: Audio route
+      options:
+        - PipeWire with PulseAudio compatibility
+        - PulseAudio
+        - Direct ALSA or other unsupported route
+        - Unknown
+    validations:
+      required: true
+  - type: input
+    id: microphone
+    attributes:
+      label: Microphone connection type
+      placeholder: "Built-in, USB, Bluetooth; do not include serial numbers"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      placeholder: "1. Install…\n2. Select…\n3. Start…"
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Reviewed doctor output
+      description: Paste only the reviewed `--doctor --json` output. Remove anything you do not want public.
+      render: json
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed credentials, recordings, transcripts, config files, full paths, and unrelated environment data.
+          required: true

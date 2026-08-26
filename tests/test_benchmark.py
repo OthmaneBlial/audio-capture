@@ -1,8 +1,10 @@
+import io
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
 
-from benchmarks.prepare_librispeech import deterministic_sample
+from benchmarks.prepare_librispeech import deterministic_sample, safe_extract
 from benchmarks.run_benchmark import normalize_words, percentile, word_error_counts
 
 
@@ -33,6 +35,27 @@ class BenchmarkHarnessTests(unittest.TestCase):
     def test_manifest_helpers_leave_no_implicit_corpus_files(self):
         with tempfile.TemporaryDirectory() as directory:
             self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_safe_extract_writes_regular_files_and_rejects_traversal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            safe_archive = root / "safe.tar.gz"
+            with tarfile.open(safe_archive, "w:gz") as bundle:
+                member = tarfile.TarInfo("corpus/sample.txt")
+                payload = b"sample"
+                member.size = len(payload)
+                bundle.addfile(member, io.BytesIO(payload))
+            safe_extract(safe_archive, root / "safe-output")
+            self.assertEqual((root / "safe-output/corpus/sample.txt").read_bytes(), b"sample")
+
+            unsafe_archive = root / "unsafe.tar.gz"
+            with tarfile.open(unsafe_archive, "w:gz") as bundle:
+                member = tarfile.TarInfo("../escape.txt")
+                member.size = 1
+                bundle.addfile(member, io.BytesIO(b"x"))
+            with self.assertRaisesRegex(ValueError, "escapes destination"):
+                safe_extract(unsafe_archive, root / "unsafe-output")
+            self.assertFalse((root / "escape.txt").exists())
 
 
 if __name__ == "__main__":

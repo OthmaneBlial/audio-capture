@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  build-and-attest:
+    name: Build, verify, and attest Flatpak
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Establish exact release version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          python3 scripts/check_release.py "$GITHUB_REF_NAME"
+      - name: Validate desktop metadata
+        run: |
+          desktop-file-validate packaging/io.github.othmaneblial.audio_capture.desktop
+          appstreamcli validate --no-net --explain packaging/io.github.othmaneblial.audio_capture.metainfo.xml
+          flatpak-builder-lint manifest io.github.othmaneblial.audio_capture.yml
+          flatpak-builder-lint appstream packaging/io.github.othmaneblial.audio_capture.metainfo.xml
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.7
+        with:
+          bundle: voice-transcriber.flatpak
+          manifest-path: io.github.othmaneblial.audio_capture.yml
+          cache-key: release-flatpak-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('io.github.othmaneblial.audio_capture.yml', 'packaging/python3-dependencies.json') }}
+      - name: Prove a no-download rebuild and lint the exported repository
+        run: |
+          flatpak-builder --force-clean --disable-download \
+            --repo=offline-repo offline-build io.github.othmaneblial.audio_capture.yml
+          flatpak-builder-lint repo offline-repo
+      - name: Smoke test installed bundle
+        run: packaging/smoke_test_flatpak.sh voice-transcriber.flatpak
+      - name: Generate checksum, SBOM, test report, and notes
+        run: |
+          mkdir -p release
+          mv voice-transcriber.flatpak "release/voice-transcriber-$VERSION-x86_64.flatpak"
+          cd release
+          sha256sum "voice-transcriber-$VERSION-x86_64.flatpak" > "voice-transcriber-$VERSION-x86_64.flatpak.sha256"
+          cd ..
+          commit_time="$(git show -s --format=%cI "$GITHUB_SHA")"
+          python3 scripts/generate_sbom.py \
+            --version "$VERSION" --commit "$GITHUB_SHA" --timestamp "$commit_time" \
+            --output "release/voice-transcriber-$VERSION.cdx.json"
+          python3 scripts/run_release_tests.py \
+            --version "$VERSION" --commit "$GITHUB_SHA" \
+            --workflow-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --output "release/voice-transcriber-$VERSION-test-report.json"
+          python3 scripts/render_release_notes.py \
+            --version "$VERSION" --commit "$GITHUB_SHA" --output release/release-notes.md
+      - name: Generate build provenance attestation
+        id: provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: release/voice-transcriber-${{ env.VERSION }}-x86_64.flatpak
+      - name: Generate SBOM attestation
+        id: sbom-attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: release/voice-transcriber-${{ env.VERSION }}-x86_64.flatpak
+          sbom-path: release/voice-transcriber-${{ env.VERSION }}.cdx.json
+      - name: Add downloadable attestation bundles
+        run: |
+          cp "${{ steps.provenance.outputs.bundle-path }}" "release/voice-transcriber-$VERSION-provenance.sigstore.json"
+          cp "${{ steps.sbom-attestation.outputs.bundle-path }}" "release/voice-transcriber-$VERSION-sbom-attestation.sigstore.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voice-transcriber-${{ github.ref_name }}-release
+          path: release/
+          if-no-files-found: error
+
+  publish:
+    name: Publish immutable-shaped release assets
+    needs: build-and-attest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Establish release version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v5
+        with:
+          name: voice-transcriber-${{ github.ref_name }}-release
+          path: release
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "release/voice-transcriber-$version-x86_64.flatpak" \
+            "release/voice-transcriber-$version-x86_64.flatpak.sha256" \
+            "release/voice-transcriber-$version.cdx.json" \
+            "release/voice-transcriber-$version-test-report.json" \
+            "release/voice-transcriber-$version-provenance.sigstore.json" \
+            "release/voice-transcriber-$version-sbom-attestation.sigstore.json" \
+            --verify-tag \
+            --title "Voice Transcriber $GITHUB_REF_NAME" \
+            --notes-file release/release-notes.md

@@ -24,6 +24,11 @@ means tested, not merely expected to work.
 stack should work, but this project has not yet published repeatable evidence
 for the exact combination.
 
+See [Linux compatibility evidence](COMPATIBILITY.md) for the explicit
+X11/Wayland and PipeWire/PulseAudio evidence levels and the bounded reproduction
+protocol. Use the structured compatibility issue form instead of a full system
+dump.
+
 ## Hardware verification report
 
 When reporting a microphone issue, include only:

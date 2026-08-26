@@ -13,6 +13,7 @@ is deliberately feature-flagged and labelled experimental.
 
 **[Visit the project site](https://othmaneblial.github.io/audio-capture/)** ·
 **[Read the data flow](docs/DATA-FLOW.md)** ·
+**[Read the privacy notice](docs/PRIVACY.md)** ·
 **[Check supported environments](docs/SUPPORT.md)** ·
 **[Inspect CLI contracts](docs/CLI.md)**
 
@@ -52,6 +53,12 @@ Voice Transcriber is privacy-explicit, not an offline transcription engine.
 Read [the complete data-flow table](docs/DATA-FLOW.md) before using the app with
 sensitive speech. Provider-side handling is controlled by the provider account
 and its current policies, not by this application.
+
+The [privacy notice](docs/PRIVACY.md) and [threat model](docs/THREAT-MODEL.md)
+cover the microphone, memory, provider, key, transcript, history, export, logs,
+local executable, and release supply-chain boundaries. They link current
+provider documentation instead of making a retention promise the app cannot
+enforce.
 
 ## See the interface before configuring a key
 

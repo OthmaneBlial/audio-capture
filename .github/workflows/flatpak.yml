@@ -49,10 +49,17 @@ jobs:
         run: |
           desktop-file-validate packaging/io.github.othmaneblial.audio_capture.desktop
           appstreamcli validate --no-net --explain packaging/io.github.othmaneblial.audio_capture.metainfo.xml
+          flatpak-builder-lint manifest io.github.othmaneblial.audio_capture.yml
+          flatpak-builder-lint appstream packaging/io.github.othmaneblial.audio_capture.metainfo.xml
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.7
         with:
           bundle: voice-transcriber.flatpak
           manifest-path: io.github.othmaneblial.audio_capture.yml
           cache-key: flatpak-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('io.github.othmaneblial.audio_capture.yml', 'packaging/python3-dependencies.json') }}
+      - name: Prove a no-download rebuild and lint the exported repository
+        run: |
+          flatpak-builder --force-clean --disable-download \
+            --repo=offline-repo offline-build io.github.othmaneblial.audio_capture.yml
+          flatpak-builder-lint repo offline-repo
       - name: Smoke test installed bundle
         run: packaging/smoke_test_flatpak.sh voice-transcriber.flatpak
