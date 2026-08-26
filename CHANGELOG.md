@@ -2,6 +2,20 @@
 
 All notable changes to Voice Transcriber are documented here.
 
+## [Unreleased]
+
+### Added
+
+- A reproducible three-state product tour with static screenshots and a short
+  animation made from synthetic sample text.
+- A field-level data-flow document, supported-environment matrix, code of
+  conduct, issue-routing config, label manifest, and bounded newcomer tasks.
+
+### Changed
+
+- Reframed the README and site around daily Linux dictation, an explicit cloud
+  boundary, and the ability to inspect the app before configuring a Groq key.
+
 ## [0.2.0] - 2026-08-26
 
 ### Added

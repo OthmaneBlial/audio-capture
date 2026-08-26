@@ -1,0 +1,28 @@
+- name: bug
+  color: d73a4a
+  description: Reproducible user-facing defect
+- name: enhancement
+  color: a2eeef
+  description: Focused improvement to an existing workflow
+- name: good first issue
+  color: 7057ff
+  description: Bounded task with contributor guidance and acceptance criteria
+- name: help wanted
+  color: 008672
+  description: Maintainer-reviewed contribution opportunity
+- name: privacy
+  color: 6f42c1
+  description: Data flow, retention, secrets, or consent boundary
+- name: accessibility
+  color: 1d76db
+  description: Keyboard, assistive technology, contrast, or motion
+- name: packaging
+  color: c5def5
+  description: Installation, updates, removal, or release artifacts
+- name: hardware-compatibility
+  color: f9d0c4
+  description: Microphone, audio server, desktop session, or architecture evidence
+- name: documentation
+  color: 0075ca
+  description: Public instructions or product proof
+

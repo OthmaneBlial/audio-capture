@@ -3,8 +3,13 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Voice Transcriber is a focused Linux desktop app for live Groq Whisper transcription.">
-    <title>Voice Transcriber — speech, without the busywork</title>
+    <meta name="description" content="Privacy-explicit Linux dictation: inspect your microphone, detect speech locally, and turn completed segments into text with Groq Whisper.">
+    <meta property="og:title" content="Voice Transcriber — privacy-explicit Linux dictation">
+    <meta property="og:description" content="Dictate a thought, review it, and paste it anywhere on Linux.">
+    <meta property="og:image" content="https://othmaneblial.github.io/audio-capture/assets/demo-02-active.png">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <title>Voice Transcriber — privacy-explicit Linux dictation</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
     <script src="app.js" defer></script>
@@ -19,6 +24,7 @@
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
       <nav id="site-nav" aria-label="Primary navigation">
         <a href="#workflow">Workflow</a>
+        <a href="#proof">Product tour</a>
         <a href="#privacy">Privacy</a>
         <a href="docs.html">Docs</a>
         <a class="nav-repo" href="https://github.com/OthmaneBlial/audio-capture">GitHub <span aria-hidden="true">↗</span></a>
@@ -28,16 +34,16 @@
     <main id="main">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">Linux desktop · Groq Whisper · local speech detection</p>
-          <h1>Let the thought<br>arrive <em>before</em><br>the formatting.</h1>
-          <p class="lede">Voice Transcriber catches speech from your microphone, filters silence locally, and gives you clean editable text — ready to copy, export, or keep beside your work.</p>
+          <p class="eyebrow">Linux dictation · explicit cloud boundary · local speech detection</p>
+          <h1>Dictate the thought.<br><em>Keep</em> the words.</h1>
+          <p class="lede">Turn a spoken note, prompt, email, or draft into text that is ready to copy anywhere on Linux. Voice Transcriber filters silence locally and shows exactly when completed speech segments go to Groq.</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#install">Try the quick start <span aria-hidden="true">↓</span></a>
+            <a class="button button-primary" href="#install">Inspect it without a key <span aria-hidden="true">↓</span></a>
             <a class="button button-quiet" href="docs.html">Read the docs</a>
           </div>
           <p class="microcopy">No recordings are saved by the app. Speech segments are sent to Groq only after local voice activity detection.</p>
         </div>
-        <div class="desk-preview" aria-label="Illustration of the Voice Transcriber interface">
+        <div class="desk-preview" aria-label="Guided illustration of the Voice Transcriber interface using synthetic sample text">
           <div class="preview-top"><span class="signal" aria-hidden="true"></span><span>VOICE TRANSCRIBER</span><span class="preview-settings" aria-hidden="true">⚙</span></div>
           <div class="preview-body">
             <p class="preview-label">LIVE SESSION</p>
@@ -51,6 +57,20 @@
             <div class="preview-footer"><span>Keep on top&nbsp; <b>●</b></span><span>Clear&nbsp;&nbsp; Copy</span></div>
           </div>
         </div>
+      </section>
+
+      <section id="proof" class="proof" aria-labelledby="proof-title">
+        <div class="section-heading">
+          <p class="eyebrow">Guided product tour · synthetic sample text</p>
+          <h2 id="proof-title">Know what happens before you press Start.</h2>
+          <p class="proof-lede">These reproducible previews mirror the current native GTK states. The application itself never inserts a simulated transcript.</p>
+        </div>
+        <div class="proof-grid">
+          <figure><img src="assets/demo-01-ready.png" width="1200" height="750" loading="lazy" alt="Voice Transcriber ready state with microphone and privacy information visible"><figcaption><b>01 · Inspect.</b> Open the desk and see the device and boundary before configuring a key.</figcaption></figure>
+          <figure><img src="assets/demo-02-active.png" width="1200" height="750" loading="lazy" alt="Voice Transcriber active state with speech detected and input meter moving"><figcaption><b>02 · Speak.</b> Local voice detection and the signal meter make capture state visible.</figcaption></figure>
+          <figure><img src="assets/demo-03-complete.png" width="1200" height="750" loading="lazy" alt="Voice Transcriber completed transcript ready for copy or export"><figcaption><b>03 · Use.</b> Review the result, then copy, clear, or explicitly export it.</figcaption></figure>
+        </div>
+        <p class="proof-link"><a href="assets/voice-transcriber-tour.gif">View the short animated tour</a> · <a href="https://github.com/OthmaneBlial/audio-capture/blob/main/scripts/render_demo_assets.sh">Reproduce these assets</a></p>
       </section>
 
       <section class="statement" aria-labelledby="statement-title">
@@ -78,25 +98,26 @@
           <h2 id="privacy-title">Local capture. Cloud transcription. No ambiguity.</h2>
         </div>
         <div class="boundary-grid">
-          <article><p class="boundary-label">Stays on your device</p><ul><li>Raw microphone frames before speech is detected</li><li>The active transcript until you copy or export it</li><li>Window preferences and local settings</li></ul></article>
+          <article><p class="boundary-label">Stays on your device</p><ul><li>Raw microphone frames in a bounded memory queue</li><li>The active transcript until you clear, copy, or export it</li><li>Window preferences and local settings</li></ul></article>
           <article><p class="boundary-label boundary-label-send">Sent when you speak</p><ul><li>Completed speech segments, encoded in memory as WAV</li><li>Your configured language or translation request</li><li>Nothing is sent while waiting in silence</li></ul></article>
         </div>
+        <p class="boundary-more"><a href="docs.html#privacy">Read the complete data flow and provider boundary</a></p>
       </section>
 
       <section id="install" class="install" aria-labelledby="install-title">
-        <div class="section-heading"><p class="eyebrow">First result</p><h2 id="install-title">One key. One command. Start speaking.</h2></div>
+        <div class="section-heading"><p class="eyebrow">Inspect before configuring</p><h2 id="install-title">See devices and settings before adding a key.</h2></div>
         <div class="terminal" aria-label="Quick-start commands">
           <div class="terminal-bar"><span></span><span></span><span></span><p>terminal</p></div>
           <pre><code id="quickstart">git clone https://github.com/OthmaneBlial/audio-capture.git
 cd audio-capture
 ./setup.sh
 cp .env.example .env
-# add GROQ_API_KEY to .env
 source venv/bin/activate
+python main.py --list-devices
 python main.py</code></pre>
           <button class="copy-button" type="button" data-copy-target="quickstart">Copy command</button>
         </div>
-        <p class="install-note">For Debian/Ubuntu desktops with GTK 3. Run <code>python main.py --check-config</code> before opening the app to verify the key without starting the GUI.</p>
+        <p class="install-note">For Debian/Ubuntu desktops with GTK 3. The UI, device picker, and privacy explanation work without a key; Start stays blocked until you configure Groq. Read the <a href="docs.html#support">support matrix</a>.</p>
       </section>
 
       <section class="closing">
@@ -106,6 +127,6 @@ python main.py</code></pre>
       </section>
     </main>
 
-    <footer><span>Voice Transcriber</span><span>MIT licensed</span><a href="docs.html">Documentation</a><a href="https://github.com/OthmaneBlial/audio-capture">GitHub</a></footer>
+    <footer><span>Voice Transcriber</span><span>MIT licensed</span><a href="docs.html">Documentation</a><a href="https://github.com/OthmaneBlial/audio-capture/releases/latest">Latest release</a><a href="https://github.com/OthmaneBlial/audio-capture/blob/main/CONTRIBUTING.md">Contribute</a><a href="https://github.com/OthmaneBlial/audio-capture">GitHub</a></footer>
   </body>
 </html>

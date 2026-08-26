@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Voice Transcriber product tour</title>
+    <style>
+      :root { color-scheme: dark; --night: #0b100d; --panel: #101512; --panel-2: #171d19; --line: #334038; --text: #f3f7ee; --muted: #aab8aa; --leaf: #b8e85a; --coral: #ee7c58; }
+      * { box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+      body { display: grid; place-items: center; background: radial-gradient(circle at 18% 12%, #26372c 0, #111813 34%, #080c09 100%); color: var(--text); font-family: "Avenir Next", Avenir, "Trebuchet MS", sans-serif; }
+      body::before { content: ""; position: fixed; inset: 0; opacity: .18; background-image: linear-gradient(90deg, transparent 49.5%, #839486 50%, transparent 50.5%), linear-gradient(transparent 49.5%, #839486 50%, transparent 50.5%); background-size: 56px 56px; mask-image: linear-gradient(to bottom, black, transparent 78%); }
+      .stage { position: relative; width: 1120px; height: 680px; }
+      .chapter { position: absolute; top: 38px; left: 10px; width: 255px; }
+      .chapter p { margin: 0; color: var(--leaf); font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+      .chapter h1 { margin: 14px 0 12px; font-family: Georgia, serif; font-size: 42px; font-weight: 500; letter-spacing: -.045em; line-height: .98; }
+      .chapter span { display: block; color: #b3c0b5; font-size: 14px; line-height: 1.55; }
+      .window { position: absolute; right: 0; top: 0; width: 790px; height: 640px; overflow: hidden; border: 1px solid #45564a; border-radius: 13px; background: var(--panel); box-shadow: 0 30px 100px rgba(0,0,0,.55), 18px 18px 0 rgba(184,232,90,.12); }
+      .topbar { height: 80px; display: flex; align-items: center; padding: 0 26px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+      .mark { width: 35px; height: 35px; display: grid; place-items: center; margin-right: 13px; border-radius: 50%; background: var(--leaf); color: #16200e; font-family: Georgia, serif; font-size: 29px; line-height: 1; }
+      .wordmark b { display: block; font-size: 15px; letter-spacing: .08em; }
+      .wordmark span { color: var(--muted); font-size: 11px; }
+      .top-actions { display: flex; gap: 10px; margin-left: auto; }
+      .ghost { padding: 9px 12px; border: 1px solid #425247; border-radius: 7px; color: #d8e5d2; font-size: 12px; font-weight: 700; }
+      .content { padding: 26px 30px 22px; }
+      .eyebrow { margin: 0 0 10px; color: var(--leaf); font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+      .record { width: 100%; padding: 15px; border: 1px solid #d7ff8a; border-radius: 9px; background: var(--leaf); color: #16200e; text-align: center; font-size: 14px; font-weight: 800; }
+      .active .record { border-color: #ffb099; background: var(--coral); color: #28100a; }
+      .status { display: inline-flex; align-items: center; gap: 8px; margin: 12px 0 13px; padding: 7px 12px; border: 1px solid #344338; border-radius: 99px; background: #1d2821; color: #b4c6b4; font-size: 11px; font-weight: 700; }
+      .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #77847a; }
+      .active .status, .complete .status { color: #c9f57a; }
+      .active .status::before, .complete .status::before { background: var(--leaf); box-shadow: 0 0 0 4px rgba(184,232,90,.1); }
+      .meter-meta { display: flex; justify-content: space-between; color: #c5d1c4; font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+      .meter-meta span:last-child { color: #9dae9f; font-weight: 500; letter-spacing: 0; }
+      .meter { height: 9px; margin: 6px 0 10px; overflow: hidden; border: 1px solid #3a4a3e; border-radius: 99px; background: #263229; }
+      .meter i { display: block; width: 3%; height: 100%; border-radius: inherit; background: var(--leaf); }
+      .active .meter i { width: 68%; }
+      .complete .meter i { width: 12%; }
+      .privacy { margin: 0 0 12px; color: #aab8aa; font-size: 10px; }
+      .transcript { height: 275px; padding: 24px; border: 1px solid #344338; border-radius: 10px; background: #141b17; color: #f4f7f0; font-family: Georgia, serif; font-size: 22px; line-height: 1.48; }
+      .empty { height: 100%; display: grid; place-content: center; text-align: center; }
+      .empty b { font-family: "Avenir Next", sans-serif; font-size: 16px; }
+      .empty span { margin-top: 5px; color: #9dae9f; font-family: "Avenir Next", sans-serif; font-size: 12px; }
+      .sample { display: none; }
+      .active .empty, .complete .empty { display: none; }
+      .active .sample, .complete .sample { display: block; }
+      .active .sample::after { content: ""; display: inline-block; width: 2px; height: 1em; margin-left: 4px; vertical-align: -.12em; background: var(--leaf); }
+      .footer { display: flex; align-items: center; margin-top: 14px; color: #c5d1c4; font-size: 11px; font-weight: 700; }
+      .switch { width: 28px; height: 15px; margin-left: 7px; border-radius: 99px; background: #8fbc3e; }
+      .switch::after { content: ""; float: right; width: 11px; height: 11px; margin: 2px; border-radius: 50%; background: white; }
+      .footer-actions { display: flex; gap: 8px; margin-left: auto; }
+      .footer-actions span { padding: 8px 12px; border: 1px solid #405044; border-radius: 7px; background: #253128; }
+      .badge { position: absolute; right: 32px; bottom: -2px; padding: 9px 13px; border: 1px solid #415247; border-radius: 99px; background: #132017; color: #bcd0bd; font-size: 11px; }
+      .badge b { color: var(--leaf); }
+      .chapter h1, .chapter span { display: none; }
+      .state-ready .ready, .state-active .active-copy, .state-complete .complete-copy { display: block; }
+    </style>
+  </head>
+  <body class="state-ready">
+    <main class="stage">
+      <section class="chapter">
+        <p>Guided product preview · sample data</p>
+        <h1 class="ready">Ready before recording.</h1>
+        <h1 class="active-copy">See the microphone, not a mystery.</h1>
+        <h1 class="complete-copy">Text stays yours to use.</h1>
+        <span class="ready">Inspect the device and privacy boundary before a speech segment leaves the machine.</span>
+        <span class="active-copy">Local voice detection and a live signal meter make the active session visible.</span>
+        <span class="complete-copy">Review the result, copy it, clear it, or export only when you choose.</span>
+      </section>
+      <section class="window" aria-label="Voice Transcriber native interface preview">
+        <header class="topbar"><span class="mark">⌁</span><span class="wordmark"><b>VOICE TRANSCRIBER</b><span>speech, without the busywork</span></span><span class="top-actions"><span class="ghost">Export</span><span class="ghost">Settings</span></span></header>
+        <div class="content">
+          <p class="eyebrow">LIVE SESSION</p>
+          <div class="record">Start listening</div>
+          <div class="status">Ready when you are</div>
+          <div class="meter-meta"><span>INPUT SIGNAL</span><span>USB microphone</span></div>
+          <div class="meter"><i></i></div>
+          <p class="privacy">Audio stays in memory until a detected speech segment is sent to Groq for transcription.</p>
+          <div class="transcript"><div class="empty"><b>Your words will land here</b><span>Start a session, speak naturally, then copy or export the result.</span></div><div class="sample">The important part is getting the idea out before it disappears.</div></div>
+          <div class="footer">Keep on top <span class="switch"></span><span class="footer-actions"><span>Clear</span><span>Copy</span></span></div>
+        </div>
+      </section>
+      <p class="badge"><b>Privacy boundary:</b> local VAD · completed segments to Groq</p>
+    </main>
+    <script>
+      const state = new URLSearchParams(window.location.search).get('state') || 'ready';
+      const validState = ['ready', 'active', 'complete'].includes(state) ? state : 'ready';
+      document.body.className = `state-${validState}`;
+      const windowPreview = document.querySelector('.window');
+      if (validState === 'active') {
+        windowPreview.classList.add('active');
+        document.querySelector('.record').textContent = '■  Stop listening';
+        document.querySelector('.status').textContent = 'Listening · speech detected (3.2s)';
+      } else if (validState === 'complete') {
+        windowPreview.classList.add('complete');
+        document.querySelector('.status').textContent = 'Transcript ready to copy';
+      }
+    </script>
+  </body>
+</html>
