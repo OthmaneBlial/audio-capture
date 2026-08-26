@@ -288,6 +288,14 @@ Xvfb and capability unit tests are not relabelled as real Wayland/X11 plus
 PipeWire/PulseAudio microphone sessions; the new structured issue form records
 that missing evidence without collecting sensitive system dumps.
 
+**v1 candidate evidence:** commit
+`1db98066a75329fc5ac5b6b13cf3a3be15fa4428` passed exact CI run
+`33019179553` across Python 3.9/3.11/3.14 plus dependency audit and Bandit,
+Flatpak run `33019179602` including the offline rebuild and installed-bundle
+smoke, and CodeQL run `33019179363` across Python, Actions, and JavaScript with
+no open alerts at verification time. This proves the pre-tag candidate; it does
+not pre-claim the tag-only publication job.
+
 ### P5 — Build an open-source distribution and contribution loop
 
 **Outcome:** each useful release gives users something concrete to share and

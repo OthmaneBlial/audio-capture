@@ -46,9 +46,13 @@ All notable changes to Voice Transcriber are documented here.
 
 - Fifty-nine deterministic unit tests, Ruff, source compilation, release
   version checks, and release-note surface tests pass locally before the tag.
-- Exact-commit CI, Flatpak, CodeQL, public release asset, checksum, SBOM,
-  provenance, and attestation evidence is recorded in `ROADMAP.md` after each
-  remote gate completes; physical microphone/desktop combinations remain a
+- Candidate commit `1db98066a75329fc5ac5b6b13cf3a3be15fa4428` passed CI run
+  `33019179553` on Python 3.9, 3.11, and 3.14 plus the dependency/security job;
+  Flatpak run `33019179602` passed lints, online build, offline rebuild,
+  install/GTK/CLI smoke, and removal; CodeQL run `33019179363` passed all three
+  detected languages with no open alerts at verification time.
+- The tag workflow records the exact release commit and workflow URL in its
+  downloadable test report. Physical microphone/desktop combinations remain a
   separately labelled community gate.
 
 ## [0.6.0] - 2026-08-26
