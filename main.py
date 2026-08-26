@@ -24,6 +24,7 @@ __version__ = "0.4.0"
 LOGGER = logging.getLogger(__name__)
 Gtk: Any = None
 GLib: Any = None
+_ALSA_ERROR_CALLBACK: Any = None
 
 
 class VoiceTranscriberApp:
@@ -337,6 +338,7 @@ def _run_doctor(*, as_json: bool, probe_provider: bool) -> int:
 
 def _configure_alsa_errors() -> None:
     """Mute noisy ALSA diagnostics when the optional native library is present."""
+    global _ALSA_ERROR_CALLBACK
     try:
         from ctypes import CDLL, CFUNCTYPE, c_char_p, c_int
 
@@ -344,6 +346,8 @@ def _configure_alsa_errors() -> None:
         callback = callback_type(lambda *_args: None)
         asound = CDLL("libasound.so.2")
         asound.snd_lib_error_set_handler(callback)
+        # ctypes callbacks must stay alive for as long as the native library can call them.
+        _ALSA_ERROR_CALLBACK = callback
     except (OSError, ImportError):
         LOGGER.debug("Could not install ALSA error handler", exc_info=True)
 
