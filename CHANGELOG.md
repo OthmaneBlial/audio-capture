@@ -22,6 +22,23 @@ All notable changes to Voice Transcriber are documented here.
 - Groq remains the supported packaged path but now implements the same bounded
   provider contract and cancellation/error behavior as future backends.
 
+### Privacy
+
+- Groq transmission remains limited to completed speech segments after local
+  VAD. Experimental local mode is source-only, explicit, disabled in Flatpak,
+  and passes WAV through Linux memory rather than an app-created audio file.
+- Provider errors and local process failures are normalized without logging
+  response bodies, credentials, transcript content, or local paths.
+
+### Verification
+
+- Fifty deterministic unit tests and Ruff passed in CI run `33014705688`.
+- Benchmark run `33015305254` passed on 25 deterministic LibriSpeech
+  `test-clean` speakers with whisper.cpp tiny.en: 37 errors / 627 reference
+  words (5.90% WER), 1,043.810 ms p50 and 1,508.576 ms p95 wall-clock latency
+  on its named GitHub runner. The complete unedited receipt is committed.
+- CodeQL run `33015316849` passed for Python, Actions, and JavaScript.
+
 ## [0.5.0] - 2026-08-26
 
 ### Added

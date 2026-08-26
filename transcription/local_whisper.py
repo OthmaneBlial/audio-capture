@@ -220,7 +220,9 @@ class LocalWhisperTranscriptionService:
                 with self._lock:
                     self._processes.discard(process)
             if process.returncode != 0:
-                LOGGER.debug("Local whisper.cpp exited %s: %s", process.returncode, stderr[-500:])
+                # Some third-party builds may echo recognized text or file paths to stderr.
+                # Keep only exit status in logs; the user-facing error remains actionable.
+                LOGGER.debug("Local whisper.cpp exited with status %s", process.returncode)
                 raise ProviderError(
                     "The local model could not transcribe this segment. Check the CLI/model compatibility.",
                     code="local_process_failed",

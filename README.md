@@ -70,14 +70,14 @@ Install the checksum-verified, source-mapped `x86_64` Flatpak release asset, ver
 checksum, and open it without cloning the repository:
 
 ```bash
-curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v0.5.0/voice-transcriber-0.5.0-x86_64.flatpak
-curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v0.5.0/voice-transcriber-0.5.0-x86_64.flatpak.sha256
-sha256sum --check voice-transcriber-0.5.0-x86_64.flatpak.sha256
-flatpak install --user ./voice-transcriber-0.5.0-x86_64.flatpak
+curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v0.6.0/voice-transcriber-0.6.0-x86_64.flatpak
+curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v0.6.0/voice-transcriber-0.6.0-x86_64.flatpak.sha256
+sha256sum --check voice-transcriber-0.6.0-x86_64.flatpak.sha256
+flatpak install --user ./voice-transcriber-0.6.0-x86_64.flatpak
 flatpak run io.github.othmaneblial.audio_capture
 ```
 
-The bundle maps exactly to source tag `v0.5.0`. See the [complete Flatpak
+The bundle maps exactly to source tag `v0.6.0`. See the [complete Flatpak
 instructions](docs/packaging/FLATPAK.md) and [evidence-based support
 matrix](docs/SUPPORT.md) for runtime setup, updates, removal, and the
 distinction between automated and real-hardware evidence.

@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-26T21:28:56.330531+00:00",
+  "provider": "local_whisper_cpp",
+  "provider_model": "whisper.cpp@978113305b2ead22249b881deafa131dc8884911; ggml-tiny.en.bin sha256=921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f",
+  "provider_boundary": "Memory-backed file descriptor passed to a local whisper.cpp process",
+  "hardware_label": "GitHub ubuntu-latest x86_64; AMD EPYC 7763 64-Core Processor; 2 build threads",
+  "runtime": {
+    "system": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "python": "3.11.16"
+  },
+  "corpus": {
+    "name": "LibriSpeech test-clean",
+    "source": "https://openslr.org/resources/12/test-clean.tar.gz",
+    "license": "CC BY 4.0",
+    "archive_md5": "32fa31d27d2e1cad72775fee3f4849a9",
+    "sample_count": 25,
+    "speaker_count": 25,
+    "selection": "sorted speakers, one sorted utterance per speaker per round"
+  },
+  "summary": {
+    "wer": 0.05901116427432217,
+    "word_errors": 37,
+    "reference_words": 627,
+    "latency_ms_p50": 1043.81,
+    "latency_ms_p95": 1508.576
+  },
+  "samples": [
+    {
+      "id": "1089-134686-0000",
+      "speaker": "1089",
+      "reference_words": 28,
+      "word_errors": 2,
+      "wer": 0.07142857142857142,
+      "latency_ms": 1164.923,
+      "hypothesis": "He hoped there would be stew for dinner, turnips and carrots and bruised potatoes and fat mutton pieces to be ladled out and thick peppered flower-fattened sauce."
+    },
+    {
+      "id": "1188-133604-0000",
+      "speaker": "1188",
+      "reference_words": 19,
+      "word_errors": 1,
+      "wer": 0.05263157894736842,
+      "latency_ms": 1031.987,
+      "hypothesis": "You will find me continually speaking of four men, Titian, Holbein, Turner and Tincaret in almost the same terms."
+    },
+    {
+      "id": "121-121726-0000",
+      "speaker": "121",
+      "reference_words": 17,
+      "word_errors": 3,
+      "wer": 0.17647058823529413,
+      "latency_ms": 938.92,
+      "hypothesis": "Also a popular confrivance whereby lovemaking may be suspended but not stopped during the picnic season."
+    },
+    {
+      "id": "1221-135766-0000",
+      "speaker": "1221",
+      "reference_words": 37,
+      "word_errors": 2,
+      "wer": 0.05405405405405406,
+      "latency_ms": 1176.517,
+      "hypothesis": "How strange it seemed to the sad woman as she watched the growth and the beauty that became everyday more brilliant and the intelligence that threw its quivering sunshine over the tiny features of this child."
+    },
+    {
+      "id": "1284-1180-0000",
+      "speaker": "1284",
+      "reference_words": 24,
+      "word_errors": 0,
+      "wer": 0.0,
+      "latency_ms": 1162.573,
+      "hypothesis": "He wore blue silk stockings, blue knee pants with gold buckles, a blue ruffled waist and a jacket of bright blue braided with gold."
+    },
+    {
+      "id": "1320-122612-0000",
+      "speaker": "1320",
+      "reference_words": 41,
+      "word_errors": 0,
+      "wer": 0.0,
+      "latency_ms": 1276.692,
+      "hypothesis": "Since the period of our tale, the active spirit of the country has surrounded it with a belt of rich and thriving settlements, though none but the hunter or the savage is ever known even now to penetrate its wild recesses."
+    },
+    {
+      "id": "1580-141083-0000",
+      "speaker": "1580",
+      "reference_words": 30,
+      "word_errors": 1,
+      "wer": 0.03333333333333333,
+      "latency_ms": 1065.782,
+      "hypothesis": "I will endeavor in my statement to avoid such terms as would serve to limit the events to any particular place or give a clue as to the people concerned."
+    },
+    {
+      "id": "1995-1826-0000",
+      "speaker": "1995",
+      "reference_words": 27,
+      "word_errors": 2,
+      "wer": 0.07407407407407407,
+      "latency_ms": 1082.779,
+      "hypothesis": "In the debate between the senior societies, her defense of the 15th Amendment had been not only a notable bit of reasoning but delivered with real enthusiasm."
+    },
+    {
+      "id": "2094-142345-0000",
+      "speaker": "2094",
+      "reference_words": 49,
+      "word_errors": 2,
+      "wer": 0.04081632653061224,
+      "latency_ms": 1523.351,
+      "hypothesis": "It is a very final place of red brick, softened by a pale powdery lichen, which has dispersed itself with happy irregularity, so as to bring the red brick into terms of friendly companionship with the limestone ornaments surrounding the three gables, the windows, and the door place."
+    },
+    {
+      "id": "2300-131720-0000",
+      "speaker": "2300",
+      "reference_words": 13,
+      "word_errors": 0,
+      "wer": 0.0,
+      "latency_ms": 847.398,
+      "hypothesis": "The Paris plant, like that at the Crystal Palace, was a temporary exhibit."
+    },
+    {
+      "id": "237-126133-0000",
+      "speaker": "237",
+      "reference_words": 38,
+      "word_errors": 1,
+      "wer": 0.02631578947368421,
+      "latency_ms": 1354.956,
+      "hypothesis": "Here she would stay, comforted and soot, among the lovely plants and rich exotics, rejoicing the heart of old Turner the gardener, who since Polly's first rapturous entrance had taken her into his good graces for all time."
+    },
+    {
+      "id": "260-123286-0000",
+      "speaker": "260",
+      "reference_words": 12,
+      "word_errors": 1,
+      "wer": 0.08333333333333333,
+      "latency_ms": 874.991,
+      "hypothesis": "Saturday, August 15th. The sea unbroken all round. No land in sight."
+    },
+    {
+      "id": "2830-3979-0000",
+      "speaker": "2830",
+      "reference_words": 21,
+      "word_errors": 0,
+      "wer": 0.0,
+      "latency_ms": 973.697,
+      "hypothesis": "We want you to help us publish some leading work of Luther's for the general American market. Will you do it?"
+    },
+    {
+      "id": "2961-960-0000",
+      "speaker": "2961",
+      "reference_words": 51,
+      "word_errors": 0,
+      "wer": 0.0,
+      "latency_ms": 1525.771,
+      "hypothesis": "He passes abruptly from persons to ideas and numbers, and from ideas and numbers to persons, from the heavens to man, from astronomy to physiology. He confuses, or rather does not distinguish, subject and object, first and final causes, and is dreaming of geometrical figures lost in a flux of sense."
+    },
+    {
+      "id": "3570-5694-0000",
+      "speaker": "3570",
+      "reference_words": 37,
+      "word_errors": 3,
+      "wer": 0.08108108108108109,
+      "latency_ms": 1268.95,
+      "hypothesis": "But already at a point in economic evolution far and dating the emergence of the lady, specialized consumption of goods as an evidence of pecuniary strength had begun to work out in a more or less elaborate system."
+    },
+    {
+      "id": "3575-170457-0000",
+      "speaker": "3575",
+      "reference_words": 25,
+      "word_errors": 0,
+      "wer": 0.0,
+      "latency_ms": 1043.81,
+      "hypothesis": "And often has my mother said, while on her lap I laid my head, she feared for time I was not made, but for eternity."
+    },
+    {
+      "id": "3729-6852-0000",
+      "speaker": "3729",
+      "reference_words": 32,
+      "word_errors": 1,
+      "wer": 0.03125,
+      "latency_ms": 1124.277,
+      "hypothesis": "To celebrate the arrival of her son, Sylvia gave a splendid supper to which she had invited all her relatives, and it was a good opportunity for me to make their acquaintance."
+    },
+    {
+      "id": "4077-13751-0000",
+      "speaker": "4077",
+      "reference_words": 26,
+      "word_errors": 6,
+      "wer": 0.23076923076923078,
+      "latency_ms": 1030.779,
+      "hypothesis": "On 6 April 1830, the Church of Jesus Christ of Latter-day Saints was formerly organized and thus took on a legal existence."
+    },
+    {
+      "id": "4446-2271-0000",
+      "speaker": "4446",
+      "reference_words": 8,
+      "word_errors": 2,
+      "wer": 0.25,
+      "latency_ms": 773.157,
+      "hypothesis": "Main Hall liked Alexander because he was an engineer."
+    },
+    {
+      "id": "4507-16021-0000",
+      "speaker": "4507",
+      "reference_words": 3,
+      "word_errors": 1,
+      "wer": 0.3333333333333333,
+      "latency_ms": 669.931,
+      "hypothesis": "Chapter 1, Origin."
+    },
+    {
+      "id": "4970-29093-0000",
+      "speaker": "4970",
+      "reference_words": 9,
+      "word_errors": 1,
+      "wer": 0.1111111111111111,
+      "latency_ms": 760.998,
+      "hypothesis": "You'll never dig it out of the Astro library."
+    },
+    {
+      "id": "4992-23283-0000",
+      "speaker": "4992",
+      "reference_words": 18,
+      "word_errors": 0,
+      "wer": 0.0,
+      "latency_ms": 963.187,
+      "hypothesis": "But the more forgetfulness had then prevailed, the more powerful was the force of remembrance when she awoke."
+    },
+    {
+      "id": "5105-28233-0000",
+      "speaker": "5105",
+      "reference_words": 10,
+      "word_errors": 3,
+      "wer": 0.3,
+      "latency_ms": 819.429,
+      "hypothesis": "Length of service, 14 years, 3 months, and 5 days."
+    },
+    {
+      "id": "5142-33396-0000",
+      "speaker": "5142",
+      "reference_words": 5,
+      "word_errors": 1,
+      "wer": 0.2,
+      "latency_ms": 716.918,
+      "hypothesis": "At another time, Harold asked."
+    },
+    {
+      "id": "5639-40744-0000",
+      "speaker": "5639",
+      "reference_words": 47,
+      "word_errors": 4,
+      "wer": 0.0851063829787234,
+      "latency_ms": 1449.478,
+      "hypothesis": "Eleven o'clock had struck. It was a fine clear night, there were the only persons on the road, and they saunted leisurely along, to avoid paying the price of fatigue for the recreation provided for the Toledo's in the valley or on the banks of their river."
+    }
+  ]
+}

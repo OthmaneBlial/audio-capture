@@ -206,19 +206,19 @@ not presented as human evidence.
 **Outcome:** users can choose an understandable transcription mode rather than
 being forced into one vendor/account path.
 
-- [ ] Extract a small provider interface from `GroqTranscriptionService`:
+- [x] Extract a small provider interface from `GroqTranscriptionService`:
   capabilities, supported languages, translation availability, cancellation,
   limits, error normalization, and a provider-specific data-boundary label.
-- [ ] Preserve Groq as the well-tested fast cloud path; add a provider selection
+- [x] Preserve Groq as the well-tested fast cloud path; add a provider selection
   UI only when a second backend has equal error, privacy, and test contracts.
-- [ ] Prototype one genuinely local backend behind an explicit feature flag
+- [x] Prototype one genuinely local backend behind an explicit feature flag
   (for example a packaged Whisper-compatible local runtime). Measure model
   download size, CPU/RAM, latency, language quality, and supported hardware
   before promising “offline”.
-- [ ] Offer a clear choice at setup: **Groq cloud** (completed speech segment
+- [x] Offer a clear choice at setup: **Groq cloud** (completed speech segment
   leaves the device, user-managed key) or **Local model** (model/download and
   hardware cost explained). The UI must show the active mode during a session.
-- [ ] Publish a reproducible, licensed benchmark corpus and harness for
+- [x] Publish a reproducible, licensed benchmark corpus and harness for
   accuracy/latency comparisons. Report limitations and sample composition;
   do not manufacture an aggregate “accuracy” number without context.
 
@@ -226,6 +226,18 @@ being forced into one vendor/account path.
 capability matrix, deterministic tests, and reproducible performance evidence.
 Local mode is not announced as supported until it passes the same packaging and
 first-success gate as cloud mode.
+
+**Implementation evidence:** the typed provider contract drives Groq and the
+explicitly flagged source-only whisper.cpp prototype, with deterministic
+capability, cancellation, error, configuration, diagnostics, and data-boundary
+tests. The current Flatpak deliberately contains only the supported Groq path.
+Benchmark run `33015305254` verified the official LibriSpeech `test-clean`
+archive checksum, selected 25 speakers deterministically, built pinned
+whisper.cpp/tiny.en, and published the committed receipt: 37 / 627 word errors
+(5.90% WER), 1,043.810 ms p50 and 1,508.576 ms p95 on the named GitHub runner.
+CodeQL run `33015316849` also passed all three detected languages. The measured
+local prototype remains labelled experimental—not supported or universally
+offline—until the separate Flatpak and physical first-success gates pass.
 
 ### P4 — Make trust and releases independently verifiable
 
