@@ -114,6 +114,7 @@ footer { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; padding: 1.6rem 5vw;
 footer a { text-decoration: none; } footer a:hover, footer a:focus { color: var(--leaf-dark); text-decoration: underline; }
 
 .docs-layout { display: grid; grid-template-columns: 190px minmax(0, 760px); gap: clamp(3rem, 8vw, 9rem); max-width: 1180px; margin: 0 auto; padding: 5rem 3rem 7rem; }
+.docs-nav, .docs-content { min-width: 0; }
 .docs-nav { align-self: start; position: sticky; top: 110px; border-left: 1px solid var(--line); padding-left: 1rem; }
 .docs-nav p { color: var(--muted); font-size: .65rem; font-weight: 800; letter-spacing: .11em; }
 .docs-nav a { display: block; margin: .55rem 0; color: #4b5b4f; font-size: .85rem; text-decoration: none; }
