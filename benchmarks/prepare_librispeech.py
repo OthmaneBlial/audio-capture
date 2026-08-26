@@ -32,9 +32,17 @@ def safe_extract(archive: Path, destination: Path) -> None:
             target = (destination / member.name).resolve()
             if root not in target.parents and target != root:
                 raise ValueError(f"Archive member escapes destination: {member.name}")
-            if member.issym() or member.islnk() or member.isdev():
+            if member.isdir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            if not member.isfile():
                 raise ValueError(f"Archive member type is not allowed: {member.name}")
-        bundle.extractall(destination)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            source = bundle.extractfile(member)
+            if source is None:
+                raise ValueError(f"Could not read archive member: {member.name}")
+            with source, target.open("wb") as output:
+                shutil.copyfileobj(source, output)
 
 
 def collect_entries(root: Path) -> list[dict[str, str]]:

@@ -25,7 +25,7 @@ jobs:
           curl --fail --location --retry 3 \
             --output /tmp/test-clean.tar.gz \
             https://openslr.org/resources/12/test-clean.tar.gz
-          python benchmarks/prepare_librispeech.py \
+          python -m benchmarks.prepare_librispeech \
             --archive /tmp/test-clean.tar.gz \
             --output-dir /tmp/voice-transcriber-librispeech \
             --sample-count 25
@@ -43,7 +43,7 @@ jobs:
         run: |
           model_sha="$(sha256sum /tmp/whisper.cpp/models/ggml-tiny.en.bin | cut -d ' ' -f 1)"
           cpu="$(lscpu | sed -n 's/^Model name:[[:space:]]*//p' | head -1)"
-          python benchmarks/run_benchmark.py \
+          python -m benchmarks.run_benchmark \
             --manifest /tmp/voice-transcriber-librispeech/manifest.json \
             --provider local_whisper_cpp \
             --local-binary /tmp/whisper.cpp/build/bin/whisper-cli \
