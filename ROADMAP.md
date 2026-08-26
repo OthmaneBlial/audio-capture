@@ -131,25 +131,35 @@ one sentence without cloning source code or troubleshooting native Python.
   portal and outbound-network behaviour have been manually tested. `.deb` can
   be a secondary Ubuntu/Debian path. Do not publish an untested AppImage simply
   to claim portability.
-- [ ] Package the app, desktop entry, icon, Python dependencies, and runtime
+- [x] Package the app, desktop entry, icon, Python dependencies, and runtime
   libraries into release artifacts. Provide checksums, install/update/uninstall
   instructions, and exact source-to-artifact version mapping.
-- [ ] Add a non-destructive `voice-transcriber --doctor --json` command. It
+- [x] Add a non-destructive `voice-transcriber --doctor --json` command. It
   should report OS/session support, GTK availability, microphone discovery,
   selected input availability, config-key presence (never value), provider
   reachability when explicitly requested, and next actions.
-- [ ] Keep `--check-config` and `--list-devices`; document their stable output
+- [x] Keep `--check-config` and `--list-devices`; document their stable output
   contracts and exit codes so support scripts can use them.
-- [ ] Add a first-run screen that asks for microphone choice, language, and
+- [x] Add a first-run screen that asks for microphone choice, language, and
   provider/key with an explicit explanation before external transmission. It
   must be fully keyboard navigable.
-- [ ] Add clean-machine smoke tests for the selected packaging format and a
+- [x] Add clean-machine smoke tests for the selected packaging format and a
   release checklist covering installation, microphone permission, start/stop,
   copy/export, and removal.
 
 **Acceptance gate:** a new supported-machine tester can install the latest
 release, pass `--doctor`, record a real short segment, copy its result, and
 uninstall cleanly using only the public instructions.
+
+**Implementation evidence:** `v0.4.0` publishes a source-mapped x86_64 Flatpak
+and SHA-256; Actions run `33013357498` built it from a clean checkout, installed
+it, verified exact version/help/doctor contracts, exercised first-run GTK and
+accessibility under Xvfb, asserted minimal permissions and packaged metadata,
+then removed the app and sandbox. The two public assets were downloaded again
+and matched SHA-256 `cd1e448065e13f9c639567d722439be3651a3c8d67b5047dfd343e1346903215`.
+The first checkbox and acceptance gate remain open because a physical Linux
+microphone plus a tester-owned Groq key have not been exercised; automated
+headless audio/package proof is not relabelled as that manual evidence.
 
 ### P2 — Turn a transcription desk into daily dictation
 
