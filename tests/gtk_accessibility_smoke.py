@@ -82,18 +82,22 @@ def main() -> int:
                 if unnamed:
                     failures.append(f"unnamed interactive controls: {unnamed}")
 
+                # Gtk.Widget.get_visible() reports the child's own flag even
+                # when an ancestor is hidden. get_mapped() reflects whether
+                # the control is actually presented in the current provider
+                # branch of the shown dialog.
                 entries = [
-                    widget for widget in widgets if isinstance(widget, Gtk.Entry) and widget.get_visible()
+                    widget for widget in widgets if isinstance(widget, Gtk.Entry) and widget.get_mapped()
                 ]
                 checks = [
                     widget
                     for widget in widgets
-                    if isinstance(widget, Gtk.CheckButton) and widget.get_visible()
+                    if isinstance(widget, Gtk.CheckButton) and widget.get_mapped()
                 ]
                 combos = [
                     widget
                     for widget in widgets
-                    if isinstance(widget, Gtk.ComboBox) and widget.get_visible()
+                    if isinstance(widget, Gtk.ComboBox) and widget.get_mapped()
                 ]
                 if len(entries) != 1 or len(checks) != 1 or len(combos) != 2:
                     failures.append(
