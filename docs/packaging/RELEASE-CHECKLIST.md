@@ -11,7 +11,9 @@ URL for every completed run.
 - [x] Flatpak manifest builds from a clean checkout.
 - [ ] All declared sources are fetched, then an offline `--disable-download`
   rebuild passes.
-- [ ] Manifest, exported repository, and AppStream lints report zero errors.
+- [ ] Manifest, exported repository, and AppStream lints report zero
+  non-excepted errors; the historical App-ID/repository punctuation exception
+  remains documented in `FLATPAK-LINT.md` and is not Flathub approval.
 - [x] Bundle installs into a clean user Flatpak installation.
 - [x] Installed `--version`, `--help`, and `--doctor --json` contracts pass.
 - [x] Installed permissions contain only Wayland, fallback X11/IPC,

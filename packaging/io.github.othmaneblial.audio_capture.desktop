@@ -6,7 +6,6 @@ Comment=Turn short spoken thoughts into text with an explicit cloud boundary
 Exec=voice-transcriber
 Icon=io.github.othmaneblial.audio_capture
 Terminal=false
-Categories=AudioVideo;Audio;Utility;
+Categories=AudioVideo;Audio;
 Keywords=dictation;speech-to-text;voice;transcription;whisper;groq;
 StartupWMClass=voice-transcriber
-
