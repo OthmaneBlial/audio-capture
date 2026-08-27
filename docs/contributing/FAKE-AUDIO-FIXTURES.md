@@ -45,3 +45,40 @@ states without opening a socket.
 - A benchmark corpus is a different artifact. It must have a compatible
   license, pinned checksum, documented sample selection, and an unedited
   receipt as specified in [`benchmarks/README.md`](../../benchmarks/README.md).
+
+## Fake provider contract fixture
+
+`tests/fake_provider_fixture.py` exposes `FakeTranscriptionProvider`, a
+test-only double of the shared `TranscriptionProvider` contract. Import it from
+unit tests; do not ship it in the runtime application package.
+
+```python
+from fake_provider_fixture import FakeProviderConfig, FakeTranscriptionProvider
+
+states = []
+provider = FakeTranscriptionProvider(
+    FakeProviderConfig(default_text="test transcript", max_pending_requests=2),
+    on_request_state=lambda request_id, state, detail: states.append(state),
+)
+try:
+    future = provider.transcribe_async(b"\x00\x00" * 80)
+    assert future is not None
+    assert future.result(timeout=2) == "test transcript"
+finally:
+    provider.close(wait=True)
+```
+
+The fixture covers:
+
+- declared capabilities (languages, translation, cancellation, limits)
+- a human-readable `ProviderBoundary` (destination, credential, storage)
+- deterministic `pending` / `complete` / `error` / `cancelled` request states
+- bounded-queue rejection with a normalized `queue_full` error
+- normalized authentication, rate-limit, and network error codes
+- request-state tracking that stores byte lengths and lifecycle labels only -- never PCM frames or transcript text
+
+Drive scripted failures with the `outcomes=` sequence, and block workers with
+`hold_event=` when a test needs an in-flight request. See
+`tests/test_fake_provider_fixture.py` for the focused contract tests. The
+fixture must not open a socket, enumerate a microphone, read an API key, or
+launch a local model process.
