@@ -7,13 +7,13 @@ means tested, not merely expected to work.
 
 | Surface | Supported in v1.0.0 | Evidence | Status |
 | --- | --- | --- | --- |
-| Operating system | Debian/Ubuntu Linux desktops | `setup.sh` uses `apt`; CI runs Ubuntu | Supported source install |
+| Operating system | Debian/Ubuntu Linux desktops | `setup.sh` uses `apt`; v1 verification ran on Ubuntu | Supported source install |
 | Desktop toolkit | GTK 3 | Application imports GTK 3 explicitly | Supported |
 | Audio API | PortAudio through PyAudio | Unit-tested discovery, selection, level calculation, and cleanup | Supported API; real hardware verification required |
 | Audio servers | PipeWire/PulseAudio through the system PortAudio route | Documented setup path | Expected; compatibility reports welcome |
 | Display session | X11 and Wayland GTK sessions | Flatpak declares Wayland and fallback X11 sockets | Package smoke-tested; real desktop reports welcome |
-| CPU architecture | `x86_64` | GitHub-hosted Linux builds and installs the public bundle shape | CI-tested package path |
-| Python | 3.9 or newer | Package metadata declares `>=3.9`; CI exercises 3.9, 3.11, and 3.14 | Declared range and boundary versions CI-proven |
+| CPU architecture | `x86_64` | The v1 Flatpak workflow built, installed, and removed the public bundle shape | Automated package path proven for v1 |
+| Python | 3.9 or newer | Package metadata declares `>=3.9`; v1 CI exercised 3.9, 3.11, and 3.14 | Declared range with release-specific boundary evidence |
 | Transcription | Groq `whisper-large-v3-turbo` | Fake-client contract tests; user-managed key | Supported cloud path |
 | Installation | Versioned Flatpak release asset; source setup remains available | Clean user-scope install/CLI/metadata/uninstall workflow | Primary package path |
 | Packaged app | Flatpak | Source-pinned manifest, minimal permissions, checksum, and release bundle | Supported on the declared boundary after real-device gate |
@@ -23,6 +23,11 @@ means tested, not merely expected to work.
 “Expected” is deliberately weaker than “supported”: it means the underlying
 stack should work, but this project has not yet published repeatable evidence
 for the exact combination.
+
+The repository's general `CI` workflow is manually paused as of 1 September
+2026. CI statements above are release-specific historical evidence, not a claim
+that the general workflow currently runs on every push. Flatpak packaging and
+CodeQL are separate workflows.
 
 See [Linux compatibility evidence](COMPATIBILITY.md) for the explicit
 X11/Wayland and PipeWire/PulseAudio evidence levels and the bounded reproduction
