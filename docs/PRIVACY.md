@@ -1,6 +1,6 @@
 # Privacy notice
 
-Last reviewed: 26 August 2026
+Last reviewed: 1 September 2026
 
 Voice Transcriber is a local desktop application. It has no operator account,
 analytics, advertising, crash-report upload, transcript-sync service, or
@@ -39,6 +39,16 @@ Groq controls provider-side processing. Review the current official
 [privacy policy](https://groq.com/privacy-policy) for your account and
 jurisdiction. Those pages can change; this project links to them instead of
 promising a vendor retention period it cannot enforce.
+
+At this project's 1 September 2026 review, Groq's customer-data documentation
+said inference input/output is not retained by default, but may be logged for
+reliability or abuse investigation for up to 30 days; Zero Data Retention was
+available, and retained customer data was located in US GCP. Groq's speech
+documentation also stated a 10-second minimum billed length for each request.
+Voice Transcriber sends every completed VAD segment as a separate request, so a
+short segment can be billed above its spoken duration. The first-run dialog and
+Settings show this review date, the bounded summary, and live links to both
+provider documents before cloud use.
 
 ## Experimental local mode
 

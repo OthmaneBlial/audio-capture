@@ -4,6 +4,19 @@ All notable changes to Voice Transcriber are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- First-run setup is now scrollable and puts dated Groq retention, location,
+  Zero Data Retention, and per-request billing facts beside the cloud consent.
+- Settings keeps the same disclosure and live provider-document links visible
+  for returning users instead of limiting the facts to first run.
+
+### Privacy
+
+- The transmission path is unchanged. The added disclosure explains provider
+  policy and the 10-second minimum billed length without adding analytics,
+  network probes, audio persistence, or transcript persistence.
+
 ## [1.0.0] - 2026-08-27
 
 ### Added

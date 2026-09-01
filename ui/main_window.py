@@ -15,7 +15,14 @@ from gi.repository import Gdk, GLib, Gtk
 from config import ConfigError, ConfigManager
 from exports import ExportFormat, build_export, write_export
 from history import HistoryEntry, HistoryStore
-from onboarding import OnboardingError, validate_cloud_setup, validate_local_setup
+from onboarding import (
+    GROQ_DATA_CONTROLS_URL,
+    GROQ_SPEECH_TO_TEXT_URL,
+    OnboardingError,
+    groq_cloud_disclosure,
+    validate_cloud_setup,
+    validate_local_setup,
+)
 from platform_capabilities import detect_desktop_capabilities
 from transcript import SegmentTracker, UndoHistory
 from transcription.local_whisper import local_mode_enabled
@@ -346,6 +353,20 @@ class MainWindow(Gtk.Window):
         provider_row.pack_start(self._provider_combo, False, False, 0)
         self._provider_help = self._label("", "settings-help")
         provider_row.pack_start(self._provider_help, False, False, 0)
+        self._provider_policy_links = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        settings_data_link = Gtk.LinkButton.new_with_label(
+            GROQ_DATA_CONTROLS_URL, "Current Groq data controls"
+        )
+        settings_data_link.get_accessible().set_name("Open current Groq data controls")
+        settings_speech_link = Gtk.LinkButton.new_with_label(
+            GROQ_SPEECH_TO_TEXT_URL, "Speech pricing and limits"
+        )
+        settings_speech_link.get_accessible().set_name(
+            "Open current Groq speech pricing and limits"
+        )
+        self._provider_policy_links.pack_start(settings_data_link, False, False, 0)
+        self._provider_policy_links.pack_start(settings_speech_link, False, False, 0)
+        provider_row.pack_start(self._provider_policy_links, False, False, 0)
         box.pack_start(provider_row, False, False, 0)
 
         api_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -526,8 +547,13 @@ class MainWindow(Gtk.Window):
                 else "Experimental local mode is disabled. Set VOICE_TRANSCRIBER_EXPERIMENTAL_LOCAL=1 in a source install or switch to Groq."
             )
         else:
-            help_text = "Completed speech segments leave the device for Groq; silence detection and the live meter stay local."
+            provider_facts, billing_facts = groq_cloud_disclosure()
+            help_text = (
+                "Completed speech segments leave the device; silence detection and the live meter "
+                f"stay local. {provider_facts} {billing_facts}"
+            )
         self._provider_help.set_text(help_text)
+        self._provider_policy_links.set_visible(not local)
         self._api_row.set_visible(not local)
         self._local_runtime_row.set_visible(local)
 
@@ -548,18 +574,24 @@ class MainWindow(Gtk.Window):
     def _show_first_run(self) -> bool:
         """Offer a keyboard-operable provider choice with its exact data boundary."""
         dialog = Gtk.Dialog(title="Set up Voice Transcriber", transient_for=self, modal=True)
-        dialog.set_default_size(480, 500)
+        dialog.set_default_size(500, 620)
         dialog.add_button("Explore first", Gtk.ResponseType.CANCEL)
         save_button = dialog.add_button("Save and continue", Gtk.ResponseType.APPLY)
         save_button.get_style_context().add_class("suggested-action")
         dialog.set_default_response(Gtk.ResponseType.APPLY)
 
-        box = dialog.get_content_area()
+        content_area = dialog.get_content_area()
+        content_area.set_spacing(0)
+        setup_scroll = Gtk.ScrolledWindow()
+        setup_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        content_area.pack_start(setup_scroll, True, True, 0)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.set_spacing(12)
         box.set_margin_top(18)
         box.set_margin_bottom(18)
         box.set_margin_start(20)
         box.set_margin_end(20)
+        setup_scroll.add(box)
         box.pack_start(self._label("FIRST RUN", "eyebrow"), False, False, 0)
         title = self._label("Know the boundary before you speak", "settings-title")
         title.get_accessible().set_name("First-run setup")
@@ -582,9 +614,25 @@ class MainWindow(Gtk.Window):
         boundary_title = self._label("", "settings-label")
         boundary_sent = self._label("", "settings-help")
         boundary_local = self._label("", "settings-help")
+        boundary_provider_facts = self._label("", "settings-help")
+        boundary_billing = self._label("", "settings-help")
+        facts_links = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        data_controls_link = Gtk.LinkButton.new_with_label(
+            GROQ_DATA_CONTROLS_URL, "Current Groq data controls"
+        )
+        data_controls_link.get_accessible().set_name("Open current Groq data controls")
+        speech_docs_link = Gtk.LinkButton.new_with_label(
+            GROQ_SPEECH_TO_TEXT_URL, "Speech pricing and limits"
+        )
+        speech_docs_link.get_accessible().set_name("Open current Groq speech pricing and limits")
+        facts_links.pack_start(data_controls_link, False, False, 0)
+        facts_links.pack_start(speech_docs_link, False, False, 0)
         boundary.pack_start(boundary_title, False, False, 0)
         boundary.pack_start(boundary_sent, False, False, 0)
         boundary.pack_start(boundary_local, False, False, 0)
+        boundary.pack_start(boundary_provider_facts, False, False, 0)
+        boundary.pack_start(boundary_billing, False, False, 0)
+        boundary.pack_start(facts_links, False, False, 0)
         box.pack_start(boundary, False, False, 0)
 
         key_label = self._label("Groq API key", "settings-label")
@@ -677,15 +725,20 @@ class MainWindow(Gtk.Window):
         error_label = self._label("", "onboarding-error")
         error_label.set_no_show_all(True)
         box.pack_start(error_label, False, False, 0)
+
         def selected_provider() -> str:
             return provider_combo.get_active_id() if provider_combo is not None else "groq"
 
         def sync_first_run_provider(*_args: Any) -> None:
             local = selected_provider() == "local_whisper_cpp"
+            provider_facts, billing_facts = groq_cloud_disclosure()
             key_label.set_visible(not local)
             key_entry.set_visible(not local)
             consent.set_visible(not local)
             local_runtime.set_visible(local)
+            boundary_provider_facts.set_visible(not local)
+            boundary_billing.set_visible(not local)
+            facts_links.set_visible(not local)
             if local:
                 intro.set_text(
                     "Voice activity detection and transcription run locally. Raw audio is passed in memory to your whisper.cpp process and is not saved by this app."
@@ -706,6 +759,8 @@ class MainWindow(Gtk.Window):
                 boundary_local.set_text(
                     "Local: silence detection, input meter, active transcript, and preferences."
                 )
+                boundary_provider_facts.set_text(provider_facts)
+                boundary_billing.set_text(billing_facts)
 
         if provider_combo is not None:
             provider_combo.connect("changed", sync_first_run_provider)

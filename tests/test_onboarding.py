@@ -3,7 +3,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from onboarding import OnboardingError, validate_cloud_setup, validate_local_setup
+from onboarding import (
+    GROQ_DATA_CONTROLS_URL,
+    GROQ_PROVIDER_FACTS_REVIEWED,
+    GROQ_SPEECH_TO_TEXT_URL,
+    OnboardingError,
+    groq_cloud_disclosure,
+    validate_cloud_setup,
+    validate_local_setup,
+)
 
 
 class OnboardingTests(unittest.TestCase):
@@ -18,6 +26,18 @@ class OnboardingTests(unittest.TestCase):
             validate_cloud_setup("  gsk-valid-looking-key  ", data_boundary_confirmed=True),
             "gsk-valid-looking-key",
         )
+
+    def test_cloud_disclosure_covers_retention_location_and_billing_floor(self) -> None:
+        provider_facts, billing_facts = groq_cloud_disclosure()
+        self.assertEqual(GROQ_PROVIDER_FACTS_REVIEWED, "2026-09-01")
+        self.assertIn("not retained by default", provider_facts)
+        self.assertIn("up to 30 days", provider_facts)
+        self.assertIn("Zero Data Retention", provider_facts)
+        self.assertIn("US GCP", provider_facts)
+        self.assertIn("10-second minimum billed length", billing_facts)
+        self.assertIn("separate request", billing_facts)
+        self.assertTrue(GROQ_DATA_CONTROLS_URL.startswith("https://"))
+        self.assertTrue(GROQ_SPEECH_TO_TEXT_URL.startswith("https://"))
 
     def test_local_setup_requires_executable_and_model(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

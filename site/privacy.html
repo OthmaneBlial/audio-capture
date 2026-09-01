@@ -6,7 +6,7 @@
     <meta name="description" content="Voice Transcriber privacy notice: microphone, cloud provider, local model, storage, deletion, and diagnostics boundaries.">
     <title>Privacy — Voice Transcriber</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=1.1.0">
+    <link rel="stylesheet" href="styles.css?v=1.1.1">
     <script src="app.js" defer></script>
   </head>
   <body class="docs-page">
@@ -19,7 +19,7 @@
     <main id="main" class="docs-layout">
       <aside class="docs-nav" aria-label="Privacy sections"><p>ON THIS PAGE</p><a href="#short-version">Short version</a><a href="#cloud">Groq cloud</a><a href="#local">Local prototype</a><a href="#storage">Storage</a><a href="#diagnostics">Diagnostics</a><a href="#control">Your control</a></aside>
       <article class="docs-content">
-        <p class="eyebrow">Privacy notice · reviewed 27 August 2026</p>
+        <p class="eyebrow">Privacy notice · reviewed 1 September 2026</p>
         <h1>Know the boundary before you speak.</h1>
         <p class="lede">Voice Transcriber has no account, analytics, advertising, crash-report upload, project server, or automatic transcript sync. Your microphone still crosses boundaries you should choose deliberately.</p>
 
@@ -38,6 +38,7 @@
           <h2>Groq cloud mode</h2>
           <p>Silence detection happens locally. When a speech segment closes, the app sends an in-memory WAV, model identifier, and language/translation choice to Groq over HTTPS. It does not use batch, file-storage, or fine-tuning APIs.</p>
           <p>Groq controls processing after receipt. Review its current <a href="https://console.groq.com/docs/speech-to-text">speech-to-text documentation</a>, <a href="https://console.groq.com/docs/your-data">customer-data documentation</a>, and <a href="https://groq.com/privacy-policy">privacy policy</a>. Voice Transcriber does not make a provider-retention promise those documents may later invalidate.</p>
+          <div class="provider-facts"><p><b>Provider facts reviewed 1 September 2026.</b> Groq said inference input/output was not retained by default, but could be logged for reliability or abuse review for up to 30 days. Zero Data Retention was available, and retained customer data was located in US GCP.</p><p>Speech requests had a 10-second minimum billed length. Voice Transcriber sends every completed speech segment as a separate request, so short segments can be billed above their spoken duration. The app links the live provider documents in first run and Settings because these facts can change.</p></div>
         </section>
 
         <section id="local">

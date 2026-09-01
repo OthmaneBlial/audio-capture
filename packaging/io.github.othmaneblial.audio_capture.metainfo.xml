@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <id>io.github.othmaneblial.audio_capture</id>
   <name>Voice Transcriber</name>
-  <summary>Privacy-explicit Linux dictation with local speech detection</summary>
+  <summary>Review-first Linux dictation with an explicit cloud boundary</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <developer id="io.github.othmaneblial">
@@ -10,8 +10,8 @@
   </developer>
   <description>
     <p>
-      Voice Transcriber turns short spoken notes, prompts, emails, tickets, and
-      drafts into text ready to copy or explicitly export.
+      Voice Transcriber turns spoken notes, prompts, emails, tickets, and drafts
+      into editable text you review before copying or explicitly exporting it.
     </p>
     <p>
       Voice activity detection and the input meter run locally. Completed speech

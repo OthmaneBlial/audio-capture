@@ -24,6 +24,12 @@ microphone -> bounded frames -> local VAD -> completed segment
 
 Provider processing and retention follow the user's account and the provider's
 current policies. This project makes no retention promise it cannot enforce.
+The first-run and Settings disclosures link Groq's current data controls and
+speech documentation. As reviewed on 1 September 2026, those documents described
+possible input/output logging for up to 30 days despite no-retention-by-default,
+Zero Data Retention availability, US GCP storage for retained customer data,
+and a 10-second minimum billed length per speech request. Because each completed
+segment is one request, short segments can be billed above spoken duration.
 
 ## Experimental local path
 

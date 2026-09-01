@@ -66,6 +66,8 @@ def main() -> int:
                     "Provider · Groq cloud",
                     "completed speech segments",
                     "Local: silence detection",
+                    "up to 30 days",
+                    "10-second minimum billed length",
                 ):
                     if required_copy not in visible_text:
                         failures.append(f"missing first-run copy: {required_copy}")
@@ -174,6 +176,8 @@ def main() -> int:
                 "Copy transcript after each final segment",
                 "Keep local transcript history",
                 "History retention days",
+                "Open current Groq data controls",
+                "Open current Groq speech pricing and limits",
             ):
                 if required_name not in names:
                     failures.append(f"missing accessible Settings control: {required_name}")

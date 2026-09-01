@@ -5,9 +5,25 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+GROQ_PROVIDER_FACTS_REVIEWED = "2026-09-01"
+GROQ_DATA_CONTROLS_URL = "https://console.groq.com/docs/your-data"
+GROQ_SPEECH_TO_TEXT_URL = "https://console.groq.com/docs/speech-to-text"
+
 
 class OnboardingError(ValueError):
     """Raised when first-run setup cannot safely enable transcription."""
+
+
+def groq_cloud_disclosure() -> tuple[str, str]:
+    """Return dated provider facts shown before a first cloud transcription."""
+    return (
+        f"Provider facts reviewed {GROQ_PROVIDER_FACTS_REVIEWED}: Groq says inference input/output "
+        "is not retained by default, but it may be logged for reliability or abuse review for "
+        "up to 30 days. Zero Data Retention is available; retained customer data is in US GCP.",
+        "Speech-to-text requests have a 10-second minimum billed length. Voice Transcriber sends "
+        "each completed speech segment as a separate request, so short segments can be billed "
+        "above their spoken duration.",
+    )
 
 
 def validate_cloud_setup(api_key: str, *, data_boundary_confirmed: bool) -> str:

@@ -2,7 +2,7 @@
 Type=Application
 Version=1.0
 Name=Voice Transcriber
-Comment=Turn short spoken thoughts into text with an explicit cloud boundary
+Comment=Review spoken drafts before copying them into another app
 Exec=voice-transcriber
 Icon=io.github.othmaneblial.audio_capture
 Terminal=false

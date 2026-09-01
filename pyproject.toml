@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "voice-transcriber"
 version = "1.0.0"
-description = "A privacy-explicit GTK dictation app with visible cloud and experimental local boundaries."
+description = "Review-first GTK dictation for Linux with local VAD and an explicit cloud boundary."
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"

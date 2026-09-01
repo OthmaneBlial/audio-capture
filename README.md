@@ -117,7 +117,7 @@ operation. See the [provider matrix](docs/PROVIDERS.md).
 | Surface | Evidence-backed status |
 | --- | --- |
 | Package | `v1.0.0` x86_64 Flatpak built, linted, installed, smoke-tested, and mapped to its source tag |
-| Automated behavior | 68 deterministic tests currently pass without a key, microphone, model, or network |
+| Automated behavior | 69 deterministic tests currently pass without a key, microphone, model, or network |
 | Desktop UI | GTK 3; designed for Debian/Ubuntu-style Linux desktops |
 | Audio route | PyAudio through the host PipeWire/PulseAudio compatibility path |
 | Physical compatibility | Real PipeWire/PulseAudio plus Wayland/X11 reports are still being collected |
