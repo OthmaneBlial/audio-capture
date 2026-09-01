@@ -3,15 +3,20 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Voice Transcriber v1.0: privacy-explicit Linux dictation with local speech detection, an installable Flatpak, and independently verifiable release evidence.">
-    <meta property="og:title" content="Voice Transcriber — privacy-explicit Linux dictation">
-    <meta property="og:description" content="Dictate a thought, review it, and paste it anywhere on Linux.">
-    <meta property="og:image" content="https://othmaneblial.github.io/audio-capture/assets/demo-02-active.png">
+    <meta name="description" content="Voice Transcriber is a review-first Linux dictation desk: speak a draft, edit the transcript, then copy or export it when it is ready.">
+    <meta name="theme-color" content="#f3f0e8">
+    <link rel="canonical" href="https://othmaneblial.github.io/audio-capture/">
+    <meta property="og:title" content="Voice Transcriber — review-first Linux dictation">
+    <meta property="og:description" content="Speak the draft. Keep the final say.">
+    <meta property="og:image" content="https://othmaneblial.github.io/audio-capture/assets/social-preview.png">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="640">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://othmaneblial.github.io/audio-capture/">
     <meta name="twitter:card" content="summary_large_image">
-    <title>Voice Transcriber — privacy-explicit Linux dictation</title>
+    <title>Voice Transcriber — review-first Linux dictation</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=1.0.0-2">
+    <link rel="stylesheet" href="styles.css?v=1.1.0">
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -23,10 +28,10 @@
       </a>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
       <nav id="site-nav" aria-label="Primary navigation">
-        <a href="#workflow">Workflow</a>
+        <a href="#fit">Why review-first</a>
         <a href="#proof">Product tour</a>
         <a href="privacy.html">Privacy</a>
-        <a href="docs.html">Docs</a>
+        <a href="#install">Install</a>
         <a class="nav-repo" href="https://github.com/OthmaneBlial/audio-capture">GitHub <span aria-hidden="true">↗</span></a>
       </nav>
     </header>
@@ -34,101 +39,126 @@
     <main id="main">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">Linux dictation · v1.0 Flatpak · explicit provider boundary</p>
-          <h1>Dictate the thought.<br><em>Keep</em> the words.</h1>
-          <p class="lede">Turn a spoken note, prompt, email, or draft into editable text on Linux. Voice Transcriber filters silence locally, shows exactly when completed speech segments go to Groq, and leaves storage under your control.</p>
+          <p class="eyebrow">Review-first Linux dictation · x86_64 Flatpak · Groq</p>
+          <h1>Dictate the draft.<br><em>Keep</em> the final say.</h1>
+          <p class="lede">Give spoken prompts, emails, tickets, and notes a review step before they reach another app. Voice Transcriber filters silence locally, makes the cloud boundary visible, and leaves the transcript editable.</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#install">Install v1.0 <span aria-hidden="true">↓</span></a>
+            <a class="button button-primary" href="https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak">Download for Linux <span aria-hidden="true">↓</span></a>
             <a class="button button-quiet" href="#proof">Watch the workflow</a>
           </div>
-          <p class="microcopy">No raw-audio recording or analytics. History is off by default. Inspect the app and its boundary before adding a key.</p>
+          <p class="microcopy">Review before copy · no app-created audio files · no analytics · history off by default</p>
         </div>
-        <div class="desk-preview" aria-label="Guided illustration of the Voice Transcriber interface using synthetic sample text">
-          <div class="preview-top"><span class="signal" aria-hidden="true"></span><span>VOICE TRANSCRIBER</span><span class="preview-settings" aria-hidden="true">⚙</span></div>
-          <div class="preview-body">
-            <p class="preview-label">LIVE SESSION</p>
-            <div class="preview-button">■ &nbsp; Stop listening</div>
-            <p class="preview-status"><span class="status-dot" aria-hidden="true"></span> Listening · speech detected (3.2s)</p>
-            <div class="preview-meter" aria-label="Illustrated live microphone signal"><span>INPUT SIGNAL</span><span>USB microphone</span><i><b></b></i></div>
-            <div class="preview-transcript">
-              <p>“The important part is getting the idea out before it disappears.”</p>
-              <span class="cursor" aria-hidden="true"></span>
+        <div class="preview-wrap">
+          <p class="preview-disclosure">Guided preview · synthetic sample text</p>
+          <div class="desk-preview" aria-label="Guided preview of a Voice Transcriber listening session using synthetic sample text">
+            <div class="preview-top"><span class="signal" aria-hidden="true"></span><span>VOICE TRANSCRIBER</span><span class="preview-settings" aria-hidden="true">⚙</span></div>
+            <div class="preview-body">
+              <p class="preview-label">LIVE SESSION</p>
+              <div class="preview-button">■ &nbsp; Stop listening</div>
+              <p class="preview-status"><span class="status-dot" aria-hidden="true"></span> Listening · speech detected (3.2s)</p>
+              <div class="preview-meter" aria-label="Illustrated live microphone signal"><span>INPUT SIGNAL</span><span>USB microphone</span><i><b></b></i></div>
+              <div class="preview-transcript">
+                <p>“The important part is getting the idea out before it disappears.”</p>
+                <span class="cursor" aria-hidden="true"></span>
+              </div>
+              <div class="preview-footer"><span>Keep on top&nbsp; <b>●</b></span><span>Clear&nbsp;&nbsp; Copy</span></div>
             </div>
-            <div class="preview-footer"><span>Keep on top&nbsp; <b>●</b></span><span>Clear&nbsp;&nbsp; Copy</span></div>
           </div>
         </div>
       </section>
 
       <section id="proof" class="proof" aria-labelledby="proof-title">
         <div class="section-heading">
-          <p class="eyebrow">Guided product tour · synthetic sample text</p>
-          <h2 id="proof-title">Know what happens before you press Start.</h2>
-          <p class="proof-lede">These reproducible previews mirror the current native GTK states. The application itself never inserts a simulated transcript.</p>
+          <p class="eyebrow">The complete loop, before you install</p>
+          <h2 id="proof-title">Speak. See the state. Shape the result.</h2>
+          <p class="proof-lede">This short, reproducible tour mirrors the current native GTK states. The app itself never inserts a simulated transcript.</p>
         </div>
+        <figure class="tour-feature">
+          <picture>
+            <source media="(prefers-reduced-motion: reduce)" srcset="assets/demo-03-complete.png">
+            <img src="assets/voice-transcriber-tour.gif" width="960" height="600" alt="Guided Voice Transcriber workflow moving from ready, to active listening, to an editable completed transcript">
+          </picture>
+          <figcaption><span><b>Ready → listening → review.</b> Synthetic sample text keeps the public demo reproducible and privacy-safe.</span><a href="https://github.com/OthmaneBlial/audio-capture/blob/main/scripts/render_demo_assets.sh">Reproduce the tour ↗</a></figcaption>
+        </figure>
         <div class="proof-grid">
-          <figure><img src="assets/demo-01-ready.png" width="1200" height="750" loading="lazy" alt="Voice Transcriber ready state with microphone and privacy information visible"><figcaption><b>01 · Inspect.</b> Open the desk and see the device and boundary before configuring a key.</figcaption></figure>
-          <figure><img src="assets/demo-02-active.png" width="1200" height="750" loading="lazy" alt="Voice Transcriber active state with speech detected and input meter moving"><figcaption><b>02 · Speak.</b> Local voice detection and the signal meter make capture state visible.</figcaption></figure>
-          <figure><img src="assets/demo-03-complete.png" width="1200" height="750" loading="lazy" alt="Voice Transcriber completed transcript ready for copy or export"><figcaption><b>03 · Use.</b> Review the result, then copy, clear, or explicitly export it.</figcaption></figure>
+          <figure><img src="assets/demo-01-ready.png" width="1200" height="750" loading="lazy" alt="Voice Transcriber ready state with microphone and privacy information visible"><figcaption><b>01 · Inspect.</b> See the selected device and provider boundary before configuring a key.</figcaption></figure>
+          <figure><img src="assets/demo-02-active.png" width="1200" height="750" loading="lazy" alt="Voice Transcriber active state with speech detected and input meter moving"><figcaption><b>02 · Speak.</b> Local voice detection and the input meter make capture state visible.</figcaption></figure>
+          <figure><img src="assets/demo-03-complete.png" width="1200" height="750" loading="lazy" alt="Voice Transcriber completed transcript ready for review, copy, or export"><figcaption><b>03 · Review.</b> Edit the result, then copy, clear, or explicitly export it.</figcaption></figure>
         </div>
-        <p class="proof-link"><a href="assets/voice-transcriber-tour.gif">View the short animated tour</a> · <a href="https://github.com/OthmaneBlial/audio-capture/blob/main/scripts/render_demo_assets.sh">Reproduce these assets</a></p>
       </section>
 
-      <section class="statement" aria-labelledby="statement-title">
-        <p class="eyebrow">The point</p>
-        <h2 id="statement-title">A small, dependable desk for when typing gets in the way.</h2>
-        <p>There is no audio library to organise and no generic dashboard to navigate. Start a session, talk naturally, then put the words where they belong.</p>
+      <section id="fit" class="fit" aria-labelledby="fit-title">
+        <div class="section-heading">
+          <p class="eyebrow">A deliberate checkpoint</p>
+          <h2 id="fit-title">Built for the moment most dictation tools skip.</h2>
+          <p class="fit-lede">Voice Transcriber does not type invisibly into the active window. It gives you a focused place to catch the thought, correct the words, and decide where the final text belongs.</p>
+        </div>
+        <div class="fit-grid">
+          <article><p class="fit-label">Reach for it when</p><ul><li>You are drafting a prompt, email, ticket, note, or message.</li><li>You want to review wording before it reaches another app.</li><li>You prefer cloud speed without downloading a multi-gigabyte model.</li><li>You want the provider boundary visible instead of buried in policy copy.</li></ul></article>
+          <article class="fit-not"><p class="fit-label">Choose another tool when</p><ul><li>Audio must remain fully offline.</li><li>You need a global hotkey while another app has focus.</li><li>You want automatic cursor insertion or meeting transcription.</li><li>You require Flathub discovery, ARM, macOS, or Windows today.</li></ul></article>
+        </div>
       </section>
 
       <section id="workflow" class="workflow" aria-labelledby="workflow-title">
         <div class="section-heading">
-          <p class="eyebrow">The short path</p>
+          <p class="eyebrow">One bounded path</p>
           <h2 id="workflow-title">From microphone to useful text.</h2>
         </div>
         <ol class="steps">
-          <li><span class="step-number">01</span><h3>Listen</h3><p>Choose a microphone and confirm its local signal before 30 ms frames enter a bounded real-time queue.</p></li>
-          <li><span class="step-number">02</span><h3>Detect</h3><p>Voice activity detection runs on your device, so silence never becomes a transcription request.</p></li>
-          <li><span class="step-number">03</span><h3>Transcribe</h3><p>Completed segments cross the visibly selected provider boundary through a small bounded request pool.</p></li>
-          <li><span class="step-number">04</span><h3>Use it</h3><p>Review the growing transcript, then copy it or export a local UTF-8 text file.</p></li>
+          <li><span class="step-number">01</span><h3>Inspect</h3><p>Choose a microphone and confirm its local signal before any session starts.</p></li>
+          <li><span class="step-number">02</span><h3>Speak</h3><p>Local voice detection filters silence and closes each completed speech segment.</p></li>
+          <li><span class="step-number">03</span><h3>Review</h3><p>Pending, completed, and failed segments remain visible while the text stays editable.</p></li>
+          <li><span class="step-number">04</span><h3>Move it</h3><p>Copy the finished desk or export plain text, Markdown, or a timestamped note.</p></li>
         </ol>
       </section>
 
       <section id="privacy" class="privacy" aria-labelledby="privacy-title">
         <div>
-          <p class="eyebrow">An honest boundary</p>
-          <h2 id="privacy-title">Local capture. Cloud transcription. No ambiguity.</h2>
+          <p class="eyebrow">Privacy-explicit, not “offline”</p>
+          <h2 id="privacy-title">Fast cloud transcription. An exact local boundary.</h2>
         </div>
         <div class="boundary-grid">
-          <article><p class="boundary-label">Stays on your device</p><ul><li>Raw microphone frames in a bounded memory queue</li><li>The active transcript until you clear, copy, or export it</li><li>Window preferences and local settings</li></ul></article>
-          <article><p class="boundary-label boundary-label-send">Sent when you speak</p><ul><li>Completed speech segments, encoded in memory as WAV</li><li>Your configured language or translation request</li><li>Nothing is sent while waiting in silence</li></ul></article>
+          <article><p class="boundary-label">Stays on your device</p><ul><li>Raw microphone frames in a bounded memory queue</li><li>Silence detection and the live input meter</li><li>The transcript until you copy or explicitly export it</li><li>History unless you opt in to local text storage</li></ul></article>
+          <article><p class="boundary-label boundary-label-send">Sent when you speak</p><ul><li>Each completed speech segment, encoded in memory as WAV</li><li>The selected language or translation request</li><li>Nothing while the app is waiting in silence</li><li>No app analytics, crash reports, or transcript telemetry</li></ul></article>
         </div>
-        <p class="boundary-more"><a href="docs.html#privacy">Read the complete data flow and provider boundary</a></p>
+        <p class="boundary-more"><a href="privacy.html">Read the provider facts, storage rules, and complete data flow</a></p>
       </section>
 
-      <section class="statement" aria-labelledby="trust-title">
-        <p class="eyebrow">Release proof, not a trust badge</p>
-        <h2 id="trust-title">Checksum. Test report. SBOM. Provenance.</h2>
-        <p>Every v1 release maps its source tag to one Flatpak and publishes the evidence needed to inspect it. Automated package proof is kept separate from the real-microphone compatibility reports still being collected.</p>
-        <p><a href="https://github.com/OthmaneBlial/audio-capture/releases/tag/v1.0.0">Inspect the v1 release</a> · <a href="https://github.com/OthmaneBlial/audio-capture/blob/v1.0.0/docs/SUPPORT.md">Read the support boundary</a> · <a href="https://github.com/OthmaneBlial/audio-capture/blob/v1.0.0/docs/contributing/README.md">Choose a contribution</a></p>
+      <section class="evidence" aria-labelledby="evidence-title">
+        <div class="section-heading">
+          <p class="eyebrow">Proof and limits, side by side</p>
+          <h2 id="evidence-title">Trust the evidence—not a badge.</h2>
+        </div>
+        <div class="evidence-grid">
+          <article><strong>68</strong><span>deterministic tests pass without a key, microphone, model, or network</span></article>
+          <article><strong>v1</strong><span>Flatpak with checksum, test report, CycloneDX SBOM, and Sigstore provenance</span></article>
+          <article><strong>0</strong><span>analytics or crash-reporting pipelines inside the application</span></article>
+        </div>
+        <div class="limits"><p>Still open:</p><ul><li>Physical PipeWire/PulseAudio plus Wayland/X11 compatibility reports</li><li>Flathub distribution and automatic application updates</li><li>A supported packaged local provider and portal-backed global shortcuts</li></ul></div>
+        <p class="evidence-links"><a href="https://github.com/OthmaneBlial/audio-capture/releases/tag/v1.0.0">Inspect the v1 release ↗</a><a href="https://github.com/OthmaneBlial/audio-capture/blob/main/docs/SUPPORT.md">Read the support matrix ↗</a><a href="https://github.com/OthmaneBlial/audio-capture/issues/new?template=compatibility.yml">Report a Linux setup ↗</a></p>
       </section>
 
       <section id="install" class="install" aria-labelledby="install-title">
-        <div class="section-heading"><p class="eyebrow">Checksum-verified x86_64 Flatpak</p><h2 id="install-title">Install v1.0, then inspect it before adding a key.</h2></div>
-        <div class="terminal" aria-label="Quick-start commands">
+        <div class="section-heading"><p class="eyebrow">Checksum-verifiable x86_64 Flatpak</p><h2 id="install-title">Download it. Verify it. Inspect before adding a key.</h2></div>
+        <div class="install-actions"><a class="button button-primary" href="https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak">Download v1.0 Flatpak <span aria-hidden="true">↓</span></a><a class="text-link" href="https://github.com/OthmaneBlial/audio-capture/releases/tag/v1.0.0">View all release evidence ↗</a></div>
+        <div class="terminal" aria-label="Verified installation commands">
           <div class="terminal-bar"><span></span><span></span><span></span><p>terminal</p></div>
-          <pre><code id="quickstart">curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak
-curl -LO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak.sha256
+          <pre><code id="quickstart">flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+curl -fLO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak
+curl -fLO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak.sha256
 sha256sum --check voice-transcriber-1.0.0-x86_64.flatpak.sha256
 flatpak install --user ./voice-transcriber-1.0.0-x86_64.flatpak
 flatpak run io.github.othmaneblial.audio_capture</code></pre>
-          <button class="copy-button" type="button" data-copy-target="quickstart">Copy command</button>
+          <button class="copy-button" type="button" data-copy-target="quickstart">Copy install steps</button>
         </div>
-        <p class="install-note">The primary package targets x86_64 Linux with GTK 3 and the system PipeWire/PulseAudio route. The UI, device picker, diagnostics, and privacy explanation work without a key; Start stays blocked until the selected provider is ready. Read the <a href="docs.html#support">support matrix</a> or use the <a href="https://github.com/OthmaneBlial/audio-capture#source-installation-details">source development path</a>.</p>
+        <p class="install-note">The interface, device picker, diagnostics, and privacy explanation work without a key; <b>Start listening</b> stays blocked until Groq is configured. This standalone bundle does not create an update remote. Read the <a href="docs.html#install">full install/update guide</a> or use the <a href="https://github.com/OthmaneBlial/audio-capture#source-installation-details">source development path</a>.</p>
       </section>
 
       <section class="closing">
-        <p class="eyebrow">Built for the moment</p>
-        <h2>Keep the conversation. Lose the friction.</h2>
-        <a class="button button-primary" href="https://github.com/OthmaneBlial/audio-capture">Explore the source <span aria-hidden="true">↗</span></a>
+        <p class="eyebrow">Useful on your Linux setup?</p>
+        <h2>Star it—and tell us where it ran.</h2>
+        <p>Stars help the right people discover the project. A privacy-safe compatibility report helps make the next release genuinely better.</p>
+        <div class="closing-actions"><a class="button button-primary" href="https://github.com/OthmaneBlial/audio-capture">Star on GitHub <span aria-hidden="true">↗</span></a><a class="button button-quiet" href="https://github.com/OthmaneBlial/audio-capture/issues/new?template=compatibility.yml">Report your setup</a></div>
       </section>
     </main>
 
