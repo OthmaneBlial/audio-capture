@@ -1,395 +1,168 @@
-# Roadmap — Voice Transcriber
+# Voice Transcriber roadmap
 
-## What this project can become
+Last revised: 1 September 2026
 
-**Voice Transcriber should become the most trustworthy way for a Linux user to
-turn a short spoken thought into editable text, without accumulating recordings
-or making the cloud boundary invisible.**
+## Direction
 
-It should serve people who dictate notes, prompts, emails, tickets, and drafts
-throughout the day. It is *not* a meeting recorder, a generic AI assistant, or
-a product that silently uploads a continuous microphone stream.
+Voice Transcriber is a **review-first Linux dictation desk**. It should be the
+small, dependable place where someone speaks a prompt, email, ticket, note, or
+draft; corrects the result; and deliberately copies or exports the final text.
 
-The existing foundation supports this promise: real microphone capture, local
-voice activity detection, bounded queues, a visible input meter, a transcript
-review view, and a clear Groq boundary. The next opportunity is productization:
-make the first successful dictation easy to install, easy to understand, and
-easy to trust.
+That is narrower than system-wide voice typing, and intentionally so. The
+product can win on a coherent combination:
 
-## Audit baseline — 26 August 2026
+- a visible review step before text reaches another application;
+- local speech detection with an inspectable cloud boundary;
+- no app-created audio library, analytics, or automatic transcript sync;
+- bounded capture/provider work with visible failures;
+- a lightweight cloud path that does not require a local model download.
 
-### Already strong
+The project will not market “private/offline Linux voice typing” as a unique
+claim. Mature competitors already ship packaged local inference, global
+shortcuts, cursor insertion, model managers, GPU options, and broader distro
+support. Voice Transcriber should either prove those capabilities properly or
+remain honest about not having them.
 
-- A focused, honest workflow: speech is segmented locally, completed segments
-  are transcribed through Groq Whisper, and the application does not persist
-  raw audio.
-- Practical reliability work already exists: device selection, a bounded audio
-  queue and transcription pool, actionable failures, config precedence, and
-  private local settings permissions.
-- The app has a clean GTK desk, keyboard shortcuts, copy/export, language and
-  translation controls, a public site, MIT license, two public releases,
-  contributor guidance, security reporting, Dependabot, and CI.
-- The automated unit suite currently passes (`15` tests) and source compilation
-  passes locally. The published site returned HTTP 200 during this audit.
+## Shipped baseline
 
-### What prevents adoption today
+Version `v1.0.0` currently provides:
 
-| Gap | Why it blocks stars and users | Evidence in the current project |
+- an installable, source-mapped `x86_64` Flatpak release asset;
+- a GTK review desk with microphone selection, local meter, editing,
+  undo/redo, segment states, copy, clear, and explicit exports;
+- local WebRTC VAD plus a bounded Groq transcription path;
+- optional text-only local history, off by default and retention-limited;
+- privacy-safe diagnostics and a user-managed provider key;
+- checksum, test report, CycloneDX SBOM, and Sigstore provenance;
+- a reproducible guided product tour, public site, privacy notice, support
+  matrix, contribution map, and structured issue forms;
+- 69 deterministic tests that require no microphone, key, model, or network.
+
+Automated package and boundary tests are not physical microphone evidence. The
+current Flatpak is a manually downloaded bundle, not a Flathub release; the
+local `whisper.cpp` adapter remains an experimental source-only path.
+
+## Now — prove first success and normal distribution
+
+### 1. Publish through a real update channel
+
+- [ ] Submit the Flatpak to Flathub and complete the App ID affiliation review.
+- [ ] Prove search, install, launch, update, and uninstall from a clean supported
+  desktop without cloning the repository.
+- [ ] Make the Flathub listing the primary download only after the public app
+  page, screenshots, permissions, privacy boundary, and support links are live.
+- [ ] Keep the checksum-verifiable GitHub bundle as an advanced fallback.
+
+**Gate:** a new user can install and later update Voice Transcriber through a
+configured remote. A standalone `.flatpak` file does not satisfy this gate.
+
+### 2. Replace expected compatibility with physical evidence
+
+- [ ] Verify Ubuntu GNOME on Wayland with PipeWire and a real microphone.
+- [ ] Verify Debian on X11 with PulseAudio and a real microphone.
+- [ ] For each combination, test device discovery, the input meter, one real
+  Groq transcript, edit/copy/export, reconnect behavior, and data removal.
+- [ ] Publish only sanitized environment facts; never collect keys, recordings,
+  transcripts, configuration files, or full system dumps.
+
+**Gate:** the [compatibility matrix](docs/COMPATIBILITY.md) links repeatable
+reports for both declared paths. Xvfb and injected audio remain labelled as
+automated boundary evidence.
+
+### 3. Prove install-to-first-copy onboarding
+
+- [x] Make first run scrollable, keyboard-operable, and explicit about what is
+  local and what is sent.
+- [x] Show dated Groq retention, location, Zero Data Retention, and 10-second
+  per-request billing facts with live provider-document links.
+- [ ] Run ten privacy-safe clean-machine sessions through install, microphone
+  choice, one real test phrase, review, and copy.
+- [ ] Classify failures by step and publish an anonymized findings summary.
+- [ ] Keep **Explore first** available without a key or provider probe.
+
+**Gate:** at least eight of ten supported-machine sessions reach a first copied
+transcript in under five minutes; every failure produces a concrete product or
+documentation action. No analytics are added to measure this.
+
+## Next — make review-first dictation easier to summon
+
+### 4. Add portal-backed activation
+
+- [ ] Detect the XDG `GlobalShortcuts` portal and expose global toggle plus
+  hold-to-talk actions where the desktop grants them.
+- [ ] Show the actual binding returned by the portal and a useful unsupported
+  fallback; never silently grab keys.
+- [ ] Add stable single-instance actions for show, start, stop, cancel, and
+  stop-and-copy so desktop integrations do not scrape the UI.
+- [ ] Verify supported GNOME/KDE Wayland and X11 paths while another app has
+  focus.
+
+Clipboard delivery remains the safe default. Active-window insertion may be
+explored only as an opt-in, desktop-specific integration with a separate threat
+model and real evidence; `ydotool` or simulated typing will not become a hidden
+mandatory dependency.
+
+### 5. Turn experimental local inference into a supported product—or remove it
+
+- [ ] Decide one packaged local runtime and a small recommended CPU model.
+- [ ] Build an in-app model flow that shows source, license, checksum, download
+  size, expected RAM, language scope, acceleration status, and deletion before
+  download.
+- [ ] Prove clean install to first local transcript without a key, compiler, or
+  terminal, then repeat with the network disabled after model download.
+- [ ] Publish accuracy/latency/resource receipts on named hardware and licensed
+  audio; do not present a CI runner as representative desktop performance.
+- [ ] If these gates are not maintainable, remove the user-facing experimental
+  path instead of allowing a permanent half-supported provider.
+
+**Gate:** the packaged local path owns its runtime/model lifecycle and has real
+offline plus hardware evidence. Merely accepting user-supplied files is not a
+supported provider.
+
+## Later — widen only from evidence
+
+- [ ] Add `aarch64` only after an architecture-native package build, launch,
+  microphone, and provider smoke gate passes.
+- [ ] Consider a Debian package only if updates and native dependency support
+  can match the Flatpak contract; do not publish an AppImage for badge count.
+- [ ] Convert useful external reports into compatibility rows, FAQs, regression
+  tests, credited fixes, and release notes.
+- [ ] Publish the prepared technical and workflow stories after the install and
+  physical compatibility gates are true.
+- [ ] Add translations when installation, privacy, and troubleshooting content
+  has an identified reviewer for each language.
+
+## Release shape
+
+| Milestone | User-visible promise | Required proof |
 | --- | --- | --- |
-| The promise is useful but not yet distinctive enough | “GTK + Groq Whisper” describes implementation, not the daily job it wins. A visitor cannot immediately see why this beats a browser tab or another Whisper client. | The README leads with the stack and has no real workflow demo or outcome proof. |
-| First use is developer-shaped | A new user must clone the repo, run an `apt` script, create a virtualenv, and supply a Groq key before discovering whether dictation helps them. | `setup.sh` supports Debian/Ubuntu only; the `v0.2.0` release has no installable assets. |
-| The key requirement is a serious conversion barrier | Bring-your-own-key is valid, but it creates cost, account, and privacy questions before the first transcript. | Groq is the only transcription backend and a plausible key is required to start. |
-| Trust is documented, not yet demonstrated | The privacy boundary is unusually clear, but users still need a permission/data-flow view, vendor-policy links, a retention choice, and reproducible release evidence. | No privacy page/threat model, SBOM, provenance, or published package checksums. |
-| No proof of the experience | Audio software is judged by latency, accuracy, device handling, and ergonomics. Text alone cannot prove those. | No screenshots, GIF/video, sample corpus/benchmark, or hardware compatibility matrix is tracked. |
-| Distribution is incomplete | People cannot install, update, or remove the app like a normal Linux app. | There is a source launcher script, but no Flatpak, `.deb`, AppImage, package repository, or update path. |
-| Community is prepared but not activated | Good issue forms and contribution rules exist, yet there is no contribution map, discussion space, newcomer tasks, or public support contract. | GitHub’s live community profile was 85% and did not detect a code of conduct or an issue-template configuration. |
-| Quality signals stop at unit tests | The native microphone, GTK UI, packaging, release artifact, security, and compatibility paths are not proven by the current CI matrix. | CI runs lint, compile, and unit tests only on Python 3.11. |
+| `v1.1` — Transparent first copy | “Install, understand the boundary, and copy a first reviewed transcript.” | Flathub or documented update-channel decision, onboarding sessions, dated provider disclosure, physical compatibility reports |
+| `v1.2` — Desktop activation | “Start a review session without first focusing the desk.” | Portal-backed shortcuts/actions plus GNOME/KDE Wayland and X11 evidence |
+| `v2.0` — Real provider choice | “Choose lightweight cloud or supported local transcription.” | Packaged model lifecycle, offline proof, hardware/resource receipts, migration and removal contract |
 
-The repository had **0 stars, 0 forks, and 0 open issues** at the time of this
-audit, immediately after its first public releases. That is a launch baseline,
-not evidence that the product lacks value. The roadmap therefore prioritizes
-repeatable first success and proof before chasing reach.
+Versions and dates are not promises. A milestone ships only when its entire
+public claim is supported by release-specific evidence.
 
-## Principles and non-negotiables
+## Non-goals
 
-1. **Transient by default.** Do not add background recording, analytics, or
-   cloud uploads without an explicit, understandable user action.
-2. **State the cloud boundary precisely.** The app may say “local VAD” and
-   “audio is not saved by the app”; it must never imply fully offline
-   transcription while Groq is selected.
-3. **Make a private workflow usable, not merely private on paper.** A user
-   must be able to see the selected microphone, current provider, request
-   state, storage policy, and what will leave the device.
-4. **One excellent desktop workflow first.** Do not dilute the project with a
-   web app, mobile app, meeting bot, or a broad AI-agent layer.
-5. **Proof beats feature count.** Every capability needs a testable contract,
-   a visible demo or documentation path, and an honest support boundary.
+- No meeting recorder, speaker diarization, chatbot, summarization layer, or
+  automatic cloud sync while the core review-first job remains unproven.
+- No background recording, transcript/audio analytics, or crash uploads for
+  growth reporting.
+- No “100% private,” “fully offline,” “type anywhere,” or universal Linux claim
+  while the shipped package contradicts it.
+- No macOS, Windows, mobile, or browser claim without a native implementation
+  and an independently verified release path.
+- No star target presented as a product guarantee. Stars should follow useful
+  releases, trusted evidence, responsive maintenance, and honest sharing.
 
-## North-star and guardrail measures
+## How progress is measured
 
-No behavioral telemetry should be introduced to obtain these numbers. Use
-release downloads, GitHub traffic, opt-in feedback, reproducible benchmark
-runs, and support issues instead.
+Use public release downloads, opt-in compatibility reports, reproducible
+benchmarks, issue resolution, and returning contributors. The project should
+not add behavioral telemetry to manufacture a funnel.
 
-| Measure | First credible target | Why it matters |
-| --- | --- | --- |
-| Time from install to first copied transcript | Under 5 minutes on a supported fresh Linux machine | This is the real onboarding funnel. |
-| Supported-install pass rate | 10 documented clean-machine runs across the declared targets | Replaces “works on my machine” with evidence. |
-| Dictation latency | Publish p50/p95 from a licensed sample corpus for each provider/model | Gives users a reason to trust the experience. |
-| Privacy regression checks | 100% of releases pass data-flow, secret, and retention checks | Protects the project’s differentiator. |
-| Community response | Every reproducible bug gets an acknowledgement within 7 days | Makes a small project safe to try and contribute to. |
-| Adoption signals | Sustained release downloads, returning contributors, issue resolution, and qualified star growth | Stars are an outcome of usefulness and trust, not the sole KPI. |
-
-## Dependency-ordered roadmap
-
-### P0 — Establish the promise and the public proof
-
-**Outcome:** a visitor understands the product, its limits, and a successful
-workflow in less than a minute.
-
-- [x] Rewrite the README opening around a concrete job: “Dictate a thought,
-  review it, and paste it anywhere on Linux.” Keep the current technical
-  explanation lower in the page.
-- [x] Add three truthful screenshots and one short silent GIF/video: choosing a
-  microphone, the live meter and transcription state, then copy/export. Use
-  synthetic or consented sample text; do not publish customer audio.
-- [x] Add a compact comparison table: **current behaviour**, **what stays
-  local**, **what is sent to Groq**, **where text can be stored**, and **what
-  it does not do**.
-- [x] Publish a supported-environments table with tested desktop/session,
-  architecture, audio stack, package format, and known limitations. Debian and
-  Ubuntu are the only supported targets until evidence expands that table.
-- [x] Add an explicit “Try before configuring” path: launch the UI, inspect
-  devices and privacy information, then explain exactly why a key is required
-  before Start becomes available. Do not fake a transcript.
-- [x] Add `CODE_OF_CONDUCT.md`, an issue-template `config.yml`, labels,
-  `good first issue` candidates, and a small maintainer response policy. Check
-  GitHub’s community profile again after publishing.
-- [x] Fix discoverability without a speculative repository rename: align the
-  GitHub description, topics, README title, release names, and site metadata
-  on “Linux dictation / speech-to-text / privacy-aware”. Reconsider the generic
-  `audio-capture` repository name only after search and referral data justify
-  the disruption.
-
-**Acceptance gate:** a clean browser visit shows the outcome, data boundary,
-support matrix, install route, demo, license, latest release, and a newcomer
-contribution route. All claims can be traced to code or a documented test.
-
-**Completed evidence:** local desktop/mobile browser QA passed with no console
-errors or horizontal overflow; the deployed Pages build `6fc2361` completed;
-all three screenshots, the animated tour, docs, CSS, and JavaScript returned
-HTTP 200; and GitHub's community profile reached 100% after publication.
-
-### P1 — Make first success a normal Linux installation
-
-**Outcome:** supported users install a release, run a diagnostic, and transcribe
-one sentence without cloning source code or troubleshooting native Python.
-
-- [ ] Choose one primary distribution format after a short packaging spike.
-  **Flatpak is the preferred primary candidate** because it can declare
-  permissions and works across more distributions; only ship it once microphone
-  portal and outbound-network behaviour have been manually tested. `.deb` can
-  be a secondary Ubuntu/Debian path. Do not publish an untested AppImage simply
-  to claim portability.
-- [x] Package the app, desktop entry, icon, Python dependencies, and runtime
-  libraries into release artifacts. Provide checksums, install/update/uninstall
-  instructions, and exact source-to-artifact version mapping.
-- [x] Add a non-destructive `voice-transcriber --doctor --json` command. It
-  should report OS/session support, GTK availability, microphone discovery,
-  selected input availability, config-key presence (never value), provider
-  reachability when explicitly requested, and next actions.
-- [x] Keep `--check-config` and `--list-devices`; document their stable output
-  contracts and exit codes so support scripts can use them.
-- [x] Add a first-run screen that asks for microphone choice, language, and
-  provider/key with an explicit explanation before external transmission. It
-  must be fully keyboard navigable.
-- [x] Add clean-machine smoke tests for the selected packaging format and a
-  release checklist covering installation, microphone permission, start/stop,
-  copy/export, and removal.
-
-**Acceptance gate:** a new supported-machine tester can install the latest
-release, pass `--doctor`, record a real short segment, copy its result, and
-uninstall cleanly using only the public instructions.
-
-**Implementation evidence:** `v0.4.0` publishes a source-mapped x86_64 Flatpak
-and SHA-256; Actions run `33013357498` built it from a clean checkout, installed
-it, verified exact version/help/doctor contracts, exercised first-run GTK and
-accessibility under Xvfb, asserted minimal permissions and packaged metadata,
-then removed the app and sandbox. The two public assets were downloaded again
-and matched SHA-256 `cd1e448065e13f9c639567d722439be3651a3c8d67b5047dfd343e1346903215`.
-The first checkbox and acceptance gate remain open because a physical Linux
-microphone plus a tester-owned Groq key have not been exercised; automated
-headless audio/package proof is not relabelled as that manual evidence.
-
-### P2 — Turn a transcription desk into daily dictation
-
-**Outcome:** the app earns a place in someone’s daily workflow rather than being
-a one-time demo.
-
-- [ ] Run five structured usability sessions with the P0 demo build. Observe
-  device selection, start/stop confidence, correction, copying, and privacy
-  comprehension. Publish anonymised findings and change the roadmap from
-  evidence, not intuition.
-- [x] Add transcript editing, undo/redo, select-all, clear confirmation, and
-  a visible pending/error state per segment. Preserve the existing explicit
-  bounded-queue behaviour.
-- [x] Add a push-to-talk workflow and a tray/window toggle where the declared
-  desktop session permits it. Global shortcut support must be capability-gated:
-  Wayland and sandbox restrictions should produce a useful explanation, never a
-  silent failure.
-- [x] Add optional “copy on final transcript” and an intentional paste/insert
-  workflow only where platform APIs make it reliable. Never simulate hidden
-  keyboard input or claim universal paste support.
-- [x] Add structured exports (`.txt`, Markdown, and timestamped text) with a
-  preview of destination and owner-only permissions where feasible. Add SRT
-  only after timestamps have a tested accuracy contract.
-- [x] Add an explicit opt-in local history: disabled by default, configurable
-  retention period, clear-all action, storage location disclosure, and safe
-  migration/deletion tests. Raw audio remains non-persistent.
-
-**Acceptance gate:** a user can dictate, correct, copy, retrieve or permanently
-discard text according to a plainly visible retention choice, all without
-opening a terminal.
-
-**Implementation evidence:** `v0.5.0` adds editable transcript state with
-bounded undo/redo, per-segment request state, focused push-to-talk, an X11-only
-legacy tray toggle, optional copy-on-final, three destination-confirmed export
-formats, and schema-versioned opt-in text history with retention and deletion.
-Forty unit tests passed in CI and Flatpak run `33013850025` built, installed,
-exercised the GTK accessibility and daily-workflow smoke contract, and removed
-the exact bundle. The five real-participant sessions remain open and are
-separately specified in `research/usability/PROTOCOL.md`; automated review is
-not presented as human evidence.
-
-### P3 — Remove the “bring a cloud key” ceiling without weakening privacy
-
-**Outcome:** users can choose an understandable transcription mode rather than
-being forced into one vendor/account path.
-
-- [x] Extract a small provider interface from `GroqTranscriptionService`:
-  capabilities, supported languages, translation availability, cancellation,
-  limits, error normalization, and a provider-specific data-boundary label.
-- [x] Preserve Groq as the well-tested fast cloud path; add a provider selection
-  UI only when a second backend has equal error, privacy, and test contracts.
-- [x] Prototype one genuinely local backend behind an explicit feature flag
-  (for example a packaged Whisper-compatible local runtime). Measure model
-  download size, CPU/RAM, latency, language quality, and supported hardware
-  before promising “offline”.
-- [x] Offer a clear choice at setup: **Groq cloud** (completed speech segment
-  leaves the device, user-managed key) or **Local model** (model/download and
-  hardware cost explained). The UI must show the active mode during a session.
-- [x] Publish a reproducible, licensed benchmark corpus and harness for
-  accuracy/latency comparisons. Report limitations and sample composition;
-  do not manufacture an aggregate “accuracy” number without context.
-
-**Acceptance gate:** each supported backend has a documented data flow,
-capability matrix, deterministic tests, and reproducible performance evidence.
-Local mode is not announced as supported until it passes the same packaging and
-first-success gate as cloud mode.
-
-**Implementation evidence:** the typed provider contract drives Groq and the
-explicitly flagged source-only whisper.cpp prototype, with deterministic
-capability, cancellation, error, configuration, diagnostics, and data-boundary
-tests. The current Flatpak deliberately contains only the supported Groq path.
-Benchmark run `33015305254` verified the official LibriSpeech `test-clean`
-archive checksum, selected 25 speakers deterministically, built pinned
-whisper.cpp/tiny.en, and published the committed receipt: 37 / 627 word errors
-(5.90% WER), 1,043.810 ms p50 and 1,508.576 ms p95 on the named GitHub runner.
-Exact commit CI run `33015936280` passed 50 tests, Ruff, and compilation;
-Flatpak run `33015936279` built/installed `0.6.0` and passed the CLI, doctor,
-provider-boundary, mapped GTK accessibility, and uninstall smoke contracts;
-CodeQL run `33015923746` passed all three detected languages with no open
-alerts. The measured local prototype remains labelled experimental—not
-supported or universally offline—until the separate Flatpak and physical
-first-success gates pass.
-
-### P4 — Make trust and releases independently verifiable
-
-**Outcome:** an open-source user can verify what the app does and reproduce a
-safe release decision.
-
-- [x] Add a privacy page and a concise threat model covering microphone access,
-  VAD, memory, provider request, API-key storage, exports, history, logs, and
-  crash reports. Link the current Groq policy/documentation rather than making
-  unverifiable vendor-retention claims.
-- [x] Add a privacy regression checklist/test suite: no raw-audio files,
-  secrets redacted from logs/errors, no key in diagnostics, retention disabled
-  by default, and explicit export/history permissions.
-- [x] Expand CI to the declared supported Python range, package builds, test
-  coverage reporting, dependency vulnerability checks, and static security
-  analysis. Native hardware checks remain separately labelled manual evidence.
-- [x] Add reproducible release automation: version consistency checks,
-  changelog validation, artifact checksums, SBOM, signed tags or attestations,
-  and a downloadable provenance record.
-- [ ] Test against representative PipeWire/PulseAudio and X11/Wayland paths;
-  publish a compatibility issue template that captures only the data needed to
-  reproduce an audio failure.
-- [x] Define a supported-version and deprecation policy. Keep security fixes,
-  packaging fixes, and model/provider changes easy to audit in release notes.
-
-**Acceptance gate:** every release has a test report, provenance/checksum,
-known limitations, compatibility status, and a privacy-change section. A
-security reviewer can follow the documented data flow from microphone to export.
-
-**Implementation evidence:** the published privacy notice and threat model map
-microphone, VAD, bounded memory, provider requests, credentials, text storage,
-exports, logs, local executables, and release supply chain. Four privacy tests
-join the 58-test suite. Exact-commit CI run `33018105244` passed Python 3.9,
-3.11, and 3.14 with branch coverage above 70%, wheel/sdist builds, a hashed
-dependency audit, Bandit, Ruff, and compilation. Flatpak run `33018105481`
-passed the documented App-ID-only linter exception, mirrored AppStream/repo
-lints, a clean `--disable-download` rebuild, install/GTK/CLI smoke, and removal.
-CodeQL run `33018105062` passed all detected languages with no open alerts.
-Release automation now validates version/changelog surfaces and creates a
-checksum, CycloneDX SBOM, test report, provenance and SBOM attestations, and
-release notes. The compatibility checkbox remains open because
-Xvfb and capability unit tests are not relabelled as real Wayland/X11 plus
-PipeWire/PulseAudio microphone sessions; the new structured issue form records
-that missing evidence without collecting sensitive system dumps.
-
-**v1 candidate evidence:** commit
-`1db98066a75329fc5ac5b6b13cf3a3be15fa4428` passed exact CI run
-`33019179553` across Python 3.9/3.11/3.14 plus dependency audit and Bandit,
-Flatpak run `33019179602` including the offline rebuild and installed-bundle
-smoke, and CodeQL run `33019179363` across Python, Actions, and JavaScript with
-no open alerts at verification time. This proves the pre-tag candidate; it does
-not pre-claim the tag-only publication job.
-
-**Published v1 evidence:** annotated tag `v1.0.0` dereferences to
-`c2244664fda6cc1603fada2ee60632e00c403d39`. Release workflow `33019546561`
-passed the build, offline rebuild, repository lint, installed Flatpak smoke,
-59-test report, CycloneDX SBOM, build-provenance attestation, SBOM attestation,
-and immutable-shaped publication jobs. All six public assets were downloaded
-again; SHA-256 verification passed for the bundle
-(`19f941a5767f7380eb8709bde3de3cbee78647ee263f343a7dca36b7c0baa43c`),
-both Sigstore bundles parsed, the SBOM/report named version `1.0.0` and the
-exact commit, and `gh attestation verify` succeeded against the public
-download. The release is neither a draft nor a prerelease.
-
-### P5 — Build an open-source distribution and contribution loop
-
-**Outcome:** each useful release gives users something concrete to share and
-contributors a bounded way to help.
-
-- [x] Publish a release page that includes the demo, a one-sentence outcome,
-  package instructions, support matrix, privacy delta, benchmark delta, and
-  a short “help wanted” list.
-- [x] Create a public `docs/contributing/` map: architecture tour, local
-  development without a real API key, fake audio fixtures, UI contribution
-  guide, packaging guide, and an issue-to-PR path.
-- [x] Curate 5–10 narrowly scoped issues after P1/P2 evidence exists: package
-  smoke test, documentation translation, accessibility review, device matrix,
-  provider contract fixture, and release QA. Each issue needs acceptance
-  criteria and a maintainer.
-- [x] Enable GitHub Discussions only if it will receive regular responses;
-  otherwise direct users to issues with the two existing structured forms.
-- [x] Write one technical launch post and one user-focused demo post around the
-  verified differentiator: ephemeral voice-to-text with an explicit cloud
-  boundary. Share only after a packaged release and demo exist; collect feedback
-  questions rather than asking generically for stars.
-- [ ] Turn useful external feedback into public artifacts: compatibility
-  entries, FAQs, reproducible bug fixes, and credited contributors. Never add
-  usage tracking merely to produce growth charts.
-
-**Acceptance gate:** the project has an installable release, a visual proof,
-an honest support boundary, a contributor’s first task, and a repeatable
-release/feedback cycle.
-
-**Implementation evidence:** the contributor map now provides an architecture
-tour, no-key development loop, synthetic audio/provider fixture contract, GTK
-and accessibility guide, packaging guide, and complete issue-to-PR path. Eight
-public issues (`#3`–`#10`) cover two physical compatibility combinations,
-Orca, French docs, public-asset installation, a provider fixture, a laptop
-benchmark, and v1 release QA; every issue names `@OthmaneBlial`, acceptance
-criteria, and privacy-safe reporting constraints. Discussions remains
-intentionally disabled and routes to structured issues because a regular
-response loop is not yet proven. The technical and user-demo launch articles,
-with original cover art, are committed under `blogs/` and are now marked ready
-for publication after public v1 verification. `docs/FAQ.md` and
-`docs/FEEDBACK.md` define how a report becomes a compatibility row, FAQ,
-regression test, fix, or credited contribution without telemetry. The release
-page is now public at `v1.0.0`: its rendered headings cover workflow demo,
-changes/outcome, verified install, privacy delta, support boundary, benchmark,
-and help wanted. The project site was published from Pages commit `9f02868`
-and deployment run `33020063045`; desktop and 375 px browser QA found no
-horizontal overflow, missing loaded assets, or console errors, and verified the
-mobile menu/copy UI. The external-feedback checkbox remains open until real
-outside feedback exists; prepared machinery is not relabelled as that outcome.
-
-## Recommended release sequence
-
-| Release | User-visible promise | Scope that must land together |
-| --- | --- | --- |
-| `v0.3` — Proof | “See exactly what Voice Transcriber does and where data goes.” | P0 documentation/demo/community foundation and compatibility statement. |
-| `v0.4` — Install | “Install and diagnose it like a Linux app.” | One verified package format, `--doctor`, first-run flow, clean-machine evidence. |
-| `v0.5` — Daily dictation | “Dictate, correct, and intentionally keep or discard text.” | P2 workflow and opt-in retention; the real-participant study remains a separate evidence gate. |
-| `v0.6` — Choice | “Choose a clear cloud or local transcription boundary.” | Provider contract plus one proven second backend; do not label experimental local mode as production. |
-| `v1.0` — Trusted public tool | “A repeatable, auditable Linux dictation tool.” | P4 release/trust gates and P5 contribution loop proven over several releases. |
-
-## Things deliberately not to do yet
-
-- Do not add a broad chatbot, summaries, meeting recording, speaker
-  diarisation, or automatic cloud sync. They obscure the sharp dictation job
-  and increase the privacy surface.
-- Do not claim macOS, Windows, all Linux distributions, offline operation, or
-  global shortcuts until release artifacts and real compatibility evidence
-  support each claim.
-- Do not collect transcript/audio analytics to chase product metrics.
-- Do not start several package formats or providers at once. One trustworthy
-  end-to-end path is much more valuable than four untested badges.
-
-## First implementation backlog
-
-The highest-leverage next pull requests are, in order:
-
-1. P0 README/site proof bundle: screenshots/demo, workflow-led copy, data-flow
-   table, supported-environment matrix, and code of conduct/community config.
-2. A packaging spike with a written decision record and clean-machine test plan
-   for Flatpak versus a Debian package.
-3. `--doctor --json` plus tests for every diagnostic outcome.
-4. First-run privacy/provider setup and its keyboard-accessibility tests.
-5. Transcript editing/retention design based on five observed user sessions.
-
-This order is intentional: it gives the project a compelling, verifiable
-public face, then removes the installation wall, before expanding the product
-surface or making claims a release cannot yet support.
+The detailed pre-v1 execution record remains available in Git history. Current
+evidence and open gaps live in [support](docs/SUPPORT.md),
+[compatibility](docs/COMPATIBILITY.md), [privacy](docs/PRIVACY.md), the
+[packaging decision](docs/packaging/DECISION.md), and maintained GitHub issues.
