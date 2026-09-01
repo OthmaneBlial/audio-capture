@@ -88,7 +88,7 @@ jobs:
         run: |
           cp "${{ steps.provenance.outputs.bundle-path }}" "release/voice-transcriber-$VERSION-provenance.sigstore.json"
           cp "${{ steps.sbom-attestation.outputs.bundle-path }}" "release/voice-transcriber-$VERSION-sbom-attestation.sigstore.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: voice-transcriber-${{ github.ref_name }}-release
           path: release/

@@ -51,7 +51,7 @@ jobs:
             --provider-model "whisper.cpp@$WHISPER_CPP_REV; ggml-tiny.en.bin sha256=$model_sha" \
             --hardware-label "GitHub ubuntu-latest x86_64; $cpu; 2 build threads" \
             --output benchmarks/results/local-tiny-en-github-runner.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: local-tiny-en-benchmark-receipt
           path: benchmarks/results/local-tiny-en-github-runner.json
