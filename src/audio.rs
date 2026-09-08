@@ -512,7 +512,12 @@ impl FrameAssembler {
             self.source_position += step;
         }
 
-        let consumed = self.source_position.floor() as usize;
+        // Keep one source sample available for the next interpolation.  A
+        // backend callback is allowed to end at an arbitrary size (CoreAudio
+        // commonly delivers 512 samples), so advancing by a whole resampling
+        // step can place the cursor just past the current buffer.
+        let consumed =
+            (self.source_position.floor() as usize).min(self.source.len().saturating_sub(1));
         if consumed > 0 {
             self.source.drain(..consumed);
             self.source_position -= consumed as f64;
@@ -575,5 +580,18 @@ mod tests {
         let second = assembler.push_interleaved(&vec![2_i16; 240]);
         assert_eq!(second.len(), 1);
         assert_eq!(second[0].len(), TARGET_FRAME_SAMPLES * 2);
+    }
+
+    #[test]
+    fn frame_assembler_handles_arbitrary_coreaudio_callback_sizes() {
+        let mut assembler = FrameAssembler::new(1, 48_000);
+        let first = assembler.push_interleaved(&vec![0_i16; 512]);
+        let second = assembler.push_interleaved(&vec![0_i16; 512]);
+        assert!(first
+            .iter()
+            .all(|frame| frame.len() == TARGET_FRAME_SAMPLES * 2));
+        assert!(second
+            .iter()
+            .all(|frame| frame.len() == TARGET_FRAME_SAMPLES * 2));
     }
 }
