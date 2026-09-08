@@ -53,8 +53,10 @@ is the first release of the native Rust desktop application.
   microphone and desktop runtime evidence remains target-specific.
 - Release archives are unsigned/notarized and do not install package-manager
   metadata or automatic updates.
+- Linux and Windows binaries have not been runtime-tested on this Mac, and a
+  live Groq request remains unverified.
 - The final product demonstration video is intentionally produced only after
-  the release and downloaded-asset gates are validated.
+  the remaining runtime/provider gates are validated.
 
 ## Historical releases
 

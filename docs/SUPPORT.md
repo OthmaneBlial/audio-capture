@@ -11,7 +11,7 @@ expected to work.
 | egui desktop UI | Native binary compiles and launches locally on macOS | Full interaction review pending |
 | CPAL audio | Local macOS inputs enumerated and frames received | macOS path smoke-tested; other backends pending |
 | Groq provider | Consent/key gate, WAV encoding, queue, ordering, and error tests | Contract-tested; live provider gate pending |
-| Release packaging | Native archive workflow is present; no Rust release is claimed until its assets are inspected | Pending release gate |
+| Release packaging | Published [`v1.2.0`](https://github.com/OthmaneBlial/audio-capture/releases/tag/v1.2.0); all three archives and checksums verified, downloaded macOS app reports `1.2.0` and passes `--doctor --json` | Asset gate passed; Linux/Windows binaries not executed on this Mac |
 
 “Pending” means an implementation path exists but exact-environment evidence is
 missing. It must not become a support claim in release notes until the matching

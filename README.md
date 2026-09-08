@@ -46,11 +46,12 @@ confirms that boundary in Settings.
   `--test-microphone` smoke test.
 
 The Rust GUI has been compiled locally on macOS arm64. A real microphone smoke
-test has opened a local input and received PCM frames on this Mac. Linux and
-Windows builds are covered by the Rust GitHub Actions matrix; each target still
-needs its own runtime and hardware evidence before being called supported.
-Provider requests with a user key and downloaded release assets are separate
-validation gates and are documented as such until they are observed.
+test has opened a local input and received PCM frames on this Mac. The GitHub
+release `v1.2.0` publishes Linux x86_64, macOS arm64, and Windows x86_64
+archives; their checksums and archive contents were verified, and the downloaded
+macOS app reports `1.2.0` through `--version` and `--doctor --json`. Linux and
+Windows binaries still need runtime and hardware evidence on those platforms.
+Provider requests with a user key remain a separate validation gate.
 
 ## Run from source
 
@@ -136,9 +137,11 @@ machine without a key or an audio device.
 ## Releases and packaging
 
 Rust release archives are built by [`.github/workflows/rust-release.yml`](.github/workflows/rust-release.yml)
-for Linux x86_64, macOS arm64, and Windows x86_64. Each archive contains the
-native binary and a SHA-256 checksum. Release notes must state which targets
-were built, which were run, and which still need physical hardware evidence.
+for Linux x86_64, macOS arm64, and Windows x86_64. The [published `v1.2.0`
+release](https://github.com/OthmaneBlial/audio-capture/releases/tag/v1.2.0)
+contains each native binary and a SHA-256 checksum. The macOS downloaded app
+was exercised locally; Linux and Windows release binaries still need runtime
+evidence on their respective hosts.
 
 The old Python/GTK package is historical and is not a supported installation
 path for the Rust application. Use the current release page and
