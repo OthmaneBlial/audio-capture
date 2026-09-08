@@ -61,9 +61,10 @@ une validation Orca, micro physique, traduction Groq ou machine utilisateur.
 - 0 star, 1 fork, 7 issues ouvertes et 2 PR ouvertes à l’instant de lecture. Ces compteurs ne mesurent pas les utilisateurs actifs.
 - Une contribution externe a réellement été intégrée : [PR #11, fixture provider](https://github.com/OthmaneBlial/audio-capture/pull/11), fusionnée le 27 août. Les deux PR ouvertes sont des mises à jour Dependabot (#12 et #13), pas des fonctionnalités utilisateur.
 - Workflow général `CI` : **`disabled_manually`**. Cette pause est aussi documentée dans `docs/SUPPORT.md` ; elle doit être préservée tant que la décision de maintenance n’est pas changée explicitement.
-- Workflows Flatpak, Release, benchmark et CodeQL actifs. CodeQL a réussi sur le
-  commit courant `cee8dc8` ; le smoke Flatpak a réussi sur ce même commit
-  (run `34255478952`). Ces jobs ne remplacent pas les
+- Workflows Flatpak, Release, benchmark et CodeQL actifs. CodeQL et le smoke
+  Flatpak ont réussi sur le dernier commit de code `cee8dc8` (run
+  `34255478952`) ; les commits suivants sur `main` ne changent que la
+  documentation. Ces jobs ne remplacent pas les
   validations matérielles ni une release candidate publiée.
 - Reporting privé de vulnérabilités GitHub : **désactivé** (`enabled: false`) lors de l’audit, alors que `SECURITY.md` propose cette voie « when available » et un repli vers l’adresse du profil, non vérifiée ici.
 - Six assets de release existent : bundle, checksum, SBOM, rapport de tests et deux bundles d’attestation. Leur existence est vérifiée ; le rapport matériel reste négatif.

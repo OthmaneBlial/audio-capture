@@ -10,7 +10,7 @@ tester. It is a record of observed results, not a release approval.
 
 | Surface | Exact evidence | Scope and limit |
 | --- | --- | --- |
-| Source checkout | `main` at `cee8dc8` | Commit tested by the package workflow below |
+| Source code candidate | `cee8dc8` | Last code commit exercised by the source/package gates; later `main` commits are documentation-only |
 | Deterministic suite | `python scripts/run_checks.py` passed 109 tests and 69% combined line/branch coverage | No physical microphone, GTK desktop, provider account, or network transcription |
 | Static quality | Ruff, Python compilation, `pip-audit --require-hashes --disable-pip -r packaging/requirements-audit.txt`, and Bandit passed locally | Static/dependency checks; no full operating-system audit |
 | CLI contracts | `python main.py --version` returned `voice-transcriber 1.0.0`; help lists `--list-devices`, `--doctor`, `--device`, and `--probe-provider` | This macOS checkout has no usable GTK/PyAudio runtime for a desktop launch |
