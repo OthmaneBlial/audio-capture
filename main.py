@@ -38,6 +38,7 @@ class VoiceTranscriberApp:
         self._processing_thread: Optional[threading.Thread] = None
         self._audio: Any = None
         self._vad: Any = None
+        self._active_request_ids: set[str] = set()
         self._input_device_override = input_device_override
         self._config = ConfigManager()
         self._transcriber = self._build_transcriber()
@@ -53,7 +54,7 @@ class VoiceTranscriberApp:
         common = {
             "sample_rate": 16000,
             "language": self._config.get("language"),
-            "on_transcription": self._on_transcription,
+            "on_transcription_result": self._on_transcription_result,
             "on_error": self._on_transcription_error,
             "on_request_state": self._on_request_state,
         }
@@ -78,6 +79,8 @@ class VoiceTranscriberApp:
         if self._transcriber.provider_id != desired_provider or desired_provider == "local_whisper_cpp":
             if self._running.is_set():
                 self._stop_listening()
+            with self._lifecycle_lock:
+                self._active_request_ids.clear()
             previous = self._transcriber
             self._transcriber = self._build_transcriber()
             previous.close(wait=False)
@@ -126,6 +129,10 @@ class VoiceTranscriberApp:
                 )
                 return False
 
+            # A new recording session starts a new transcript generation. Any
+            # callback still arriving from a cancelled previous session is
+            # rejected by the request-id gate below.
+            self._active_request_ids.clear()
             audio: Any = None
             try:
                 device_index = (
@@ -235,6 +242,13 @@ class VoiceTranscriberApp:
         self._window.show_error(message)
         self._window.stop_listening()
 
+    def _on_transcription_result(self, request_id: str, text: str) -> None:
+        with self._lifecycle_lock:
+            if request_id not in self._active_request_ids:
+                LOGGER.debug("Ignoring transcription result from an inactive request: %s", request_id)
+                return
+        self._on_transcription(text)
+
     def _on_transcription(self, text: str) -> None:
         if text.strip():
             self._window.append_text(text)
@@ -244,6 +258,11 @@ class VoiceTranscriberApp:
             self._window.set_status("Listening…", "active")
 
     def _on_request_state(self, request_id: str, state: str, detail: Optional[str]) -> None:
+        with self._lifecycle_lock:
+            if state == "pending":
+                self._active_request_ids.add(request_id)
+            elif state in {"complete", "error", "cancelled"}:
+                self._active_request_ids.discard(request_id)
         self._window.update_segment_state(request_id, state, detail)
 
     def _on_transcription_error(self, error: Exception) -> None:
@@ -264,6 +283,8 @@ class VoiceTranscriberApp:
         self._window.show_all()
         Gtk.main()
         self._stop_listening()
+        with self._lifecycle_lock:
+            self._active_request_ids.clear()
         self._transcriber.close(wait=False)
 
 

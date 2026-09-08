@@ -14,6 +14,7 @@ class FakeWindow:
         self.errors: list[str] = []
         self.input_sources: list[str] = []
         self.levels: list[float] = []
+        self.transcripts: list[str] = []
 
     def show_error(self, message: str) -> None:
         self.errors.append(message)
@@ -23,6 +24,12 @@ class FakeWindow:
 
     def set_input_level(self, level: float) -> None:
         self.levels.append(level)
+
+    def append_text(self, text: str) -> None:
+        self.transcripts.append(text)
+
+    def set_status(self, _message: str, _style_class: str = "") -> None:
+        return None
 
 
 class FakeAudioCapture:
@@ -90,6 +97,7 @@ def make_app(*, consented: bool) -> VoiceTranscriberApp:
     app._processing_thread = None
     app._audio = None
     app._vad = None
+    app._active_request_ids = set()
     app._input_device_override = None
     app._test_tmpdir = tempfile.TemporaryDirectory()
     app._config = ConfigManager(
@@ -128,6 +136,13 @@ class VoiceTranscriberAppTests(unittest.TestCase):
                 app._stop_listening()
         self.assertFalse(app._running.is_set())
         self.assertTrue(FakeAudioCapture.instances[0].stopped)
+
+    def test_result_from_inactive_request_is_ignored(self) -> None:
+        app = make_app(consented=True)
+        app._active_request_ids.add("segment-active")
+        app._on_transcription_result("segment-stale", "stale text")
+        app._on_transcription_result("segment-active", "accepted text")
+        self.assertEqual(app._window.transcripts, ["accepted text"])
 
 
 if __name__ == "__main__":

@@ -39,6 +39,24 @@ class FakeFactory:
         return self.transport
 
 
+class OutOfOrderTransport:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.first_started = threading.Event()
+        self.second_started = threading.Event()
+        self.release_first = threading.Event()
+
+    def transcribe(self, _wav_data: bytes, **_kwargs: object) -> str:
+        self.calls += 1
+        call_number = self.calls
+        if call_number == 1:
+            self.first_started.set()
+            self.release_first.wait(timeout=2)
+            return "FIRST"
+        self.second_started.set()
+        return "SECOND"
+
+
 class FakeResponse:
     def __init__(self, payload: dict[str, object]) -> None:
         self._payload = json.dumps(payload).encode()
@@ -153,6 +171,37 @@ class GroqTranscriptionServiceTests(unittest.TestCase):
             self.assertEqual(states[0][0], states[1][0])
             self.assertNotIn("hello world", " ".join(detail or "" for _, _, detail in states))
         finally:
+            service.close(wait=True)
+
+    def test_async_results_are_released_in_submission_order(self) -> None:
+        transport = OutOfOrderTransport()
+        received: list[tuple[str, str]] = []
+        service = GroqTranscriptionService(
+            api_key="valid-test-key-12345",
+            transport_factory=FakeFactory(transport),
+            on_transcription_result=lambda request_id, text: received.append((request_id, text)),
+            max_workers=2,
+            max_pending_requests=2,
+        )
+        try:
+            first = service.transcribe_async(b"\x00\x00" * 80)
+            self.assertIsNotNone(first)
+            self.assertTrue(transport.first_started.wait(timeout=1))
+            second = service.transcribe_async(b"\x00\x00" * 80)
+            self.assertIsNotNone(second)
+            self.assertTrue(transport.second_started.wait(timeout=1))
+            self.assertEqual(second.result(timeout=2), "SECOND")
+            self.assertEqual(received, [])
+            transport.release_first.set()
+            self.assertEqual(first.result(timeout=2), "FIRST")
+            for _ in range(100):
+                if len(received) == 2:
+                    break
+                threading.Event().wait(0.001)
+            self.assertEqual([text for _, text in received], ["FIRST", "SECOND"])
+            self.assertNotEqual(received[0][0], received[1][0])
+        finally:
+            transport.release_first.set()
             service.close(wait=True)
 
 

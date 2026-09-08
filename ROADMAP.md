@@ -210,10 +210,10 @@ Ordre de grandeur : **29–53 jours de travail**, non engagement calendaire. Les
 ### 1.3 — Garantir ordre, identité et isolation des sessions · P0 · F03–F04
 
 - **Objectif :** restituer les mots dans l’ordre parlé sans réinjecter un texte abandonné.
-- **Changements :** identifiants de session et de segment dans les résultats ; ordonnancement borné ; définition des états terminé/échoué/annulé/vide ; invalidation des résultats tardifs à l’abandon ou au remplacement du provider. Une erreur de A doit libérer B sans attente infinie.
+- **Changements :** identifiants de session et de segment dans les résultats ; ordonnancement borné ; définition des états terminé/échoué/annulé/vide ; invalidation des résultats tardifs à l’abandon ou au remplacement du provider. Une erreur de A doit libérer B sans attente infinie. **Fait localement :** un tampon partagé libère les résultats asynchrones dans l’ordre de soumission tout en conservant des workers parallèles ; les callbacks de résultat portent `request_id`, et le contrôleur ignore ceux qui ne sont plus actifs. L’annulation/abandon complet et la génération persistante de session restent ouverts.
 - **Fichiers/parties :** `transcript.py`, `provider.py`, deux services, `main.py`, `ui/main_window.py`, fixture provider et tests d’intégration.
 - **Acceptation :** A lent/B rapide donne A puis B ; échec de A visible et B exploitable ; aucun résultat d’une génération abandonnée ne modifie le nouveau brouillon, l’historique ou le presse-papiers.
-- **Tests/validations :** ordres de complétion inversés, annulation, Clear avec travail en attente, changement de langue/provider, redémarrage rapide, erreur/texte vide ; horloge et ordonnanceur contrôlés.
+- **Tests/validations :** test déterministe A lent/B rapide et test contrôleur de retour inactif ; restent à ajouter annulation, Clear avec travail en attente, changement de langue/provider, redémarrage rapide, erreur/texte vide et horloge/ordonnanceur contrôlés.
 - **Dépendances/risques :** 1.1 ; ne pas ajouter une file de réordonnancement illimitée ni écraser les corrections manuelles lors d’un résultat tardif.
 
 ### 1.4 — Rendre arrêt, abandon et effacement exacts · P0 · F04–F05

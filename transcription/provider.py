@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import itertools
+import threading
 from dataclasses import dataclass
 from typing import Callable, Optional, Protocol
 
@@ -59,5 +61,47 @@ class TranscriptionProvider(Protocol):
 
 
 TranscriptionCallback = Callable[[str], None]
+TranscriptionResultCallback = Callable[[str, str], None]
 ErrorCallback = Callable[[Exception], None]
 RequestStateCallback = Callable[[str, str, Optional[str]], None]
+
+
+class OrderedResultBuffer:
+    """Release asynchronous text results in their submission order.
+
+    Providers may run multiple HTTP or local workers, but the transcript is a
+    linear document. The buffer retains only a bounded set of in-flight result
+    metadata; callers must register and complete every accepted request.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._sequences = itertools.count(1)
+        self._request_sequences: dict[str, int] = {}
+        self._completed: dict[int, tuple[str, Optional[str], str, str]] = {}
+        self._next_to_release = 1
+
+    def register(self, request_id: str) -> None:
+        with self._lock:
+            if request_id in self._request_sequences:
+                raise ValueError(f"request already registered: {request_id}")
+            self._request_sequences[request_id] = next(self._sequences)
+
+    def complete(
+        self,
+        request_id: str,
+        text: Optional[str],
+        state: str = "complete",
+        detail: str = "Added to transcript",
+    ) -> list[tuple[str, Optional[str], str, str]]:
+        """Mark a request complete and return every newly releasable result."""
+        with self._lock:
+            sequence = self._request_sequences.pop(request_id, None)
+            if sequence is None:
+                return []
+            self._completed[sequence] = (request_id, text, state, detail)
+            ready: list[tuple[str, Optional[str], str, str]] = []
+            while self._next_to_release in self._completed:
+                ready.append(self._completed.pop(self._next_to_release))
+                self._next_to_release += 1
+            return ready

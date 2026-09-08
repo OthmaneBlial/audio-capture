@@ -11,7 +11,13 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Callable, Optional
 
 from .groq_transport import GroqHTTPTransport
-from .provider import ProviderBoundary, ProviderCapabilities, ProviderError
+from .provider import (
+    OrderedResultBuffer,
+    ProviderBoundary,
+    ProviderCapabilities,
+    ProviderError,
+    TranscriptionResultCallback,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -61,6 +67,7 @@ class GroqTranscriptionService:
         sample_width: int = 2,
         language: Optional[str] = None,
         on_transcription: Optional[Callable[[str], None]] = None,
+        on_transcription_result: Optional[TranscriptionResultCallback] = None,
         on_error: Optional[Callable[[Exception], None]] = None,
         on_request_state: Optional[Callable[[str, str, Optional[str]], None]] = None,
         *,
@@ -81,6 +88,7 @@ class GroqTranscriptionService:
         self._sample_width = sample_width
         self._language: Optional[str] = None
         self._on_transcription = on_transcription
+        self._on_transcription_result = on_transcription_result
         self._on_error = on_error
         self._on_request_state = on_request_state
         self._transport_factory = transport_factory
@@ -93,6 +101,7 @@ class GroqTranscriptionService:
         self._futures: set[Future[Optional[str]]] = set()
         self._closed = False
         self._request_ids = itertools.count(1)
+        self._ordered_results = OrderedResultBuffer()
         self.update_config(api_key=api_key, language=language)
 
     @property
@@ -121,31 +130,9 @@ class GroqTranscriptionService:
     def transcribe(self, audio_data: bytes) -> Optional[str]:
         """Transcribe PCM synchronously and report a useful error on failure."""
         try:
-            self._validate_audio(audio_data)
-            with self._lock:
-                if self._closed:
-                    raise TranscriptionError("The transcription service is shutting down.")
-                transport = self._transport
-                task = self._task
-                language = self._language
-            if transport is None:
-                raise TranscriptionError(
-                    "No Groq API key is configured. Add GROQ_API_KEY to your environment or save a key in Settings."
-                )
-
-            wav_buffer = self._pcm_to_wav(audio_data)
-            text = transport.transcribe(
-                wav_buffer.getvalue(),
-                model=(
-                    self.TRANSLATION_MODEL
-                    if task == "translate"
-                    else self.TRANSCRIPTION_MODEL
-                ),
-                language=language,
-                translate=task == "translate",
-            ).strip()
-            if text and self._on_transcription:
-                self._on_transcription(text)
+            text = self._transcribe_raw(audio_data)
+            if text:
+                self._emit_transcription("sync", text)
             return text
         except Exception as error:
             normalized = self._normalize_error(error)
@@ -169,8 +156,19 @@ class GroqTranscriptionService:
             self._notify_request(request_id, "error", "Queue is full")
             return None
 
+        self._ordered_results.register(request_id)
         self._notify_request(request_id, "pending", "Waiting for Groq")
-        future = self._executor.submit(self.transcribe, audio_data)
+        try:
+            future = self._executor.submit(self._transcribe_raw, audio_data)
+        except Exception as error:
+            self._pending.release()
+            ready = self._ordered_results.complete(
+                request_id, None, "error", "Could not queue request"
+            )
+            normalized = self._normalize_error(error)
+            self._report_error(normalized)
+            self._release_ready(ready)
+            return None
         with self._lock:
             self._futures.add(future)
         future.add_done_callback(lambda completed: self._finish_request(request_id, completed))
@@ -180,14 +178,67 @@ class GroqTranscriptionService:
         self._pending.release()
         with self._lock:
             self._futures.discard(future)
+        if future.cancelled():
+            ready = self._ordered_results.complete(
+                request_id, None, "cancelled", "Request cancelled"
+            )
+            self._release_ready(ready)
+            return
         try:
             text = future.result()
-        except Exception:
-            text = None
-        if text:
-            self._notify_request(request_id, "complete", "Added to transcript")
+        except Exception as error:
+            ready = self._ordered_results.complete(
+                request_id, None, "error", "Transcription failed"
+            )
+            self._report_error(self._normalize_error(error))
+            self._release_ready(ready)
         else:
-            self._notify_request(request_id, "error", "Transcription failed")
+            ready = self._ordered_results.complete(
+                request_id,
+                text,
+                "complete" if text else "error",
+                "Added to transcript" if text else "Transcription failed",
+            )
+            self._release_ready(ready)
+
+    def _transcribe_raw(self, audio_data: bytes) -> str:
+        self._validate_audio(audio_data)
+        with self._lock:
+            if self._closed:
+                raise TranscriptionError("The transcription service is shutting down.")
+            transport = self._transport
+            task = self._task
+            language = self._language
+        if transport is None:
+            raise TranscriptionError(
+                "No Groq API key is configured. Add GROQ_API_KEY to your environment or save a key in Settings."
+            )
+
+        wav_buffer = self._pcm_to_wav(audio_data)
+        return transport.transcribe(
+            wav_buffer.getvalue(),
+            model=self.TRANSLATION_MODEL if task == "translate" else self.TRANSCRIPTION_MODEL,
+            language=language,
+            translate=task == "translate",
+        ).strip()
+
+    def _emit_transcription(self, request_id: str, text: str) -> None:
+        if self._on_transcription:
+            try:
+                self._on_transcription(text)
+            except Exception:
+                LOGGER.debug("Transcription callback failed", exc_info=True)
+        if self._on_transcription_result:
+            try:
+                self._on_transcription_result(request_id, text)
+            except Exception:
+                LOGGER.debug("Transcription result callback failed", exc_info=True)
+
+    def _release_ready(self, ready: list[tuple[str, Optional[str], str, str]]) -> None:
+        for request_id, text, state, detail in ready:
+            if text:
+                self._emit_transcription(request_id, text)
+            self._notify_request(request_id, state, detail)
 
     def cancel_pending(self) -> int:
         """Cancel work that has not begun; active urllib calls finish at their timeout."""
