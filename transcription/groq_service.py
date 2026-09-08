@@ -28,7 +28,11 @@ class GroqTranscriptionService:
     an unbounded number of API threads when the network is slow or rate limited.
     """
 
-    MODEL = "whisper-large-v3-turbo"
+    # Groq currently supports the turbo model for multilingual transcription,
+    # while the translation endpoint requires ``whisper-large-v3``. Keep the
+    # choice at this boundary so the UI cannot advertise an unsupported pair.
+    TRANSCRIPTION_MODEL = "whisper-large-v3-turbo"
+    TRANSLATION_MODEL = "whisper-large-v3"
     MAX_AUDIO_BYTES = 5_120_000  # 160 seconds at 16 kHz mono, 16-bit PCM
     provider_id = "groq"
     capabilities = ProviderCapabilities(
@@ -132,7 +136,11 @@ class GroqTranscriptionService:
             wav_buffer = self._pcm_to_wav(audio_data)
             text = transport.transcribe(
                 wav_buffer.getvalue(),
-                model=self.MODEL,
+                model=(
+                    self.TRANSLATION_MODEL
+                    if task == "translate"
+                    else self.TRANSCRIPTION_MODEL
+                ),
                 language=language,
                 translate=task == "translate",
             ).strip()

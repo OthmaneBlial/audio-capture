@@ -87,10 +87,12 @@ class GroqTranscriptionServiceTests(unittest.TestCase):
             service.transcribe(b"\x00\x00" * 80)
             self.assertEqual(transport.calls[-1]["language"], "fr")
             self.assertFalse(transport.calls[-1]["translate"])
+            self.assertEqual(transport.calls[-1]["model"], service.TRANSCRIPTION_MODEL)
 
             service.update_config(translate=True)
             service.transcribe(b"\x00\x00" * 80)
             self.assertTrue(transport.calls[-1]["translate"])
+            self.assertEqual(transport.calls[-1]["model"], service.TRANSLATION_MODEL)
         finally:
             service.close(wait=True)
 

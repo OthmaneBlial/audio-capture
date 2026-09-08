@@ -5,7 +5,7 @@
 | Status | Supported cloud path; current Flatpak | Experimental source install only; disabled in Flatpak |
 | Audio destination | Completed segment to Groq over HTTPS | Linux memory-backed descriptor to user-supplied local process |
 | Credential | User-managed Groq API key | None |
-| Model | `whisper-large-v3-turbo` | User-supplied GGML model; exact capabilities vary |
+| Model | `whisper-large-v3-turbo` for transcription; `whisper-large-v3` for translation | User-supplied GGML model; exact capabilities vary |
 | App language choices | Auto, EN, FR, ES, DE, IT, PT, AR, ZH | Same UI choices, constrained by the selected model |
 | Translate to English | Available | CLI capability exposed; model/build dependent |
 | Queue | Bounded, up to four pending requests | Bounded, up to two with one worker |
