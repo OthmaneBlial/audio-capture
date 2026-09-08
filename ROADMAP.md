@@ -181,6 +181,25 @@ Comparaison relue le 8 septembre 2026, sur les descriptions officielles ; aucune
 
 Ordre de grandeur : **29–53 jours de travail**, non engagement calendaire. Les retours utilisateurs, accès aux machines Linux et décisions de distribution peuvent allonger le calendrier. Les contrôles de phase 2 doivent accompagner les corrections de phase 1 ; l’ordre des portes de validation reste obligatoire.
 
+### Suivi des sous-portes vérifiées
+
+Ces cases suivent des résultats précis et ne déclarent pas une phase entière
+terminée lorsque sa validation externe reste ouverte.
+
+- [x] Garde de consentement cloud au point de démarrage du contrôleur.
+- [x] Modèles Groq distincts pour transcription et traduction, avec tests de contrat.
+- [x] Résultats asynchrones ordonnés et callbacks identifiés par requête.
+- [x] Clear/reset isolé des résultats et états tardifs ; arrêt avec drain des trames admises.
+- [x] Configuration XDG, écritures atomiques, historique borné et exports sans destination symlink.
+- [x] File audio, réponses HTTP, états de segments et piles Undo/Redo bornés avec alertes de perte.
+- [x] Test micro local, seuil VAD court et arrêt push-to-talk à la perte de focus.
+- [x] Autoscroll de relecture, états « traitement restant » et documentation de démarrage alignée.
+- [x] Checks source unifiés, audits sécurité, rapport de release explicite et actions/conteneur épinglés.
+- [x] Smoke Flatpak Linux vérifié sur `165f399` (`34252066670`), avec suppression des données.
+- [ ] Compatibilité Linux physique, micro, Orca, portail d’export et transcription Groq réelle.
+- [ ] Cinq sessions utilisateur, canal de mise à jour public et release candidate téléchargée.
+- [ ] Captures GTK réelles et vidéo finale produite après les portes précédentes.
+
 ## Phase 0 — Fixer le contrat publiable
 
 ### 0.1 — Définir la version cible et ses non-objectifs · P1
