@@ -1,6 +1,6 @@
 # Linux compatibility evidence
 
-Last reviewed: 26 August 2026
+Last reviewed: 8 September 2026
 
 “Declared”, “automated”, “expected”, and “real-device verified” are separate
 states. This table is intentionally narrower than the combinations the GTK,
@@ -8,7 +8,7 @@ Flatpak, and PortAudio stacks may happen to support.
 
 | Path | Evidence | Status |
 | --- | --- | --- |
-| x86_64 Flatpak build/install/remove | Clean GNOME 50 container workflow | Automated every relevant change |
+| x86_64 Flatpak build/install/remove | Clean GNOME 50 container workflow; run `34250484669` on commit `5db464b` passed build, offline rebuild, lints, GTK/Xvfb smoke, and data removal | Automated package evidence; no physical desktop claim |
 | GTK 3 on X11 | Xvfb first-run, desk, accessibility, and settings smoke | Automated virtual display; no physical desktop claim |
 | GTK 3 on Wayland | Manifest declares Wayland and fallback X11; unit diagnostics classify Wayland | Declared/logic-tested; real compositor report open |
 | PulseAudio socket in Flatpak | Minimal `--socket=pulseaudio` permission asserted | Declared; real microphone report open |
