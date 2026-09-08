@@ -69,6 +69,20 @@ class UndoHistoryTests(unittest.TestCase):
         self.assertFalse(history.can_redo)
         self.assertEqual(history.undo("new transcript"), "new transcript")
 
+    def test_character_budget_bounds_snapshot_memory(self):
+        history = UndoHistory(limit=10, max_chars=5)
+        history.remember("1234")
+        history.remember("5678")
+        self.assertEqual(history.retained_characters, 4)
+        self.assertEqual(history.undo("current"), "5678")
+        self.assertLessEqual(history.retained_characters, 5)
+
+    def test_oversized_snapshot_is_not_retained(self):
+        history = UndoHistory(max_chars=4)
+        history.remember("12345")
+        self.assertFalse(history.can_undo)
+        self.assertEqual(history.retained_characters, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

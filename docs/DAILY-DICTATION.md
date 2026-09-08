@@ -8,6 +8,8 @@ failed. The strip never stores audio or transcript content.
 
 - Type directly into the transcript, select text, or use `Ctrl+A`.
 - Undo with `Ctrl+Z` and redo with `Ctrl+Shift+Z`.
+- Undo/Redo keeps a bounded in-memory snapshot budget; very large drafts may
+  have fewer recoverable edit points than short drafts.
 - Clear always asks for confirmation and explains whether recovery is possible.
 - Use **Test microphone** in Settings to verify the selected local input. It only
   drives the signal meter, keeps no audio queue, and never calls a provider.

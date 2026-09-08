@@ -83,12 +83,15 @@ class SegmentTracker:
 class UndoHistory:
     """Bounded text snapshots for GTK3, which has no built-in TextView undo."""
 
-    def __init__(self, *, limit: int = 100) -> None:
-        if limit < 1:
-            raise ValueError("limit must be positive")
+    def __init__(self, *, limit: int = 100, max_chars: int = 500_000) -> None:
+        if limit < 1 or max_chars < 1:
+            raise ValueError("limit and max_chars must be positive")
         self._limit = limit
+        self._max_chars = max_chars
         self._undo: list[str] = []
         self._redo: list[str] = []
+        self._undo_chars = 0
+        self._redo_chars = 0
 
     @property
     def can_undo(self) -> bool:
@@ -98,28 +101,56 @@ class UndoHistory:
     def can_redo(self) -> bool:
         return bool(self._redo)
 
+    @property
+    def retained_characters(self) -> int:
+        """Return the bounded size of both in-memory snapshot stacks."""
+        return self._undo_chars + self._redo_chars
+
     def remember(self, text: str) -> None:
         if self._undo and self._undo[-1] == text:
             return
-        self._undo.append(text)
-        del self._undo[:-self._limit]
+        self._push_bounded(self._undo, text, stack_name="undo")
         self._redo.clear()
+        self._redo_chars = 0
 
     def clear(self) -> None:
         """Discard every in-memory snapshot after a destructive clear."""
         self._undo.clear()
         self._redo.clear()
+        self._undo_chars = 0
+        self._redo_chars = 0
 
     def undo(self, current: str) -> str:
         if not self._undo:
             return current
         previous = self._undo.pop()
-        self._redo.append(current)
+        self._undo_chars -= len(previous)
+        self._push_bounded(self._redo, current, stack_name="redo")
         return previous
 
     def redo(self, current: str) -> str:
         if not self._redo:
             return current
         following = self._redo.pop()
-        self._undo.append(current)
+        self._redo_chars -= len(following)
+        self._push_bounded(self._undo, current, stack_name="undo")
         return following
+
+    def _push_bounded(self, stack_data: list[str], text: str, *, stack_name: str) -> None:
+        """Add one snapshot while enforcing both count and character budgets."""
+        if len(text) > self._max_chars:
+            return
+        if stack_name == "undo":
+            self._undo_chars += len(text)
+        else:
+            self._redo_chars += len(text)
+        stack_data.append(text)
+        while len(stack_data) > self._limit or self._stack_characters(stack_data) > self._max_chars:
+            expired = stack_data.pop(0)
+            if stack_name == "undo":
+                self._undo_chars -= len(expired)
+            else:
+                self._redo_chars -= len(expired)
+
+    def _stack_characters(self, stack_data: list[str]) -> int:
+        return self._undo_chars if stack_data is self._undo else self._redo_chars
