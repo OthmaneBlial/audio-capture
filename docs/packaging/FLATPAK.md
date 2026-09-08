@@ -64,3 +64,7 @@ version so the CLI check cannot validate against an old hard-coded value:
 ```bash
 packaging/smoke_test_flatpak.sh voice-transcriber-1.2.3.flatpak 1.2.3
 ```
+
+The smoke also requires a D-Bus machine identity because Flatpak uses the bus
+while removing the test sandbox. Containerized runners should initialize it
+with `dbus-uuidgen --ensure=/etc/machine-id` before running the script.

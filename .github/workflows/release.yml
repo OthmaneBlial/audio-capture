@@ -77,7 +77,9 @@ jobs:
             --user-exceptions packaging/flatpak-lint-exceptions.json \
             repo repo
       - name: Smoke test installed bundle
-        run: packaging/smoke_test_flatpak.sh voice-transcriber.flatpak "$VERSION"
+        run: |
+          dbus-uuidgen --ensure=/etc/machine-id
+          packaging/smoke_test_flatpak.sh voice-transcriber.flatpak "$VERSION"
       - name: Generate checksum, SBOM, test report, and notes
         run: |
           mkdir -p release

@@ -92,5 +92,7 @@ jobs:
           flatpak-builder-lint --exceptions \
             --user-exceptions packaging/flatpak-lint-exceptions.json \
             repo repo
+      - name: Initialize D-Bus machine identity
+        run: dbus-uuidgen --ensure=/etc/machine-id
       - name: Smoke test installed bundle
         run: packaging/smoke_test_flatpak.sh voice-transcriber.flatpak 1.0.0

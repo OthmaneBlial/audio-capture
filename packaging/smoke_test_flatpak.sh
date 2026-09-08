@@ -14,6 +14,10 @@ if [[ -z "$expected_version" || ! "$expected_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+
   echo "Usage: $0 BUNDLE_PATH VERSION (for example: $0 voice-transcriber.flatpak 1.0.0)" >&2
   exit 2
 fi
+if [[ ! -s /etc/machine-id && ! -s /var/lib/dbus/machine-id ]]; then
+  echo "A D-Bus machine-id is required for the Flatpak install/uninstall smoke" >&2
+  exit 1
+fi
 
 cleanup() {
   if [[ "$installed" -ne 1 ]]; then
