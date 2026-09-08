@@ -59,6 +59,10 @@ class VoiceActivityDetector:
         self._silence_frames = silence_threshold_ms // frame_duration_ms
         self._min_speech_frames = min_speech_ms // frame_duration_ms
         self._max_speech_frames = max_speech_ms // frame_duration_ms
+        # Start once the configured minimum amount of voiced audio is present.
+        # The previous fixed 90% ratio of the silence ring made the default
+        # 300 ms minimum unreachable until roughly 570 ms of speech.
+        self._speech_start_frames = min(self._min_speech_frames, self._silence_frames)
         
         # Initialize VAD
         self._vad = webrtcvad.Vad(aggressiveness)
@@ -100,7 +104,7 @@ class VoiceActivityDetector:
             voiced_count = sum(1 for _, speech in self._ring_buffer if speech)
             
             # Start speech if enough voiced frames
-            if voiced_count > 0.9 * self._ring_buffer.maxlen:
+            if voiced_count >= self._speech_start_frames:
                 self._is_speaking = True
                 # Add all buffered frames to speech
                 self._speech_frames = [f for f, _ in self._ring_buffer]

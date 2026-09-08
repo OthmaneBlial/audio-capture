@@ -59,6 +59,40 @@ class VoiceActivityDetectorTests(unittest.TestCase):
         self.assertEqual(segment, frame + frame)
         self.assertFalse(detector.is_speaking)
 
+    def test_default_minimum_speech_duration_allows_short_word(self) -> None:
+        FakeVad.decisions = [True] * 10 + [False] * 19
+        detector = self.module.VoiceActivityDetector(
+            sample_rate=16_000,
+            frame_duration_ms=30,
+            silence_threshold_ms=600,
+            min_speech_ms=300,
+            max_speech_ms=20_000,
+        )
+        frame = b"\x01\x00" * 480
+
+        segment = None
+        for _ in FakeVad.decisions:
+            segment = detector.process_frame(frame) or segment
+
+        self.assertIsNotNone(segment)
+        self.assertFalse(detector.is_speaking)
+
+    def test_speech_shorter_than_minimum_never_starts_a_segment(self) -> None:
+        FakeVad.decisions = [True] * 5 + [False] * 30
+        detector = self.module.VoiceActivityDetector(
+            sample_rate=16_000,
+            frame_duration_ms=30,
+            silence_threshold_ms=600,
+            min_speech_ms=300,
+            max_speech_ms=20_000,
+        )
+        frame = b"\x01\x00" * 480
+
+        segments = [detector.process_frame(frame) for _ in FakeVad.decisions]
+
+        self.assertEqual([item for item in segments if item], [])
+        self.assertFalse(detector.is_speaking)
+
     def test_non_bytes_frame_is_rejected(self) -> None:
         detector = self.module.VoiceActivityDetector(silence_threshold_ms=30, min_speech_ms=30)
         with self.assertRaises(TypeError):
