@@ -1,7 +1,7 @@
 # ROADMAP — Voice Transcriber
 
 > Audit initial du 8 septembre 2026, puis mise à jour pour la décision de réécrire le produit en Rust natif.
-> La piste **Phase R** est désormais la piste d’exécution active. Les phases Python 0–7 ci-dessous restent l’historique de l’audit et de ses critères de crédibilité ; elles ne transfèrent aucune preuve au runtime Rust.
+> La piste **Phase R** est désormais la piste d’exécution active. Les phases historiques 0–7 ci-dessous restent l’audit du produit précédent et ne transfèrent aucune preuve au runtime Rust.
 > La phase vidéo reste volontairement la toute dernière phase : elle ne commence qu’après la validation complète de la piste Rust, du paquet final et de la recette utilisateur.
 
 ## 1. Décision produit
@@ -449,21 +449,26 @@ terminée lorsque sa validation externe reste ouverte.
 
 ## Phase R — Réécriture native Rust multi‑plateforme (piste active)
 
-Cette piste remplace progressivement le runtime Python/GTK par un binaire Rust
-unique. Chaque étape doit être commitée et poussée sur `main` après ses
-contrôles ; une branche verte ou un fichier de workflow ne constitue pas à lui
-seul une preuve de compatibilité physique.
+Cette piste a remplacé le runtime précédent par un binaire Rust unique. R0 à R8
+sont réalisés dans le dépôt actuel ; R9 et la release publique restent des
+portes de vérification. Chaque étape est commitée et poussée sur `main` après
+ses contrôles ; une branche verte ou un fichier de workflow ne constitue pas à
+lui seul une preuve de compatibilité physique.
 
 ### R0 — Geler le contrat produit et la frontière de migration · P0
 
+**État : ✅ réalisé dans `README.md`, les docs Rust et le registre de preuves.**
+
 - **Objectif :** conserver la proposition review-first pendant la réécriture et éviter qu’un nouveau framework ne transforme le périmètre en promesse vague.
-- **Changements concrets :** maintenir capture locale → VAD local → segment terminé → fournisseur explicite → relecture → copie/export ; documenter que Python/GTK reste transitoire jusqu’à parité ; décider séparément si un provider local Rust est inclus ou reporté.
-- **Fichiers/parties concernés :** `ROADMAP.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/DATA-FLOW.md`, `docs/PROVIDERS.md`, contrat de version dans `Cargo.toml` et `pyproject.toml`.
-- **Critères d’acceptation vérifiables :** aucune doc ne présente le Flatpak Python comme binaire Rust ; les fonctions incluses, exclues et la frontière cloud sont listées ; une correction de code n’est pas annoncée comme release avant son artefact.
+- **Changements concrets :** maintenir capture locale → VAD local → segment terminé → fournisseur explicite → relecture → copie/export ; documenter le chemin Rust actif et reporter explicitement le provider local non implémenté.
+- **Fichiers/parties concernés :** `ROADMAP.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/DATA-FLOW.md`, `docs/PROVIDERS.md`, contrat de version dans `Cargo.toml` et `Cargo.lock`.
+- **Critères d’acceptation vérifiables :** les fonctions incluses, exclues et la frontière cloud sont listées ; une correction de code n’est pas annoncée comme release avant son artefact ; un clone propre suit uniquement Rust.
 - **Tests/validations nécessaires :** recherche des anciennes commandes/claims dans README/docs/workflows ; revue du diff et test `cargo metadata --locked`.
 - **Dépendances/risques :** aucun code produit préalable ; risque de maintenir deux contrats en parallèle, réduit par un registre de preuves unique.
 
 ### R1 — Porter le cœur métier sans interface native · P0
+
+**État : ✅ réalisé et couvert par les tests Rust.**
 
 - **Objectif :** obtenir un noyau testable sans micro, fournisseur ou fenêtre.
 - **Changements concrets :** types de configuration validés et écrits atomiquement ; transcript ordonné avec états de segments et undo/redo borné ; historique texte opt-in ; exports texte/Markdown atomiques et refus des symlinks ; VAD indépendant de l’UI.
@@ -474,6 +479,8 @@ seul une preuve de compatibilité physique.
 
 ### R2 — Porter la capture audio et la segmentation réelle · P0
 
+**État : ✅ réalisé ; smoke micro réel observé sur macOS arm64.**
+
 - **Objectif :** fournir le même contrat PCM au VAD sur CoreAudio, WASAPI et ALSA/PipeWire.
 - **Changements concrets :** utiliser CPAL pour énumération et sélection ; persister une identité opaque en plus de l’index d’exécution ; convertir formats/canaux/taux en mono PCM16 16 kHz ; file bornée, niveau RMS, erreurs de stream, arrêt et flush contrôlés ; conserver WebRTC VAD local.
 - **Fichiers/parties concernés :** `src/audio.rs`, `src/vad.rs`, `src/config.rs`, `src/app.rs`, docs support et fixtures audio.
@@ -482,6 +489,8 @@ seul une preuve de compatibilité physique.
 - **Dépendances/risques :** R1 ; différences de permissions, formats et serveurs audio ; une validation CI ne remplace pas un micro physique.
 
 ### R3 — Porter la frontière Groq et l’ordonnancement · P0
+
+**État : ✅ réalisé au niveau du contrat ; requête Groq réelle encore à effectuer.**
 
 - **Objectif :** conserver le consentement explicite, les limites mémoire et l’ordre du document lors du passage à un worker Rust.
 - **Changements concrets :** worker HTTP borné avec timeout ; WAV PCM en mémoire ; modèles transcription/traduction exacts ; erreurs auth/rate-limit/réseau/réponse trop grande normalisées ; événements liés à un identifiant et à une séquence ; fermeture sans nouvelle admission.
@@ -492,6 +501,8 @@ seul une preuve de compatibilité physique.
 
 ### R4 — Porter l’interface desktop et la relecture · P0
 
+**État : ✅ réalisé et rendu réel inspecté sur macOS arm64 ; recette interactive multi-OS encore ouverte.**
+
 - **Objectif :** rendre le parcours complet utilisable dans une fenêtre native commune aux trois OS.
 - **Changements concrets :** egui/eframe comme adaptateur ; écran de démarrage, test micro local, consentement fournisseur, réglages, capture/stop, états pending/transcribing/error, éditeur, undo/redo, copie, exports et historique ; messages d’erreur actionnables ; aucun accès UI depuis le worker.
 - **Fichiers/parties concernés :** `src/app.rs`, `src/main.rs`, `src/config.rs`, `src/exports.rs`, `src/history.rs`, ressources d’icône et docs UX.
@@ -500,6 +511,8 @@ seul une preuve de compatibilité physique.
 - **Dépendances/risques :** R1–R3 ; eframe est compilable mais sa qualité visuelle et son accessibilité doivent être observées sur chaque backend.
 
 ### R5 — Stabiliser le CLI de support et le diagnostic · P1
+
+**État : ✅ réalisé et exécuté localement sur macOS arm64.**
 
 - **Objectif :** permettre à un utilisateur ou contributeur de prouver son environnement sans divulguer de secret.
 - **Changements concrets :** maintenir `--doctor`, `--list-devices`, `--check-config`, `--test-microphone`, sorties JSON documentées, codes d’échec et version ; éviter toute sonde réseau implicite ; afficher les catégories d’erreur plutôt que les réponses fournisseur.
@@ -510,14 +523,18 @@ seul une preuve de compatibilité physique.
 
 ### R6 — Fermer la matrice CI multi‑plateforme · P1
 
+**État : ✅ workflow Rust vert sur la source `1.2.0` ; la runtime hardware reste à prouver par cible.**
+
 - **Objectif :** transformer « portable » en builds vérifiables et répétables.
-- **Changements concrets :** CI Rust format/tests/Clippy ; compilation Linux x86_64, macOS arm64 et Windows x86_64 ; installation explicite des headers Linux ; cache Cargo borné ; workflow de release séparé ; conserver le workflow Python uniquement pour la transition.
+- **Changements concrets :** CI Rust format/tests/Clippy ; compilation Linux x86_64, macOS arm64 et Windows x86_64 ; installation explicite des headers Linux ; workflow de release séparé ; suppression des anciens workflows et métadonnées d’un autre runtime.
 - **Fichiers/parties concernés :** `.github/workflows/rust.yml`, `.github/workflows/rust-release.yml`, `.github/workflows/ci.yml`, `Cargo.lock`, docs support.
 - **Critères d’acceptation vérifiables :** un run complet vert sur le SHA courant pour les trois cibles ; artifacts binaires non vides avec `--version` ; aucune étape Rust ne dépend d’un venv Python ; un échec de compilation ou test empêche l’artifact.
 - **Tests/validations nécessaires :** runs GitHub après chaque changement de workflow ; téléchargement des artifacts et checksum ; build local macOS ; rapport des limitations si runner ou matériel manque.
 - **Dépendances/risques :** R1–R5 ; headers système, quota CI et évolution des toolchains peuvent bloquer sans invalider le code local.
 
 ### R7 — Remplacer le packaging historique par des artefacts Rust installables · P1
+
+**État : ✅ workflow d’archives natif préparé ; publication et re-téléchargement restent ouverts.**
 
 - **Objectif :** donner à chaque OS un chemin d’installation compréhensible et vérifiable.
 - **Changements concrets :** archives Linux, bundle `.app` macOS avec `NSMicrophoneUsageDescription`, ZIP/installeur Windows ; checksums, SBOM et provenance ; documentation de désinstallation et permissions ; décision explicite sur signature/notarisation et publication package-manager.
@@ -528,14 +545,18 @@ seul une preuve de compatibilité physique.
 
 ### R8 — Terminer la parité et retirer les ambiguïtés Python · P0
 
+**État : ✅ réalisé : aucun fichier source ou métadonnée de build Python n’est suivi ou présent dans le clone courant.**
+
 - **Objectif :** pouvoir appeler le dépôt « réécrit en Rust » sans laisser deux produits contradictoires dans le parcours public.
-- **Changements concrets :** comparer chaque fonction du Python existant ; migrer ou supprimer explicitement les fonctions retenues ; archiver les modules Python avec un guide de transition ; retirer les anciens chemins de lancement des pages principales et relier l’historique v1.0 ; ajouter migration de configuration si nécessaire.
-- **Fichiers/parties concernés :** `main.py`, `audio/`, `transcription/`, `ui/`, `tests/`, `pyproject.toml`, anciens manifests/workflows, `README.md`, docs privacy/support/release.
-- **Critères d’acceptation vérifiables :** matrice feature→preuve complète ; un clone propre suit uniquement Rust ; aucune page ne promet une fonction absente du binaire ; Python reste soit archivé et clairement historique, soit supprimé avec procédure et justification ; versions et changelog concordent.
+- **Changements concrets :** comparer les fonctions retenues au contrat Rust ; supprimer les anciens chemins de lancement, métadonnées, dépendances, tests, scripts et workflows ; relier l’historique v1.0 comme provenance seulement ; ajouter une migration de configuration uniquement si nécessaire.
+- **Fichiers/parties concernés :** sources et tests Rust, anciens manifests/workflows, `README.md`, docs privacy/support/release, `Cargo.toml`, `Cargo.lock`.
+- **Critères d’acceptation vérifiables :** matrice feature→preuve complète ; un clone propre suit uniquement Rust ; aucune page ne promet une fonction absente du binaire ; les versions et le changelog concordent ; le graphe de langages GitHub ne contient plus Python après réindexation.
 - **Tests/validations nécessaires :** comparaison de parcours, tests Rust et anciens tests conservés jusqu’à la fermeture de chaque équivalence ; recherche de commandes mortes ; recette de migration sur configuration existante et profil vierge.
 - **Dépendances/risques :** R1–R7 ; suppression de code est irréversible pour les utilisateurs si les anciennes données ne sont pas migrées, donc documenter avant nettoyage.
 
 ### R9 — Préparer l’adoption, les contributions et le dossier de release · P1
+
+**État : 🟡 documentation, metadata, captures et fermeture de l’ancienne file réalisées ; tag/release et recette publique en cours.**
 
 - **Objectif :** faire du produit fini un projet GitHub crédible et partageable.
 - **Changements concrets :** capturer de vraies captures de chaque OS validé ; remplacer les previews synthétiques ; README avec problème, installation, limites cloud, support et vidéo ; issues/CONTRIBUTING/SECURITY orientés Rust ; release notes, changelog, topics et page showcase cohérents ; publier seulement après approbation et recette des assets.
