@@ -14,8 +14,13 @@ cleanup() {
   if [[ "$installed" -ne 1 ]]; then
     return 0
   fi
-  if ! flatpak uninstall --user --noninteractive --delete-data "$app_id" >/dev/null 2>&1; then
+  # The launch smoke is intentionally killed by timeout; explicitly terminate
+  # any remaining sandbox process before asking Flatpak to remove its data.
+  flatpak kill --user "$app_id" >/dev/null 2>&1 || true
+  if ! flatpak uninstall --user --noninteractive --delete-data "$app_id"; then
     echo "Flatpak uninstall with --delete-data failed" >&2
+    flatpak info --user "$app_id" >&2 || true
+    flatpak ps >&2 || true
     return 1
   fi
 }
