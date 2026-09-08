@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from history import HistoryStore
+from history import HistoryError, HistoryStore
 
 
 class Clock:
@@ -54,6 +54,28 @@ class HistoryStoreTests(unittest.TestCase):
             for value in (0, 366, True):
                 with self.assertRaises(ValueError):
                     store.list(retention_days=value)  # type: ignore[arg-type]
+
+    def test_malformed_history_is_preserved_and_never_overwritten(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = HistoryStore(Path(directory) / "history")
+            store.path.parent.mkdir(parents=True)
+            original = "{not valid json"
+            store.path.write_text(original, encoding="utf-8")
+
+            with self.assertRaises(HistoryError):
+                store.add("new text", retention_days=30)
+            self.assertEqual(store.path.read_text(encoding="utf-8"), original)
+
+    def test_history_volume_is_bounded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            clock = Clock(dt.datetime(2026, 8, 1, tzinfo=dt.timezone.utc))
+            store = HistoryStore(Path(directory) / "history", now=clock)
+            for index in range(520):
+                store.add(f"entry-{index}", retention_days=365)
+
+            entries = store.list(retention_days=365)
+            self.assertLessEqual(len(entries), 500)
+            self.assertEqual(entries[0].text, "entry-519")
 
 
 if __name__ == "__main__":

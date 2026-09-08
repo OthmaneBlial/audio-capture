@@ -35,7 +35,9 @@ segment timestamps do not yet have a published accuracy contract.
 
 History is disabled by default. When explicitly enabled, the current transcript
 is saved as text on clean app close, repeated identical text is deduplicated,
-and entries older than the chosen 1–365 day retention are deleted. The Settings
+and entries older than the chosen 1–365 day retention are deleted. The store is
+bounded to 500 entries and a 500,000-character aggregate budget; malformed or
+future-schema data is preserved and reported instead of overwritten. The Settings
 and History views disclose the exact storage path.
 
 History can be copied back to the clipboard, opened on the desk, deleted one

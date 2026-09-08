@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Optional
@@ -51,18 +52,29 @@ def build_export(
 
 
 def write_export(destination: Path, document: ExportDocument) -> None:
-    """Write only the selected file with owner read/write permissions."""
+    """Atomically write only the selected file with owner read/write permissions."""
     destination.parent.mkdir(parents=True, exist_ok=True)
-    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    if destination.is_symlink():
+        raise OSError(f"Refusing to overwrite symbolic link: {destination}")
+    descriptor: Optional[int] = None
+    temp_path: Optional[Path] = None
     try:
+        descriptor, temp_name = tempfile.mkstemp(
+            prefix=f".{destination.name}-", suffix=".tmp", dir=destination.parent, text=True
+        )
+        temp_path = Path(temp_name)
         with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+            descriptor = None
             output.write(document.content)
             output.flush()
             os.fsync(output.fileno())
-    except Exception:
-        try:
-            os.close(descriptor)
-        except OSError:
-            pass
-        raise
-    os.chmod(destination, 0o600)
+        os.chmod(temp_path, 0o600)
+        os.replace(temp_path, destination)
+    finally:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
