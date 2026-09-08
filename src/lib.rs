@@ -4,6 +4,7 @@
 //! contracts independent from the desktop toolkit. The native UI and audio
 //! backends are thin adapters around these contracts.
 
+pub mod app;
 pub mod audio;
 pub mod config;
 pub mod exports;
