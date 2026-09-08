@@ -13,9 +13,12 @@ from dataclasses import dataclass
 from typing import Callable, List, Optional, Sequence, Union
 
 from transcription.provider import (
+    OrderedResultBuffer,
     ProviderBoundary,
     ProviderCapabilities,
     ProviderError,
+    TranscriptionErrorCallback,
+    TranscriptionResultCallback,
 )
 
 Outcome = Union[str, BaseException, None]
@@ -83,7 +86,9 @@ class FakeTranscriptionProvider:
         outcomes: Optional[Sequence[Outcome]] = None,
         hold_event: Optional[threading.Event] = None,
         on_transcription: Optional[Callable[[str], None]] = None,
+        on_transcription_result: Optional[TranscriptionResultCallback] = None,
         on_error: Optional[Callable[[Exception], None]] = None,
+        on_error_result: Optional[TranscriptionErrorCallback] = None,
         on_request_state: Optional[Callable[[str, str, Optional[str]], None]] = None,
     ) -> None:
         self._config = config or FakeProviderConfig()
@@ -114,7 +119,9 @@ class FakeTranscriptionProvider:
         self._outcomes: List[Outcome] = list(outcomes) if outcomes is not None else []
         self._hold_event = hold_event
         self._on_transcription = on_transcription
+        self._on_transcription_result = on_transcription_result
         self._on_error = on_error
+        self._on_error_result = on_error_result
         self._on_request_state = on_request_state
 
         self._language: Optional[str] = None
@@ -129,6 +136,9 @@ class FakeTranscriptionProvider:
         self._request_ids = itertools.count(1)
         self._closed = False
         self._requests: List[RequestRecord] = []
+        self._ordered_results = OrderedResultBuffer()
+        self._request_metadata: dict[str, tuple[int, Optional[str], bool]] = {}
+        self._async_errors: dict[str, Exception] = {}
         self.submitted_audio_lengths: List[int] = []
 
     @property
@@ -160,29 +170,7 @@ class FakeTranscriptionProvider:
     def transcribe(self, audio_data: bytes) -> Optional[str]:
         """Run one synthetic transcription synchronously."""
         try:
-            self._validate_audio(audio_data)
-            with self._lock:
-                if self._closed:
-                    raise ProviderError(
-                        "The fake transcription service is shutting down.",
-                        code="shutdown",
-                    )
-                if not self._configured:
-                    raise ProviderError(
-                        "Fake provider is not configured.",
-                        code="not_configured",
-                    )
-                language = self._language
-                translate = self._translate
-            text = self._next_outcome()
-            if isinstance(text, BaseException):
-                raise text
-            if text is None:
-                text = self._default_text
-            assert isinstance(text, str)
-            if translate and language and language != "en":
-                # Deterministic marker only; not real translation.
-                text = "en:" + text
+            text = self._transcribe_raw(audio_data)
             if text and self._on_transcription:
                 self._on_transcription(text)
             return text
@@ -236,16 +224,44 @@ class FakeTranscriptionProvider:
             )
             return None
 
-        self._record_and_notify(
-            request_id,
-            audio_len,
-            "pending",
-            "Waiting for fake provider",
-            language=language,
-            translate=translate,
-        )
-        future = self._executor.submit(self._run_async_body, bytes(audio_data))
         with self._lock:
+            if self._closed:
+                self._pending.release()
+                self._record_and_notify(
+                    request_id,
+                    audio_len,
+                    "error",
+                    "Service is shutting down",
+                    language=language,
+                    translate=translate,
+                )
+                self._report_error(
+                    ProviderError(
+                        "The fake transcription service is shutting down.",
+                        code="shutdown",
+                    )
+                )
+                return None
+            self._ordered_results.register(request_id)
+            self._request_metadata[request_id] = (audio_len, language, translate)
+            self._record_and_notify(
+                request_id,
+                audio_len,
+                "pending",
+                "Waiting for fake provider",
+                language=language,
+                translate=translate,
+            )
+            try:
+                future = self._executor.submit(self._run_async_body, bytes(audio_data), request_id)
+            except Exception as error:
+                self._pending.release()
+                ready = self._ordered_results.complete(
+                    request_id, None, "error", "Could not queue request"
+                )
+                self._report_error(self._normalize_error(error), request_id=request_id)
+                self._release_ready(ready)
+                return None
             self._futures.add(future)
 
         def _done(completed: Future) -> None:
@@ -271,10 +287,25 @@ class FakeTranscriptionProvider:
         self.cancel_pending()
         self._executor.shutdown(wait=wait, cancel_futures=True)
 
-    def _run_async_body(self, audio_data: bytes) -> Optional[str]:
+    def reset_session(self) -> None:
+        """Invalidate result ordering and visible states for a new generation."""
+        with self._lock:
+            request_ids = self._ordered_results.reset()
+            for request_id in request_ids:
+                self._request_metadata.pop(request_id, None)
+                self._async_errors.pop(request_id, None)
+        for request_id in request_ids:
+            self._on_request_state and self._on_request_state(request_id, "cancelled", "Session was reset")
+
+    def _run_async_body(self, audio_data: bytes, request_id: str) -> Optional[str]:
         if self._hold_event is not None:
             self._hold_event.wait(timeout=5)
-        return self.transcribe(audio_data)
+        try:
+            return self._transcribe_raw(audio_data)
+        except Exception as error:
+            with self._lock:
+                self._async_errors[request_id] = error
+            return None
 
     def _finish_request(
         self,
@@ -284,32 +315,27 @@ class FakeTranscriptionProvider:
     ) -> None:
         try:
             if future.cancelled():
-                self._record_and_notify(
-                    request_id,
-                    audio_len,
-                    "cancelled",
-                    "Request cancelled",
-                )
+                ready = self._ordered_results.complete(request_id, None, "cancelled", "Request cancelled")
+                self._release_ready(ready)
                 return
-            try:
-                text = future.result()
-            except Exception:
-                text = None
-            if text:
-                # Detail must never echo transcript content.
-                self._record_and_notify(
-                    request_id,
-                    audio_len,
-                    "complete",
-                    "Added to transcript",
+            text = future.result()
+            with self._lock:
+                error = self._async_errors.pop(request_id, None)
+            if error is not None:
+                normalized = self._normalize_error(error)
+                ready = self._ordered_results.complete(
+                    request_id, None, "error", "Transcription failed"
                 )
+                self._report_error(normalized, request_id=request_id)
+                self._release_ready(ready)
             else:
-                self._record_and_notify(
+                ready = self._ordered_results.complete(
                     request_id,
-                    audio_len,
-                    "error",
-                    "Transcription failed",
+                    text,
+                    "complete" if text else "error",
+                    "Added to transcript" if text else "Transcription failed",
                 )
+                self._release_ready(ready)
         finally:
             with self._lock:
                 self._futures.discard(future)
@@ -323,6 +349,32 @@ class FakeTranscriptionProvider:
             if self._outcomes:
                 return self._outcomes.pop(0)
         return self._default_text
+
+    def _transcribe_raw(self, audio_data: bytes) -> str:
+        self._validate_audio(audio_data)
+        with self._lock:
+            if self._closed:
+                raise ProviderError(
+                    "The fake transcription service is shutting down.",
+                    code="shutdown",
+                )
+            if not self._configured:
+                raise ProviderError(
+                    "Fake provider is not configured.",
+                    code="not_configured",
+                )
+            language = self._language
+            translate = self._translate
+        text = self._next_outcome()
+        if isinstance(text, BaseException):
+            raise text
+        if text is None:
+            text = self._default_text
+        assert isinstance(text, str)
+        if translate and language and language != "en":
+            # Deterministic marker only; not real translation.
+            text = "en:" + text
+        return text
 
     def _validate_audio(self, audio_data: bytes) -> None:
         if not isinstance(audio_data, (bytes, bytearray)) or not audio_data:
@@ -368,9 +420,28 @@ class FakeTranscriptionProvider:
             retryable=True,
         )
 
-    def _report_error(self, error: Exception) -> None:
-        if self._on_error:
+    def _report_error(self, error: Exception, *, request_id: Optional[str] = None) -> None:
+        if request_id and self._on_error_result:
+            self._on_error_result(request_id, error)
+        elif self._on_error:
             self._on_error(error)
+
+    def _release_ready(
+        self,
+        ready: list[tuple[str, Optional[str], str, str]],
+    ) -> None:
+        for request_id, text, state, detail in ready:
+            if text and self._on_transcription:
+                self._on_transcription(text)
+            if text and self._on_transcription_result:
+                self._on_transcription_result(request_id, text)
+            with self._lock:
+                audio_byte_length, language, translate = self._request_metadata.pop(
+                    request_id, (-1, None, False)
+                )
+            self._record_and_notify(
+                request_id, audio_byte_length, state, detail, language=language, translate=translate
+            )
 
     def _record_and_notify(
         self,

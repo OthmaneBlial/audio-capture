@@ -32,10 +32,12 @@ class FakeProviderFixtureTests(unittest.TestCase):
 
     def test_complete_path_is_deterministic_without_io(self) -> None:
         received: list = []
+        received_with_ids: list = []
         states: list = []
         provider = FakeTranscriptionProvider(
             FakeProviderConfig(default_text="synthetic phrase"),
             on_transcription=received.append,
+            on_transcription_result=lambda request_id, text: received_with_ids.append((request_id, text)),
             on_request_state=lambda rid, state, detail: states.append((rid, state, detail)),
         )
         try:
@@ -45,6 +47,7 @@ class FakeProviderFixtureTests(unittest.TestCase):
             self.assertEqual(future.result(timeout=2), "synthetic phrase")
             self._wait_for(lambda: any(state == "complete" for _, state, _ in states))
             self.assertEqual(received, ["synthetic phrase"])
+            self.assertEqual(received_with_ids, [(states[0][0], "synthetic phrase")])
             self.assertEqual([state for _, state, _ in states], ["pending", "complete"])
             joined = " ".join(detail or "" for _, _, detail in states)
             self.assertNotIn("synthetic phrase", joined)
@@ -52,6 +55,22 @@ class FakeProviderFixtureTests(unittest.TestCase):
                 self.assertNotIn("synthetic phrase", record.detail)
                 self.assertEqual(record.audio_byte_length, len(SYNTHETIC_PCM))
                 self.assertIsInstance(record.request_id, str)
+        finally:
+            provider.close(wait=True)
+
+    def test_async_error_can_be_gated_by_request_id(self) -> None:
+        errors: list = []
+        provider = FakeTranscriptionProvider(
+            outcomes=[RuntimeError("HTTP 401 invalid api key")],
+            on_error_result=lambda request_id, error: errors.append((request_id, error)),
+        )
+        try:
+            future = provider.transcribe_async(SYNTHETIC_PCM)
+            assert future is not None
+            self.assertIsNone(future.result(timeout=2))
+            self._wait_for(lambda: bool(errors))
+            self.assertTrue(errors[0][0].startswith("fake-"))
+            self.assertEqual(errors[0][1].code, "authentication")
         finally:
             provider.close(wait=True)
 

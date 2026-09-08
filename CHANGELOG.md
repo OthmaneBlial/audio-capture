@@ -16,6 +16,8 @@ All notable changes to Voice Transcriber are documented here.
   editing session cannot grow those in-memory stacks without bound.
 - Incoming transcript segments no longer yank the editor to the bottom when a
   user is reviewing an earlier passage.
+- The contributor fake provider now follows the same ordered, request-identified
+  result and error contract as the production providers.
 
 ### Privacy
 
