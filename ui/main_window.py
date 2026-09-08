@@ -40,6 +40,8 @@ class MainWindow(Gtk.Window):
         on_start: Optional[Callable[[], bool]] = None,
         on_stop: Optional[Callable[[], None]] = None,
         on_clear: Optional[Callable[[], None]] = None,
+        on_test_microphone: Optional[Callable[[Optional[int]], bool]] = None,
+        on_stop_microphone_test: Optional[Callable[[], None]] = None,
         on_settings_change: Optional[Callable[[], None]] = None,
         on_list_input_devices: Optional[Callable[[], list[Any]]] = None,
     ) -> None:
@@ -48,9 +50,12 @@ class MainWindow(Gtk.Window):
         self._on_start = on_start
         self._on_stop = on_stop
         self._on_clear = on_clear
+        self._on_test_microphone = on_test_microphone
+        self._on_stop_microphone_test = on_stop_microphone_test
         self._on_settings_change_cb = on_settings_change
         self._on_list_input_devices = on_list_input_devices
         self._is_listening = False
+        self._microphone_test_active = False
         self._has_refreshed_input_devices = False
         self._status_reset_source: Optional[int] = None
         self._geometry_save_source: Optional[int] = None
@@ -442,6 +447,12 @@ class MainWindow(Gtk.Window):
             "Refresh", "Find currently available microphone inputs", self._on_refresh_input_devices
         )
         device_controls.pack_end(refresh_button, False, False, 0)
+        self._test_microphone_button = self._make_secondary_button(
+            "Test microphone",
+            "Show the local microphone signal without recording or contacting a provider",
+            self._on_test_microphone_clicked,
+        )
+        device_controls.pack_end(self._test_microphone_button, False, False, 0)
         device_row.pack_start(device_controls, False, False, 0)
         self._device_help = self._label(
             "Choose a source, then start a new session to use it.", "settings-help"
@@ -916,6 +927,24 @@ class MainWindow(Gtk.Window):
 
     def _on_refresh_input_devices(self, _button: Gtk.Button) -> None:
         self._refresh_input_devices()
+
+    def _on_test_microphone_clicked(self, _button: Gtk.Button) -> None:
+        if self._microphone_test_active:
+            if self._on_stop_microphone_test:
+                self._on_stop_microphone_test()
+            self._microphone_test_active = False
+            self._test_microphone_button.set_label("Test microphone")
+            self._test_microphone_button.get_accessible().set_name("Test microphone")
+            self.set_status("Ready when you are")
+            return
+        selected_index = self._selected_input_device_index()
+        started = (
+            self._on_test_microphone(selected_index) if self._on_test_microphone else True
+        )
+        if started:
+            self._microphone_test_active = True
+            self._test_microphone_button.set_label("Stop microphone test")
+            self._test_microphone_button.get_accessible().set_name("Stop microphone test")
 
     def _selected_input_device_index(self) -> Optional[int]:
         selected = self._device_combo.get_active_id()

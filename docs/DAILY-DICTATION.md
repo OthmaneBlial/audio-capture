@@ -9,6 +9,8 @@ failed. The strip never stores audio or transcript content.
 - Type directly into the transcript, select text, or use `Ctrl+A`.
 - Undo with `Ctrl+Z` and redo with `Ctrl+Shift+Z`.
 - Clear always asks for confirmation and explains whether recovery is possible.
+- Use **Test microphone** in Settings to verify the selected local input. It only
+  drives the signal meter, keeps no audio queue, and never calls a provider.
 - Toggle mode starts and stops with a click or `Ctrl+Enter`.
 - Focused push-to-talk starts on mouse press and stops on release. It is not a
   system-wide shortcut and cannot capture when another app owns the interaction.

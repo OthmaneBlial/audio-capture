@@ -277,7 +277,7 @@ Ordre de grandeur : **29–53 jours de travail**, non engagement calendaire. Les
 ### 3.1 — Ajouter le test micro local et un onboarding court · P1 · F10
 
 - **Objectif :** identifier son micro et comprendre la frontière cloud avant de payer ou dicter.
-- **Changements :** mode explicite « Tester le microphone » qui alimente uniquement la jauge, sans VAD soumis au provider, timeout et arrêt visibles ; parcours choisir micro → comprendre fournisseur → configurer → phrase réelle → copie ; Settings et premier lancement utilisent les mêmes composants et règles.
+- **Changements :** mode explicite « Tester le microphone » qui alimente uniquement la jauge, sans VAD soumis au provider, timeout et arrêt visibles ; parcours choisir micro → comprendre fournisseur → configurer → phrase réelle → copie ; Settings et premier lancement utilisent les mêmes composants et règles. **Fait localement :** Settings propose un test micro local qui ouvre `AudioCapture` avec une file audio désactivée, ne vérifie aucune clé et ne soumet aucun segment ; le contrôleur arrête le moniteur avant une session ou un changement de réglages, avec tests sans provider configuré.
 - **Fichiers/parties :** `audio/capture.py`, contrôleur, dialogues `ui/`, `onboarding.py`, diagnostics et guides.
 - **Acceptation :** sans clé ni consentement cloud, le test affiche le vrai signal et aucun transport n’est appelé ; fermeture/libération du micro garanties ; phrase test réelle uniquement après consentement ; erreurs clé/réseau/micro comportent une action concrète.
 - **Tests/validations :** faux provider piégé si appelé en mode test ; ouverture/fermeture répétée ; mesure physique sur deux sources ; parcours clavier complet et relance sans clé.

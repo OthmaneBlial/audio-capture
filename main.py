@@ -38,6 +38,7 @@ class VoiceTranscriberApp:
         self._processing_thread: Optional[threading.Thread] = None
         self._audio: Any = None
         self._vad: Any = None
+        self._monitor_audio: Any = None
         self._active_request_ids: set[str] = set()
         self._input_device_override = input_device_override
         self._config = ConfigManager()
@@ -47,6 +48,8 @@ class VoiceTranscriberApp:
             on_start=self._start_listening,
             on_stop=self._stop_listening,
             on_clear=self._cancel_pending_transcriptions,
+            on_test_microphone=self._start_microphone_test,
+            on_stop_microphone_test=self._stop_microphone_test,
             on_settings_change=self._on_settings_change,
             on_list_input_devices=self._list_input_devices,
         )
@@ -76,6 +79,8 @@ class VoiceTranscriberApp:
 
     def _on_settings_change(self) -> None:
         """Apply preferences without exposing the API key in logs."""
+        if self._monitor_audio is not None:
+            self._stop_microphone_test()
         desired_provider = self._config.get("provider_mode")
         if self._transcriber.provider_id != desired_provider or desired_provider == "local_whisper_cpp":
             if self._running.is_set():
@@ -129,6 +134,8 @@ class VoiceTranscriberApp:
                 )
                 return False
 
+            if self._monitor_audio is not None:
+                self._stop_microphone_test()
             # A new recording session starts a new transcript generation. Any
             # callback still arriving from a cancelled previous session is
             # rejected by the request-id gate below.
@@ -172,6 +179,51 @@ class VoiceTranscriberApp:
 
         LOGGER.info("Listening started")
         return True
+
+    def _start_microphone_test(self, device_index: Optional[int] = None) -> bool:
+        """Open a microphone for a local level meter without provider/VAD work."""
+        from audio import AudioCapture
+
+        with self._lifecycle_lock:
+            if self._running.is_set():
+                self._window.show_error("Stop the transcription session before testing the microphone.")
+                return False
+            if self._monitor_audio is not None:
+                return True
+            monitor: Any = None
+            try:
+                selected_index = (
+                    self._config.get("input_device_index")
+                    if device_index is None
+                    else device_index
+                )
+                monitor = AudioCapture(
+                    device_index=selected_index,
+                    on_level=self._on_input_level,
+                    queue_audio=False,
+                )
+                monitor.start()
+                self._monitor_audio = monitor
+                selected_device = monitor.selected_device
+                if selected_device is not None:
+                    self._window.set_input_source(selected_device.name)
+                self._window.set_input_level(0.0)
+            except Exception as error:
+                if monitor is not None:
+                    monitor.stop()
+                LOGGER.exception("Could not start microphone test")
+                self._window.show_error(str(error))
+                return False
+        self._window.set_status("Microphone test · local signal only", "active")
+        return True
+
+    def _stop_microphone_test(self) -> None:
+        """Stop the local-only monitor and release its native stream."""
+        with self._lifecycle_lock:
+            monitor, self._monitor_audio = self._monitor_audio, None
+        if monitor is not None:
+            monitor.stop()
+            self._window.set_input_level(0.0)
 
     def _stop_listening(self) -> None:
         """Stop capture deterministically, then flush an in-progress speech segment."""
@@ -295,6 +347,7 @@ class VoiceTranscriberApp:
         self._window.show_all()
         Gtk.main()
         self._stop_listening()
+        self._stop_microphone_test()
         with self._lifecycle_lock:
             self._active_request_ids.clear()
         self._transcriber.close(wait=False)

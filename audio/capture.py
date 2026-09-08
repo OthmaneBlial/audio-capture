@@ -83,6 +83,7 @@ class AudioCapture:
         *,
         device_index: Optional[int] = None,
         on_level: Optional[Callable[[float], None]] = None,
+        queue_audio: bool = True,
         pyaudio_factory: Callable[[], Any] = pyaudio.PyAudio,
     ) -> None:
         if (
@@ -98,6 +99,7 @@ class AudioCapture:
         self._audio_queue: queue.Queue[Optional[bytes]] = queue.Queue(maxsize=self.QUEUE_CAPACITY)
         self._on_audio_chunk = on_audio_chunk
         self._on_level = on_level
+        self._queue_audio = queue_audio
         self._device_index = device_index
         self._pyaudio_factory = pyaudio_factory
         self._selected_device: Optional[InputDevice] = None
@@ -159,7 +161,8 @@ class AudioCapture:
                         LOGGER.warning("Microphone stream stopped unexpectedly")
                     break
                 data = stream.read(self.FRAMES_PER_BUFFER, exception_on_overflow=False)
-                self._put_frame(data)
+                if self._queue_audio:
+                    self._put_frame(data)
                 self._emit_level(data)
                 if self._on_audio_chunk:
                     self._on_audio_chunk(data)

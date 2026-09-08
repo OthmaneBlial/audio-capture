@@ -35,9 +35,12 @@ class FakeWindow:
 class FakeAudioCapture:
     instances: list["FakeAudioCapture"] = []
 
-    def __init__(self, *, device_index: int | None, on_level: object) -> None:
+    def __init__(
+        self, *, device_index: int | None, on_level: object, queue_audio: bool = True
+    ) -> None:
         self.device_index = device_index
         self.on_level = on_level
+        self.queue_audio = queue_audio
         self.sample_rate = 16_000
         self.frame_duration_ms = 30
         self.selected_device = types.SimpleNamespace(name="Test microphone")
@@ -98,6 +101,7 @@ def make_app(*, consented: bool) -> VoiceTranscriberApp:
     app._audio = None
     app._vad = None
     app._active_request_ids = set()
+    app._monitor_audio = None
     app._input_device_override = None
     app._test_tmpdir = tempfile.TemporaryDirectory()
     app._config = ConfigManager(
@@ -143,6 +147,16 @@ class VoiceTranscriberAppTests(unittest.TestCase):
         app._on_transcription_result("segment-stale", "stale text")
         app._on_transcription_result("segment-active", "accepted text")
         self.assertEqual(app._window.transcripts, ["accepted text"])
+
+    def test_microphone_test_does_not_require_provider_configuration(self) -> None:
+        app = make_app(consented=False)
+        app._transcriber.configured = False
+        with mock.patch.dict(sys.modules, {"audio": self.audio_module}):
+            self.assertTrue(app._start_microphone_test(device_index=3))
+            self.assertEqual(FakeAudioCapture.instances[0].device_index, 3)
+            self.assertFalse(FakeAudioCapture.instances[0].queue_audio)
+            app._stop_microphone_test()
+        self.assertTrue(FakeAudioCapture.instances[0].stopped)
 
 
 if __name__ == "__main__":
