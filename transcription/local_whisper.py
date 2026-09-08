@@ -308,7 +308,9 @@ class LocalWhisperTranscriptionService:
                 request_id, None, "error", "Local transcription failed"
             )
             normalized = self._normalize_error(error)
-            if self._on_error:
+            if self._on_error_result:
+                self._on_error_result(request_id, normalized)
+            elif self._on_error:
                 self._on_error(normalized)
             self._release_ready(ready)
         else:

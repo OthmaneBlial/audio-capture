@@ -6,6 +6,21 @@ bundle_path="${1:-voice-transcriber.flatpak}"
 expected_version="${2:-}"
 installed=0
 
+run_flatpak_with_session_bus() {
+  # Flatpak's user installation service needs a session bus during cleanup.
+  # The CI container has no desktop session, so autolaunch otherwise fails
+  # after the Xvfb launch smoke has already finished.
+  if [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]]; then
+    flatpak "$@"
+  elif command -v dbus-run-session >/dev/null 2>&1; then
+    dbus-run-session -- flatpak "$@"
+  elif command -v xvfb-run >/dev/null 2>&1; then
+    xvfb-run -a flatpak "$@"
+  else
+    flatpak "$@"
+  fi
+}
+
 if [[ ! -f "$bundle_path" ]]; then
   echo "Flatpak bundle not found: $bundle_path" >&2
   exit 1
@@ -25,10 +40,10 @@ cleanup() {
   fi
   # The launch smoke is intentionally killed by timeout; explicitly terminate
   # any remaining sandbox process before asking Flatpak to remove its data.
-  flatpak kill --user "$app_id" >/dev/null 2>&1 || true
-  if ! flatpak uninstall --user --noninteractive --delete-data "$app_id"; then
+  run_flatpak_with_session_bus kill --user "$app_id" >/dev/null 2>&1 || true
+  if ! run_flatpak_with_session_bus uninstall --user --noninteractive --delete-data "$app_id"; then
     echo "Flatpak uninstall with --delete-data failed" >&2
-    flatpak info --user "$app_id" >&2 || true
+    run_flatpak_with_session_bus info --user "$app_id" >&2 || true
     flatpak ps >&2 || true
     return 1
   fi

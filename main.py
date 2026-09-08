@@ -233,6 +233,7 @@ class VoiceTranscriberApp:
         with self._lifecycle_lock:
             if not self._running.is_set() and self._audio is None:
                 return
+            had_pending_requests = bool(self._active_request_ids)
             self._running.clear()
             audio, vad, processing_thread = self._audio, self._vad, self._processing_thread
             self._audio = None
@@ -250,6 +251,7 @@ class VoiceTranscriberApp:
             if processing_thread.is_alive():
                 LOGGER.warning("Audio processing did not finish before shutdown timeout")
 
+        submitted_segments = 0
         if vad is not None:
             if audio is not None:
                 while True:
@@ -258,10 +260,16 @@ class VoiceTranscriberApp:
                         break
                     speech_segment = vad.process_frame(queued_chunk)
                     if speech_segment:
-                        self._transcriber.transcribe_async(speech_segment)
+                        if self._transcriber.transcribe_async(speech_segment) is not None:
+                            submitted_segments += 1
             remaining = vad.flush()
             if remaining:
-                self._transcriber.transcribe_async(remaining)
+                if self._transcriber.transcribe_async(remaining) is not None:
+                    submitted_segments += 1
+        if had_pending_requests or submitted_segments:
+            self._window.set_status("Processing remaining…", "active")
+        else:
+            self._window.set_status("Ready when you are")
         LOGGER.info("Listening stopped")
 
     def _processing_loop(self, audio: Any, vad: Any) -> None:
@@ -369,7 +377,10 @@ class VoiceTranscriberApp:
                 self._active_request_ids.add(request_id)
             elif state in {"complete", "error", "cancelled"}:
                 self._active_request_ids.discard(request_id)
+            no_active_requests = not self._active_request_ids
         self._window.update_segment_state(request_id, state, detail)
+        if state == "complete" and no_active_requests and not self._running.is_set():
+            self._window.set_status("Transcript ready to review", "active", reset_after_ms=4_000)
 
     def _on_transcription_error(self, error: Exception) -> None:
         # Service errors are normalized and never contain a credential.

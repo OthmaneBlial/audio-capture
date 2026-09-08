@@ -20,6 +20,9 @@ failed. The strip never stores audio or transcript content.
   bounded; repeat the phrase after the warning instead of assuming that segment
   is complete. No dropped frame is written to disk.
 - Toggle mode starts and stops with a click or `Ctrl+Enter`.
+- After Stop, the desk can briefly show **Processing remaining…** while an
+  already admitted segment finishes; the transcript becomes ready to review
+  when that result arrives.
 - Focused push-to-talk starts on mouse press and stops on release. It is not a
   system-wide shortcut; losing window focus also stops it, and it cannot capture
   when another app owns the interaction. `Ctrl+Enter` remains the explicit

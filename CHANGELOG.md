@@ -12,12 +12,14 @@ All notable changes to Voice Transcriber are documented here.
   for returning users instead of limiting the facts to first run.
 - Capture backpressure is reported in the status line, and the microphone
   controls remain usable at the minimum window width.
+- Stop now drains already admitted audio and shows when remaining provider
+  results are still being processed before marking the transcript ready.
 - Undo and Redo snapshots now have both count and character budgets, so a long
   editing session cannot grow those in-memory stacks without bound.
 - Incoming transcript segments no longer yank the editor to the bottom when a
   user is reviewing an earlier passage.
-- The contributor fake provider now follows the same ordered, request-identified
-  result and error contract as the production providers.
+- The contributor fake provider and experimental local provider now follow the
+  same ordered, request-identified result and error contract as Groq.
 
 ### Privacy
 

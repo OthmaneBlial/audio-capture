@@ -36,6 +36,9 @@ class FakeWindow:
     ) -> None:
         self.statuses.append((message, style_class, reset_after_ms))
 
+    def update_segment_state(self, _request_id: str, _state: str, _detail: Optional[str]) -> None:
+        return None
+
     def clear_segment_states(self) -> None:
         self.segment_states_cleared += 1
 
@@ -215,6 +218,21 @@ class VoiceTranscriberAppTests(unittest.TestCase):
                 app._transcriber.transcribe_async = mock.Mock()
                 app._stop_listening()
         app._transcriber.transcribe_async.assert_called_once_with(b"\x00\x00")
+
+    def test_stop_exposes_processing_state_for_inflight_requests(self) -> None:
+        app = self._new_app(consented=True)
+        app._running.set()
+        app._audio = FakeAudioCapture(device_index=None, on_level=app._on_input_level)
+        app._vad = FakeVad()
+        app._active_request_ids.add("segment-inflight")
+        app._stop_listening()
+        self.assertEqual(app._window.statuses[-1][0], "Processing remaining…")
+
+    def test_completed_request_marks_stopped_transcript_ready(self) -> None:
+        app = self._new_app(consented=True)
+        app._on_request_state("segment-1", "pending", "Waiting")
+        app._on_request_state("segment-1", "complete", "Added")
+        self.assertEqual(app._window.statuses[-1][0], "Transcript ready to review")
 
     def test_audio_backpressure_is_visible_and_deduplicated(self) -> None:
         app = self._new_app(consented=True)

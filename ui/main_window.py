@@ -1121,7 +1121,8 @@ class MainWindow(Gtk.Window):
         self.set_input_level(0.0)
         if self._on_stop:
             self._on_stop()
-        self.set_status("Ready when you are")
+        else:
+            self.set_status("Ready when you are")
 
     def _on_sticky_toggled(self, checkbox: Gtk.CheckButton) -> None:
         state = checkbox.get_active()

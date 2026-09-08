@@ -37,6 +37,10 @@ class FakeProcessFactory:
         return process
 
 
+def failing_process_factory(_command, **_kwargs):
+    raise OSError("synthetic local process failure")
+
+
 class ProviderContractTests(unittest.TestCase):
     def test_groq_declares_capabilities_boundary_and_normalized_codes(self):
         service = GroqTranscriptionService(api_key="")
@@ -114,6 +118,49 @@ class ProviderContractTests(unittest.TestCase):
                 self.assertEqual(process.command[process.command.index("--language") + 1], "fr")
                 self.assertIn("/proc/self/fd/", process.command[process.command.index("--file") + 1])
                 self.assertIsNotNone(service.last_latency_ms)
+            finally:
+                service.close(wait=True)
+                for descriptor in descriptors:
+                    descriptor.close()
+
+    def test_local_async_errors_keep_the_request_id(self):
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / "whisper-cli"
+            binary.write_text("placeholder")
+            binary.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            model = Path(directory) / "ggml-tiny.bin"
+            model.write_bytes(b"model")
+            descriptors = []
+
+            def memfd_factory(_name, _flags):
+                temporary = tempfile.TemporaryFile()
+                descriptors.append(temporary)
+                return os.dup(temporary.fileno())
+
+            errors = []
+            service = LocalWhisperTranscriptionService(
+                binary_path=str(binary),
+                model_path=str(model),
+                process_factory=failing_process_factory,
+                memfd_factory=memfd_factory,
+                environ={"VOICE_TRANSCRIBER_EXPERIMENTAL_LOCAL": "1"},
+                flatpak_info=Path(directory) / "missing-flatpak-info",
+                on_error_result=lambda request_id, error: errors.append((request_id, error)),
+            )
+            try:
+                future = service.transcribe_async(b"\x00\x00" * 80)
+                assert future is not None
+                with self.assertRaises(OSError):
+                    future.result(timeout=2)
+                for _ in range(100):
+                    if errors:
+                        break
+                    import time
+
+                    time.sleep(0.001)
+                self.assertEqual(len(errors), 1)
+                self.assertTrue(errors[0][0].startswith("local-segment-"))
+                self.assertEqual(errors[0][1].code, "local_unexpected")
             finally:
                 service.close(wait=True)
                 for descriptor in descriptors:
