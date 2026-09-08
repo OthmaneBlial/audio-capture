@@ -4,7 +4,7 @@ contact_links:
     url: https://github.com/OthmaneBlial/audio-capture/blob/main/docs/contributing/README.md
     about: Choose a bounded task and follow the no-key issue-to-PR path.
   - name: Security or privacy vulnerability
-    url: https://github.com/OthmaneBlial/audio-capture/security/policy
+    url: https://github.com/OthmaneBlial/audio-capture/blob/main/SECURITY.md
     about: Report credentials, unintended audio transmission, and other sensitive issues privately.
   - name: Setup and troubleshooting guide
     url: https://othmaneblial.github.io/audio-capture/docs.html#troubleshoot

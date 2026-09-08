@@ -9,7 +9,7 @@ make a useful first contribution.
 | If you want to… | Start here | Evidence expected |
 | --- | --- | --- |
 | Understand the process and boundaries | [Architecture tour](ARCHITECTURE-TOUR.md) | Name the component and contract your change affects |
-| Run checks without credentials or hardware | [Development without a key](DEVELOPMENT-WITHOUT-KEY.md) | Unit tests, Ruff, and compilation |
+| Run checks without credentials or hardware | [Development without a key](DEVELOPMENT-WITHOUT-KEY.md) | `python scripts/run_checks.py` (tests, Ruff, coverage, compilation) |
 | Add audio/provider test coverage | [Fake audio fixtures](FAKE-AUDIO-FIXTURES.md) | Deterministic bytes and injected external boundaries |
 | Change GTK copy, states, or interaction | [UI contribution guide](UI-GUIDE.md) | Unit coverage plus mapped GTK/accessibility evidence where relevant |
 | Change Flatpak or release files | [Packaging guide](PACKAGING-GUIDE.md) | Lints, offline rebuild, installed-bundle smoke, and explicit manual gaps |
