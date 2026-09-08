@@ -43,6 +43,16 @@ class UndoHistoryTests(unittest.TestCase):
         self.assertEqual(history.undo("c"), "b")
         self.assertEqual(history.undo("b"), "b")
 
+    def test_clear_discards_undo_and_redo_snapshots(self):
+        history = UndoHistory()
+        history.remember("before clear")
+        self.assertEqual(history.undo("after clear"), "before clear")
+        history.remember("before redo")
+        history.clear()
+        self.assertFalse(history.can_undo)
+        self.assertFalse(history.can_redo)
+        self.assertEqual(history.undo("new transcript"), "new transcript")
+
 
 if __name__ == "__main__":
     unittest.main()

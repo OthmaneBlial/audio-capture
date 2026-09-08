@@ -1129,7 +1129,8 @@ class MainWindow(Gtk.Window):
         dialog.add_button("Discard transcript", Gtk.ResponseType.ACCEPT)
         try:
             if dialog.run() == Gtk.ResponseType.ACCEPT:
-                self._replace_transcript("", remember=True)
+                self._replace_transcript("", remember=False)
+                self._undo_history.clear()
                 self.set_status("Transcript permanently cleared from this desk")
         finally:
             dialog.destroy()

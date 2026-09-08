@@ -219,7 +219,7 @@ Ordre de grandeur : **29–53 jours de travail**, non engagement calendaire. Les
 ### 1.4 — Rendre arrêt, abandon et effacement exacts · P0 · F04–F05
 
 - **Objectif :** un clic de fin de session a un effet compréhensible et vérifiable.
-- **Changements :** Stop ferme le micro, traite les trames déjà admises et attend les résultats utiles avec état « traitement restant » ; Cancel invalide et supprime le travail annulable sans flush cloud. Ajouter une fermeture coordonnée avant destruction des widgets. Distinguer effacement réversible et abandon définitif ; pour ce dernier purger Undo/Redo et les résultats en attente.
+- **Changements :** Stop ferme le micro, traite les trames déjà admises et attend les résultats utiles avec état « traitement restant » ; Cancel invalide et supprime le travail annulable sans flush cloud. Ajouter une fermeture coordonnée avant destruction des widgets. Distinguer effacement réversible et abandon définitif ; pour ce dernier purger Undo/Redo et les résultats en attente. **Fait localement :** le bouton Clear n’enregistre plus de snapshot Undo et purge les piles Undo/Redo ; le contrat est couvert par un test pur.
 - **Fichiers/parties :** `main.py`, `audio/capture.py`, `transcript.py`, `ui/main_window.py`, docs confidentialité et tests.
 - **Acceptation :** dernière phrase préservée après Stop ; pas d’envoi supplémentaire provoqué par Cancel ; pas de callback GTK sur fenêtre détruite ; aucun Undo après un effacement annoncé définitif ; historique et exports décrits séparément.
 - **Tests/validations :** stop avec backlog audio, fermeture pendant HTTP lent, SIGTERM, Clear puis Undo, retour tardif après Clear, copie automatique ; mesurer délais de fermeture et tester un blocage du lecteur audio.

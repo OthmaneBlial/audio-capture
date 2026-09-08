@@ -84,6 +84,11 @@ class UndoHistory:
         del self._undo[:-self._limit]
         self._redo.clear()
 
+    def clear(self) -> None:
+        """Discard every in-memory snapshot after a destructive clear."""
+        self._undo.clear()
+        self._redo.clear()
+
     def undo(self, current: str) -> str:
         if not self._undo:
             return current
