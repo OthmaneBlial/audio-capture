@@ -1,198 +1,63 @@
 # Changelog
 
-All notable changes to Voice Transcriber are documented here.
+All notable changes to Voice Transcriber are documented here. Version `1.2.0`
+is the first release of the native Rust desktop application.
 
-## [Unreleased]
-
-### Changed
-
-- First-run setup is now scrollable and puts dated Groq retention, location,
-  Zero Data Retention, and per-request billing facts beside the cloud consent.
-- Settings keeps the same disclosure and live provider-document links visible
-  for returning users instead of limiting the facts to first run.
-- Capture backpressure is reported in the status line, and the microphone
-  controls remain usable at the minimum window width.
-- Stop now drains already admitted audio and shows when remaining provider
-  results are still being processed before marking the transcript ready.
-- Reset and Clear no longer let a late cancellation recreate a segment row from
-  the previous transcript generation.
-- Undo and Redo snapshots now have both count and character budgets, so a long
-  editing session cannot grow those in-memory stacks without bound.
-- Incoming transcript segments no longer yank the editor to the bottom when a
-  user is reviewing an earlier passage.
-- The contributor fake provider and experimental local provider now follow the
-  same ordered, request-identified result and error contract as Groq.
-- Explicit microphone selections now store a best-effort opaque identity beside
-  the legacy PortAudio index. Startup and `--doctor` refuse a reused index when
-  the identity no longer matches, while default-device and one-session CLI
-  overrides remain unchanged. Legacy saved indexes receive the identity after
-  their next successful open.
-- The experimental local provider now closes a process created during service
-  shutdown before registering it, preventing a close race from leaving work
-  outside the cancellation set.
-- The controller can now be constructed with an injected configuration and
-  window factory, keeping headless provider/session checks independent from
-  GTK and PyAudio imports.
-
-### Privacy
-
-- The transmission path is unchanged. The added disclosure explains provider
-  policy and the 10-second minimum billed length without adding analytics,
-  network probes, audio persistence, or transcript persistence.
-- A saturated in-memory audio queue drops its oldest frame and tells the user
-  to repeat the affected phrase; dropped frames are not persisted.
-
-## [1.0.0] - 2026-08-27
+## [1.2.0] - 2026-09-08
 
 ### Added
 
-- A public privacy notice and threat model spanning microphone capture, local
-  VAD, bounded memory, provider requests, credentials, exports, opt-in text
-  history, logs, local executables, and release supply chain.
-- Privacy regression tests for raw-audio non-persistence, secret and provider
-  detail redaction, history-off defaults, explicit text storage permissions,
-  and deletion.
-- Tag-driven release automation that produces a checksum, CycloneDX SBOM,
-  deterministic test report, GitHub provenance and SBOM attestations, and
-  downloadable Sigstore bundles.
-- A contributor map with architecture, no-key development, fake-fixture, UI,
-  packaging, and issue-to-PR guides; plus eight maintained public tasks.
-- An FAQ, explicit public-feedback loop, and technical/user launch stories
-  with original cover art.
+- Native Rust desktop application built with egui.
+- Portable capture core with CPAL input discovery, mono downmix, sample-format
+  conversion, streaming resampling to 16 kHz, and a bounded frame queue.
+- Local WebRTC VAD with pre-roll, minimum speech, silence, and maximum-segment
+  limits.
+- Groq transcription worker with explicit consent/key admission, bounded jobs,
+  in-memory WAV encoding, timeouts, request ordering, translation support, and
+  normalized errors.
+- Editable transcript with ordered segment states, undo/redo, clear, clipboard
+  copy, text/Markdown/timestamped exports, and optional bounded text history.
+- Local diagnostic commands: `--doctor`, `--list-devices`, `--check-config`,
+  and a three-second `--test-microphone` smoke test with JSON output.
+- Native release workflow for Linux x86_64, macOS arm64, and Windows x86_64
+  archives with SHA-256 sidecars.
 
 ### Changed
 
-- Expanded CI to Python 3.9, 3.11, and 3.14 with branch coverage, wheel/sdist
-  builds, hash-pinned dependency audit, Bandit, Ruff, and compilation.
-- Hardened Flatpak verification with documented linter exceptions, mirrored
-  AppStream media, an offline no-download rebuild, installed-bundle smoke, and
-  compatibility-safe reporting.
-- Release notes now lead from a visual demo to verified installation, support,
-  privacy delta, benchmark receipt, and bounded help-wanted tasks.
+- Replaced the previous desktop runtime and build system with a Rust-only
+  source tree and Cargo lockfile.
+- Redesigned the desktop interface around a focused dark review workspace with
+  clear capture state, provider boundary, settings, transcript, and export
+  actions.
+- Added session generations so delayed provider results cannot repopulate a
+  cleared or restarted transcript.
+- Updated contributor, privacy, support, packaging, site, and issue-template
+  documentation to describe the implemented Rust path only.
+- Closed the old migration issue and dependency-update queue; new tasks must be
+  written against the current Rust modules.
 
-### Privacy
+### Validation
 
-- The runtime data path is unchanged: local VAD precedes Groq transmission,
-  raw audio is not persisted by the app, transcript history stays disabled by
-  default, and exports remain explicit.
-- Release and diagnostic evidence adds no analytics, crash upload, transcript
-  collection, recording collection, or project server.
-- The experimental local provider remains source-only, explicitly flagged,
-  user-supplied, and disabled in Flatpak; v1 does not relabel it as supported.
+- `cargo fmt --all -- --check` passes locally.
+- `cargo test --locked --all-targets` passes 23 deterministic Rust tests locally.
+- `cargo clippy --locked --all-targets -- -D warnings` passes locally.
+- `cargo build --locked --release` and local CLI diagnostics pass on macOS arm64.
+- A real three-second macOS microphone smoke test received PCM frames and
+  discarded them; no live Groq request is implied by that check.
 
-### Verification
+### Known limits
 
-- Fifty-nine deterministic unit tests, Ruff, source compilation, release
-  version checks, and release-note surface tests pass locally before the tag.
-- Candidate commit `1db98066a75329fc5ac5b6b13cf3a3be15fa4428` passed CI run
-  `33019179553` on Python 3.9, 3.11, and 3.14 plus the dependency/security job;
-  Flatpak run `33019179602` passed lints, online build, offline rebuild,
-  install/GTK/CLI smoke, and removal; CodeQL run `33019179363` passed all three
-  detected languages with no open alerts at verification time.
-- The tag workflow records the exact release commit and workflow URL in its
-  downloadable test report. Physical microphone/desktop combinations remain a
-  separately labelled community gate.
+- The supported transcription path requires a user-managed Groq key and cloud
+  consent; an offline provider is not included in this release.
+- Linux and Windows builds are automated release targets, but their physical
+  microphone and desktop runtime evidence remains target-specific.
+- Release archives are unsigned/notarized and do not install package-manager
+  metadata or automatic updates.
+- The final product demonstration video is intentionally produced only after
+  the release and downloaded-asset gates are validated.
 
-## [0.6.0] - 2026-08-26
+## Historical releases
 
-### Added
-
-- A typed transcription-provider contract with capability, language,
-  cancellation, limit, normalized-error, and data-boundary metadata.
-- A provider-aware first run, Settings selector, active-boundary desk label,
-  config check, and privacy-safe diagnostics.
-- A source-only, explicit-feature-flag whisper.cpp prototype using a
-  memory-backed Linux file descriptor instead of a raw-audio file.
-- A checksum-pinned LibriSpeech preparation tool, WER/latency receipt harness,
-  deterministic unit tests, and a manually triggered pinned local benchmark.
-
-### Changed
-
-- Groq remains the supported packaged path but now implements the same bounded
-  provider contract and cancellation/error behavior as future backends.
-
-### Privacy
-
-- Groq transmission remains limited to completed speech segments after local
-  VAD. Experimental local mode is source-only, explicit, disabled in Flatpak,
-  and passes WAV through Linux memory rather than an app-created audio file.
-- Provider errors and local process failures are normalized without logging
-  response bodies, credentials, transcript content, or local paths.
-
-### Verification
-
-- Fifty deterministic unit tests, Ruff, and source compilation passed in exact
-  commit CI run `33015936280`.
-- Benchmark run `33015305254` passed on 25 deterministic LibriSpeech
-  `test-clean` speakers with whisper.cpp tiny.en: 37 errors / 627 reference
-  words (5.90% WER), 1,043.810 ms p50 and 1,508.576 ms p95 wall-clock latency
-  on its named GitHub runner. The complete unedited receipt is committed.
-- Flatpak run `33015936279` built and installed `0.6.0`, passed CLI/doctor,
-  provider-boundary and mapped GTK accessibility smoke tests, then uninstalled.
-- CodeQL run `33015923746` passed for Python, Actions, and JavaScript with no
-  open code-scanning alerts.
-
-## [0.5.0] - 2026-08-26
-
-### Added
-
-- An editable transcript desk with bounded undo/redo, select-all, clear
-  confirmation, and recent per-segment pending/complete/error states.
-- Focused push-to-talk, capability-gated X11 tray window toggle, and an honest
-  explanation where global shortcuts or tray integration are unavailable.
-- Optional copy-on-final and destination-confirmed plain text, Markdown, and
-  timestamped exports written with owner-only permissions.
-- Explicit opt-in local text history with configurable expiry, storage-path
-  disclosure, retrieval, per-entry deletion, and clear-all controls.
-- A real-participant usability protocol that does not confuse automated
-  heuristic review with five observed sessions.
-
-## [0.4.0] - 2026-08-26
-
-### Added
-
-- A reproducible three-state product tour with static screenshots and a short
-  animation made from synthetic sample text.
-- A field-level data-flow document, supported-environment matrix, code of
-  conduct, issue-routing config, label manifest, and bounded newcomer tasks.
-- A privacy-safe `--doctor --json` readiness report with an explicit optional
-  Groq reachability probe, stable schema, and actionable exit status.
-- A keyboard-operable first-run setup that requires acknowledgement of the
-  cloud boundary before transcription is enabled.
-- A source-pinned Flatpak manifest, application metadata, generated Python
-  dependency module, and clean-install smoke workflow.
-
-### Changed
-
-- Reframed the README and site around daily Linux dictation, an explicit cloud
-  boundary, and the ability to inspect the app before configuring a Groq key.
-- Replaced the transitive Groq SDK stack with a small, tested stdlib HTTP
-  transport so the package boundary is easier to audit and reproduce.
-
-## [0.2.0] - 2026-08-26
-
-### Added
-
-- Microphone picker backed by on-demand local PortAudio discovery, with a durable per-user selection.
-- A rate-limited live input meter so a recording session can be verified before dictation.
-- `--list-devices`, `--list-devices --json`, and `--device INDEX` for machine-friendly microphone diagnostics and one-session overrides.
-- Native-boundary tests covering input filtering, selection, cleanup, and local signal-level normalization.
-
-### Changed
-
-- Microphone setup now explains unavailable saved devices and applies a changed source at the next session instead of silently changing an active capture.
-
-## [0.1.0] - 2026-08-26
-
-### Added
-
-- Bounded transcription worker pool, actionable API errors, and configurable request timeout.
-- Validated, atomically saved settings with owner-only permissions.
-- A keyboard-friendly GTK recording desk with clear session state, copy, export, and always-on-top controls.
-- CLI configuration check, package metadata, test suite, CI, contributor guidance, and security reporting policy.
-
-### Changed
-
-- Removed simulated transcription output: without a valid key the app now explains how to configure one.
-- Microphone capture and shutdown now have bounded queues, cleanup, and failure recovery.
-- API keys are ignored by Git and environment values explicitly override saved settings.
+Pre-`1.2.0` tags belong to the retired implementation and are retained in Git
+history for provenance only. They are not compatible with the current Rust
+source tree and must not be used as current installation instructions.
