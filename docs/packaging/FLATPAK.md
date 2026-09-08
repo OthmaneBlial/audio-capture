@@ -57,3 +57,10 @@ from the tag commit, installs the resulting bundle into a clean user scope,
 checks CLI contracts and permissions, launches GTK under Xvfb, and removes the
 app and sandbox. See the [release checklist](RELEASE-CHECKLIST.md) for the
 separate real-microphone gate.
+
+When running the installed-bundle smoke manually, pass the exact candidate
+version so the CLI check cannot validate against an old hard-coded value:
+
+```bash
+packaging/smoke_test_flatpak.sh voice-transcriber-1.2.3.flatpak 1.2.3
+```

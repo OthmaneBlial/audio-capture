@@ -18,6 +18,16 @@ def _match(path: str, pattern: str) -> str:
     return found.group(1)
 
 
+def _smoke_version_surface() -> None:
+    """Confirm the smoke script validates its caller-supplied candidate version."""
+    text = (ROOT / "packaging/smoke_test_flatpak.sh").read_text(encoding="utf-8")
+    if not re.search(r'^expected_version="\$\{2:-\}"$', text, flags=re.MULTILINE):
+        raise ValueError("Flatpak smoke must accept an explicit candidate version")
+    if not re.search(r'grep -Fx "voice-transcriber \$expected_version"', text):
+        raise ValueError("Flatpak smoke must compare the installed CLI with the candidate version")
+    return None
+
+
 def release_section(version: str) -> str:
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     pattern = rf"^## \[{re.escape(version)}\].*?\n(?P<body>.*?)(?=^## \[|\Z)"
@@ -28,6 +38,7 @@ def release_section(version: str) -> str:
 
 
 def check(expected: str) -> dict[str, str]:
+    _smoke_version_surface()
     versions = {
         "main.py": _match("main.py", r'^__version__ = "([^"]+)"'),
         "pyproject.toml": _match("pyproject.toml", r'^version = "([^"]+)"'),
@@ -35,9 +46,7 @@ def check(expected: str) -> dict[str, str]:
             "packaging/io.github.othmaneblial.audio_capture.metainfo.xml",
             r'<release version="([^"]+)"',
         ),
-        "Flatpak smoke": _match(
-            "packaging/smoke_test_flatpak.sh", r'voice-transcriber ([0-9]+\.[0-9]+\.[0-9]+)"'
-        ),
+        "Flatpak smoke": expected,
     }
     mismatches = {surface: value for surface, value in versions.items() if value != expected}
     if mismatches:

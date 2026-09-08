@@ -3,11 +3,16 @@ set -euo pipefail
 
 app_id="io.github.othmaneblial.audio_capture"
 bundle_path="${1:-voice-transcriber.flatpak}"
+expected_version="${2:-}"
 installed=0
 
 if [[ ! -f "$bundle_path" ]]; then
   echo "Flatpak bundle not found: $bundle_path" >&2
   exit 1
+fi
+if [[ -z "$expected_version" || ! "$expected_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Usage: $0 BUNDLE_PATH VERSION (for example: $0 voice-transcriber.flatpak 1.0.0)" >&2
+  exit 2
 fi
 
 cleanup() {
@@ -28,7 +33,7 @@ trap cleanup EXIT
 
 flatpak install --user --noninteractive --or-update "$bundle_path"
 installed=1
-flatpak run --user --command=voice-transcriber "$app_id" --version | grep -Fx "voice-transcriber 1.0.0"
+flatpak run --user --command=voice-transcriber "$app_id" --version | grep -Fx "voice-transcriber $expected_version"
 flatpak run --user --command=voice-transcriber "$app_id" --help | grep -F -- "--doctor"
 
 doctor_report="$(mktemp)"
