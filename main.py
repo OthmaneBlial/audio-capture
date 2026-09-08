@@ -376,6 +376,11 @@ class VoiceTranscriberApp:
             if state == "pending":
                 self._active_request_ids.add(request_id)
             elif state in {"complete", "error", "cancelled"}:
+                # A provider reset reports cancellation for requests that the
+                # controller has already retired. Do not let those callbacks
+                # recreate rows in a freshly cleared transcript generation.
+                if request_id not in self._active_request_ids:
+                    return
                 self._active_request_ids.discard(request_id)
             no_active_requests = not self._active_request_ids
         self._window.update_segment_state(request_id, state, detail)

@@ -14,6 +14,8 @@ All notable changes to Voice Transcriber are documented here.
   controls remain usable at the minimum window width.
 - Stop now drains already admitted audio and shows when remaining provider
   results are still being processed before marking the transcript ready.
+- Reset and Clear no longer let a late cancellation recreate a segment row from
+  the previous transcript generation.
 - Undo and Redo snapshots now have both count and character budgets, so a long
   editing session cannot grow those in-memory stacks without bound.
 - Incoming transcript segments no longer yank the editor to the bottom when a

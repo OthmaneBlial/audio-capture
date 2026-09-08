@@ -17,6 +17,7 @@ class FakeWindow:
         self.levels: list[float] = []
         self.transcripts: list[str] = []
         self.statuses: list[tuple[str, str, Optional[int]]] = []
+        self.segment_states: list[tuple[str, str, Optional[str]]] = []
         self.segment_states_cleared = 0
 
     def show_error(self, message: str) -> None:
@@ -36,8 +37,8 @@ class FakeWindow:
     ) -> None:
         self.statuses.append((message, style_class, reset_after_ms))
 
-    def update_segment_state(self, _request_id: str, _state: str, _detail: Optional[str]) -> None:
-        return None
+    def update_segment_state(self, request_id: str, state: str, detail: Optional[str]) -> None:
+        self.segment_states.append((request_id, state, detail))
 
     def clear_segment_states(self) -> None:
         self.segment_states_cleared += 1
@@ -233,6 +234,13 @@ class VoiceTranscriberAppTests(unittest.TestCase):
         app._on_request_state("segment-1", "pending", "Waiting")
         app._on_request_state("segment-1", "complete", "Added")
         self.assertEqual(app._window.statuses[-1][0], "Transcript ready to review")
+
+    def test_retired_request_state_cannot_recreate_cleared_segment_row(self) -> None:
+        app = self._new_app(consented=True)
+        app._active_request_ids.add("segment-old")
+        app._reset_transcription_generation()
+        app._on_request_state("segment-old", "cancelled", "Session was reset")
+        self.assertEqual(app._window.segment_states, [])
 
     def test_audio_backpressure_is_visible_and_deduplicated(self) -> None:
         app = self._new_app(consented=True)
