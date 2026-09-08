@@ -48,8 +48,8 @@ Le tableau précédent est la photographie de référence prise avant les
 corrections incrémentales. Depuis cette photographie, le checkout `main`
 contient 109 tests déterministes : `scripts/run_checks.py` a passé Ruff,
 compilation, tests et couverture à 69 % dans le venv temporaire utilisé pour
-la vérification. Le workflow Flatpak GitHub Actions `34254256484` a réussi sur
-le commit `cfcc9e6` le 8 septembre 2026 : build en ligne, rebuild sans
+la vérification. Le workflow Flatpak GitHub Actions `34255478952` a réussi sur
+le commit `cee8dc8` le 8 septembre 2026 : build en ligne, rebuild sans
 téléchargement, lints, CLI/doctor, permissions, smoke GTK sous Xvfb et
 désinstallation avec suppression des données. Ce job contient encore un
 avertissement GTK sur le thème d’icônes dans le conteneur ; il ne constitue pas
@@ -62,8 +62,8 @@ une validation Orca, micro physique, traduction Groq ou machine utilisateur.
 - Une contribution externe a réellement été intégrée : [PR #11, fixture provider](https://github.com/OthmaneBlial/audio-capture/pull/11), fusionnée le 27 août. Les deux PR ouvertes sont des mises à jour Dependabot (#12 et #13), pas des fonctionnalités utilisateur.
 - Workflow général `CI` : **`disabled_manually`**. Cette pause est aussi documentée dans `docs/SUPPORT.md` ; elle doit être préservée tant que la décision de maintenance n’est pas changée explicitement.
 - Workflows Flatpak, Release, benchmark et CodeQL actifs. CodeQL a réussi sur le
-  commit documentaire courant `2d2f045` ; le smoke Flatpak a réussi sur le
-  commit code `cfcc9e6` (run `34254256484`). Ces jobs ne remplacent pas les
+  commit courant `cee8dc8` ; le smoke Flatpak a réussi sur ce même commit
+  (run `34255478952`). Ces jobs ne remplacent pas les
   validations matérielles ni une release candidate publiée.
 - Reporting privé de vulnérabilités GitHub : **désactivé** (`enabled: false`) lors de l’audit, alors que `SECURITY.md` propose cette voie « when available » et un repli vers l’adresse du profil, non vérifiée ici.
 - Six assets de release existent : bundle, checksum, SBOM, rapport de tests et deux bundles d’attestation. Leur existence est vérifiée ; le rapport matériel reste négatif.
@@ -196,7 +196,7 @@ terminée lorsque sa validation externe reste ouverte.
 - [x] Test micro local, seuil VAD court et arrêt push-to-talk à la perte de focus.
 - [x] Autoscroll de relecture, états « traitement restant » et documentation de démarrage alignée.
 - [x] Checks source unifiés, audits sécurité, rapport de release explicite et actions/conteneur épinglés.
-- [x] Smoke Flatpak Linux vérifié sur `cfcc9e6` (`34254256484`), avec suppression des données.
+- [x] Smoke Flatpak Linux vérifié sur `cee8dc8` (`34255478952`), avec suppression des données.
 - [x] Sélection micro persistante protégée par une identité opaque best effort ; index réutilisé refusé par capture et diagnostics, avec migration des anciennes configurations sans identité après une ouverture réussie.
 - [x] Registre de preuves centralisé dans `docs/RELEASE-EVIDENCE.md`, avec séparation explicite entre source, package automatisé et portes humaines.
 - [x] Contrôleur instanciable en headless via une fenêtre injectée, avec test sans import GTK/PyAudio du constructeur.
@@ -372,7 +372,7 @@ terminée lorsque sa validation externe reste ouverte.
 ### 5.1 — Fiabiliser le package et ses preuves d’installation · P1 · F14
 
 - **Objectif :** vérifier le paquet livré, ses données et sa suppression de manière exacte.
-- **Changements :** smoke sur compte/VM jetable ; tests de sauvegarde/relecture Settings et historique dans le sandbox ; GTK requis pour le job de release ; résultat JSON par étape ; désinstallation réellement vérifiée avant succès ; version attendue fournie au script ; aucun cleanup destructif du profil courant. **Fait localement :** le script exige maintenant la version candidate en argument et un D-Bus `machine-id` explicite, ne masque plus l’échec de désinstallation, termine explicitement les processus Flatpak encore vivants avant la suppression, ne saute plus silencieusement Xvfb, et le rapport de tests expose maintenant un statut explicite pour la qualité source, les tests, la confidentialité, le Flatpak et le matériel tout en distinguant `not-recorded` de `passed`. Le run Flatpak épinglé `34254256484` a confirmé ce chemin sur `cfcc9e6`; la recette sur VM jetable et les réglages/historique via portail restent ouverts.
+- **Changements :** smoke sur compte/VM jetable ; tests de sauvegarde/relecture Settings et historique dans le sandbox ; GTK requis pour le job de release ; résultat JSON par étape ; désinstallation réellement vérifiée avant succès ; version attendue fournie au script ; aucun cleanup destructif du profil courant. **Fait localement :** le script exige maintenant la version candidate en argument et un D-Bus `machine-id` explicite, ne masque plus l’échec de désinstallation, termine explicitement les processus Flatpak encore vivants avant la suppression, ne saute plus silencieusement Xvfb, et le rapport de tests expose maintenant un statut explicite pour la qualité source, les tests, la confidentialité, le Flatpak et le matériel tout en distinguant `not-recorded` de `passed`. Le run Flatpak épinglé `34255478952` a confirmé ce chemin sur `cee8dc8`; la recette sur VM jetable et les réglages/historique via portail restent ouverts.
 - **Fichiers/parties :** manifestes `packaging/*`, `io.github.othmaneblial.audio_capture.yml`, `smoke_test_flatpak.sh`, `run_release_tests.py`, checklist et workflows.
 - **Acceptation :** saut GTK et échec uninstall ne produisent plus un rapport « passed » ; données de test supprimées ; permissions comparées à une liste autorisée complète, pas à un seul motif `home|host` ; configuration XDG persistante ; export choisi sans accès large au home.
 - **Tests/validations :** build propre, sources récupérées puis rebuild sans téléchargement, lints, install/CLI/GTK/settings/export/uninstall ; injecter un échec à chaque étape pour vérifier le rapport et le code retour.

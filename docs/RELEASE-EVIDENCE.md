@@ -10,7 +10,7 @@ tester. It is a record of observed results, not a release approval.
 
 | Surface | Exact evidence | Scope and limit |
 | --- | --- | --- |
-| Source checkout | `main` at `2d2f045` | Documentation commit on top of the code candidate below |
+| Source checkout | `main` at `cee8dc8` | Commit tested by the package workflow below |
 | Deterministic suite | `python scripts/run_checks.py` passed 109 tests and 69% combined line/branch coverage | No physical microphone, GTK desktop, provider account, or network transcription |
 | Static quality | Ruff, Python compilation, `pip-audit --require-hashes --disable-pip -r packaging/requirements-audit.txt`, and Bandit passed locally | Static/dependency checks; no full operating-system audit |
 | CLI contracts | `python main.py --version` returned `voice-transcriber 1.0.0`; help lists `--list-devices`, `--doctor`, `--device`, and `--probe-provider` | This macOS checkout has no usable GTK/PyAudio runtime for a desktop launch |
@@ -20,8 +20,8 @@ tester. It is a record of observed results, not a release approval.
 
 | Surface | Exact evidence | Scope and limit |
 | --- | --- | --- |
-| Flatpak candidate source | Code candidate `cfcc9e6` | The later documentation commits only update this register/wording |
-| Build and install | GitHub Actions Flatpak run [`34254256484`](https://github.com/OthmaneBlial/audio-capture/actions/runs/34254256484) passed | GNOME 50 container, not a physical desktop |
+| Flatpak candidate source | Code candidate `cee8dc8` | The workflow checked out the pushed `main` commit |
+| Build and install | GitHub Actions Flatpak run [`34255478952`](https://github.com/OthmaneBlial/audio-capture/actions/runs/34255478952) passed | GNOME 50 container, not a physical desktop |
 | Package checks | Online build, no-download rebuild, manifest/export lints, installed CLI/doctor, permissions, GTK/Xvfb smoke, and uninstall with `--delete-data` passed | A non-blocking icon-theme warning remains in the container log |
 | Public stable release | Existing `v1.0.0` remains the historical public asset | It points to an older source commit and must not be described as containing the current fixes |
 

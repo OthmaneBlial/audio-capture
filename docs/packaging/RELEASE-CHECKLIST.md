@@ -14,7 +14,7 @@ deterministic suite, and the installed-bundle smoke to report `passed`; a
 `not-recorded` step remains an open gate even when another step is green.
 
 The latest automated Flatpak gate passed on 8 September 2026 in workflow run
-`34254256484` for commit `cfcc9e6`. It does not satisfy the real Linux desktop,
+`34255478952` for commit `cee8dc8`. It does not satisfy the real Linux desktop,
 microphone, provider-account, or downloaded-release gates below.
 
 ## Automated package gate
