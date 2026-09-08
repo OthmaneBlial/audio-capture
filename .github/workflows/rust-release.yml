@@ -119,7 +119,8 @@ jobs:
           Copy-Item "target/${{ matrix.target }}/release/${{ matrix.binary }}" $root
           Copy-Item README.md, LICENSE $root
           Compress-Archive -Path $root -DestinationPath "$root.zip"
-          (Get-FileHash "$root.zip" -Algorithm SHA256).Hash.ToLower() + "  $root.zip" | Set-Content "$root.zip.sha256"
+          $checksum = (Get-FileHash "$root.zip" -Algorithm SHA256).Hash.ToLower() + "  $root.zip"
+          [System.IO.File]::WriteAllText("$root.zip.sha256", $checksum, [System.Text.UTF8Encoding]::new($false))
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: voice-transcriber-${{ matrix.target }}-release
