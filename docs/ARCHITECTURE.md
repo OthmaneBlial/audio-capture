@@ -36,6 +36,8 @@ text history.
 ## Reliability boundaries
 
 - The microphone queue drops oldest frames if processing falls behind, preserving real-time behavior instead of growing memory indefinitely.
+- Provider shutdown closes the admission window and terminates a local process
+  created during the close race before it can escape the tracked process set.
 - Input discovery opens PortAudio only on demand and releases it immediately; a saved unavailable device remains visible so the user can correct it rather than silently falling back.
 - The input meter is derived from an in-memory PCM RMS value and is never written to disk or sent to Groq.
 - The API boundary rejects malformed, empty, and oversized PCM data.

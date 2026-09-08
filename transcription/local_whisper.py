@@ -238,6 +238,15 @@ class LocalWhisperTranscriptionService:
                 pass_fds=(descriptor,),
             )
             with self._lock:
+                if self._closed:
+                    try:
+                        process.terminate()
+                    except OSError:
+                        pass
+                    raise ProviderError(
+                        "The local transcription service is shutting down.",
+                        code="shutdown",
+                    )
                 self._processes.add(process)
             try:
                 stdout, stderr = process.communicate(timeout=self._timeout_seconds)

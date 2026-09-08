@@ -6,6 +6,7 @@ from pathlib import Path
 
 from transcription.groq_service import GroqTranscriptionService
 from transcription.local_whisper import LocalWhisperTranscriptionService, local_mode_enabled
+from transcription.provider import ProviderError
 
 
 class FakeProcess:
@@ -161,6 +162,49 @@ class ProviderContractTests(unittest.TestCase):
                 self.assertEqual(len(errors), 1)
                 self.assertTrue(errors[0][0].startswith("local-segment-"))
                 self.assertEqual(errors[0][1].code, "local_unexpected")
+            finally:
+                service.close(wait=True)
+                for descriptor in descriptors:
+                    descriptor.close()
+
+    def test_local_process_created_during_close_is_terminated_before_registration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory) / "whisper-cli"
+            binary.write_text("placeholder")
+            binary.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            model = Path(directory) / "ggml-tiny.bin"
+            model.write_bytes(b"model")
+            descriptors = []
+            processes = []
+            holder = {}
+
+            def memfd_factory(_name, _flags):
+                temporary = tempfile.TemporaryFile()
+                descriptors.append(temporary)
+                return os.dup(temporary.fileno())
+
+            def closing_process_factory(command, **kwargs):
+                holder["service"].close(wait=False)
+                process = FakeProcess(command, **kwargs)
+                processes.append(process)
+                return process
+
+            service = LocalWhisperTranscriptionService(
+                binary_path=str(binary),
+                model_path=str(model),
+                process_factory=closing_process_factory,
+                memfd_factory=memfd_factory,
+                environ={"VOICE_TRANSCRIBER_EXPERIMENTAL_LOCAL": "1"},
+                flatpak_info=Path(directory) / "missing-flatpak-info",
+            )
+            holder["service"] = service
+            try:
+                with self.assertRaises(ProviderError) as raised:
+                    service._run_cli(b"RIFF-fake-wav")
+                self.assertEqual(raised.exception.code, "shutdown")
+                self.assertEqual(len(processes), 1)
+                self.assertTrue(processes[0].terminated)
+                self.assertEqual(service._processes, set())
             finally:
                 service.close(wait=True)
                 for descriptor in descriptors:

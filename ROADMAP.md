@@ -46,7 +46,7 @@ Checksum du bundle vérifié : `19f941a5767f7380eb8709bde3de3cbee78647ee263f343a
 
 Le tableau précédent est la photographie de référence prise avant les
 corrections incrémentales. Depuis cette photographie, le checkout `main`
-contient 106 tests déterministes : `scripts/run_checks.py` a passé Ruff,
+contient 107 tests déterministes : `scripts/run_checks.py` a passé Ruff,
 compilation, tests et couverture à 68 % dans le venv temporaire utilisé pour
 la vérification. Le workflow Flatpak GitHub Actions `34253665599` a réussi sur
 le commit `82a8a16` le 8 septembre 2026 : build en ligne, rebuild sans
@@ -192,6 +192,7 @@ terminée lorsque sa validation externe reste ouverte.
 - [x] Clear/reset isolé des résultats et états tardifs ; arrêt avec drain des trames admises.
 - [x] Configuration XDG, écritures atomiques, historique borné et exports sans destination symlink.
 - [x] File audio, réponses HTTP, états de segments et piles Undo/Redo bornés avec alertes de perte.
+- [x] Course de fermeture du provider local : un processus créé pendant la fermeture est arrêté avant d’être enregistré dans le pool.
 - [x] Test micro local, seuil VAD court et arrêt push-to-talk à la perte de focus.
 - [x] Autoscroll de relecture, états « traitement restant » et documentation de démarrage alignée.
 - [x] Checks source unifiés, audits sécurité, rapport de release explicite et actions/conteneur épinglés.
@@ -282,7 +283,7 @@ terminée lorsque sa validation externe reste ouverte.
 ### 2.2 — Borner toutes les ressources et rendre les pertes visibles · P1 · F08
 
 - **Objectif :** une longue session et un réseau dégradé ne dégradent pas progressivement l’app.
-- **Changements :** éviction réelle des états finalisés, conservation séparée des seuls états en cours ; budget de snapshots en octets et regroupement des éditions ; limites documentées de l’historique et des réponses HTTP ; gestion atomique admission/fermeture de l’executor ; indication des pertes de trames et de saturation avec action de reprise. **Fait localement :** `SegmentTracker` évince maintenant les états et identifiants hors de la fenêtre visible, avec compteur borné et test à 10 000 requêtes ; l’historique et la réponse HTTP ont des budgets explicites, Stop draine les trames admises, le contrôleur affiche désormais une alerte dédupliquée demandant de répéter la phrase lorsque `AudioCapture` signale une saturation, et `UndoHistory` borne chaque pile par nombre d’entrées et caractères. La fermeture concurrente de l’executor reste à traiter.
+- **Changements :** éviction réelle des états finalisés, conservation séparée des seuls états en cours ; budget de snapshots en octets et regroupement des éditions ; limites documentées de l’historique et des réponses HTTP ; gestion atomique admission/fermeture de l’executor ; indication des pertes de trames et de saturation avec action de reprise. **Fait localement :** `SegmentTracker` évince maintenant les états et identifiants hors de la fenêtre visible, avec compteur borné et test à 10 000 requêtes ; l’historique et la réponse HTTP ont des budgets explicites, Stop draine les trames admises, le contrôleur affiche désormais une alerte dédupliquée demandant de répéter la phrase lorsque `AudioCapture` signale une saturation, `UndoHistory` borne chaque pile par nombre d’entrées et caractères, et le provider local termine un processus créé pendant une fermeture avant de l’enregistrer dans son pool. La session réelle de 30 minutes reste ouverte.
 - **Fichiers/parties :** `transcript.py`, `history.py`, `audio/capture.py`, services/transport, contrôleur et tests de stress.
 - **Acceptation :** 10 000 segments ne créent pas 10 000 états conservés ; limites mesurées et constantes indépendamment de la durée ; saturation visible, pas de retry illimité ni de nouvelle copie d’audio persistée.
 - **Tests/validations :** stress déterministe, réponse surdimensionnée, fermeture concurrente, 429, panne prolongée, session réelle de 30 minutes ; vérifier mémoire et nombre de threads après retour au repos.
