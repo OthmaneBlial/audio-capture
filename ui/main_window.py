@@ -85,6 +85,7 @@ class MainWindow(Gtk.Window):
         self.set_wmclass("voice-transcriber", "Voice Transcriber")
         self.set_role("voice-transcriber")
         self.connect("destroy", self._on_destroy)
+        self.connect("focus-out-event", self._on_focus_out)
         self.connect("configure-event", self._on_window_configure)
         try:
             base_path = getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1])
@@ -1089,6 +1090,12 @@ class MainWindow(Gtk.Window):
             self._suppress_next_click = True
             if self._is_listening:
                 self.stop_listening()
+        return False
+
+    def _on_focus_out(self, _window: Gtk.Window, _event: Gdk.EventFocus) -> bool:
+        """Fail closed when a focused push-to-talk window loses focus."""
+        if self._config.get("capture_mode") == "push_to_talk" and self._is_listening:
+            self.stop_listening()
         return False
 
     def start_listening(self) -> None:

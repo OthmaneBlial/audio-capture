@@ -13,7 +13,9 @@ failed. The strip never stores audio or transcript content.
   drives the signal meter, keeps no audio queue, and never calls a provider.
 - Toggle mode starts and stops with a click or `Ctrl+Enter`.
 - Focused push-to-talk starts on mouse press and stops on release. It is not a
-  system-wide shortcut and cannot capture when another app owns the interaction.
+  system-wide shortcut; losing window focus also stops it, and it cannot capture
+  when another app owns the interaction. `Ctrl+Enter` remains the explicit
+  start/stop toggle.
 - A legacy tray window toggle is exposed only on a non-sandboxed X11 session.
   Wayland and Flatpak sessions receive an explicit capability explanation.
 
