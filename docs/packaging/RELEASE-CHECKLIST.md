@@ -4,6 +4,10 @@ This checklist distinguishes an automated package build from a supported public
 release. Record the commit, bundle checksum, tester environment, and evidence
 URL for every completed run.
 
+The cross-phase source/package/human gate register is maintained in
+[`docs/RELEASE-EVIDENCE.md`](../RELEASE-EVIDENCE.md). This checklist remains
+the authoritative per-package acceptance list.
+
 The generated test report has an `automated.release_ready` field and a status
 for each gate. `release_ready: true` requires the source-quality job, the
 deterministic suite, and the installed-bundle smoke to report `passed`; a

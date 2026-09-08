@@ -198,6 +198,7 @@ terminée lorsque sa validation externe reste ouverte.
 - [x] Checks source unifiés, audits sécurité, rapport de release explicite et actions/conteneur épinglés.
 - [x] Smoke Flatpak Linux vérifié sur `cfcc9e6` (`34254256484`), avec suppression des données.
 - [x] Sélection micro persistante protégée par une identité opaque best effort ; index réutilisé refusé par capture et diagnostics, avec migration des anciennes configurations sans identité après une ouverture réussie.
+- [x] Registre de preuves centralisé dans `docs/RELEASE-EVIDENCE.md`, avec séparation explicite entre source, package automatisé et portes humaines.
 - [ ] Compatibilité Linux physique, micro, Orca, portail d’export et transcription Groq réelle.
 - [ ] Cinq sessions utilisateur, canal de mise à jour public et release candidate téléchargée.
 - [ ] Captures GTK réelles et vidéo finale produite après les portes précédentes.
