@@ -16,6 +16,7 @@ class FakeWindow:
         self.input_sources: list[str] = []
         self.levels: list[float] = []
         self.transcripts: list[str] = []
+        self.statuses: list[tuple[str, str, Optional[int]]] = []
 
     def show_error(self, message: str) -> None:
         self.errors.append(message)
@@ -29,8 +30,10 @@ class FakeWindow:
     def append_text(self, text: str) -> None:
         self.transcripts.append(text)
 
-    def set_status(self, _message: str, _style_class: str = "") -> None:
-        return None
+    def set_status(
+        self, message: str, style_class: str = "", *, reset_after_ms: Optional[int] = None
+    ) -> None:
+        self.statuses.append((message, style_class, reset_after_ms))
 
 
 class FakeAudioCapture:
@@ -48,6 +51,7 @@ class FakeAudioCapture:
         self.started = False
         self.stopped = False
         self.stop_clear_queue: Optional[bool] = None
+        self.dropped_frames = 0
         self.queued_chunks: list[bytes] = []
         self.__class__.instances.append(self)
 
@@ -115,6 +119,7 @@ def make_app(*, consented: bool) -> VoiceTranscriberApp:
     app._vad = None
     app._active_request_ids = set()
     app._monitor_audio = None
+    app._reported_dropped_frames = 0
     app._input_device_override = None
     app._test_tmpdir = tempfile.TemporaryDirectory()
     app._config = ConfigManager(
@@ -192,6 +197,22 @@ class VoiceTranscriberAppTests(unittest.TestCase):
                 app._transcriber.transcribe_async = mock.Mock()
                 app._stop_listening()
         app._transcriber.transcribe_async.assert_called_once_with(b"\x00\x00")
+
+    def test_audio_backpressure_is_visible_and_deduplicated(self) -> None:
+        app = self._new_app(consented=True)
+        audio = types.SimpleNamespace(dropped_frames=3)
+        app._report_audio_drops(audio)
+        app._report_audio_drops(audio)
+        audio.dropped_frames = 4
+        app._report_audio_drops(audio)
+        self.assertEqual(
+            [message for message, _style, _reset in app._window.statuses],
+            [
+                "Audio buffer full · 3 frame(s) dropped. Please repeat that phrase.",
+                "Audio buffer full · 4 frame(s) dropped. Please repeat that phrase.",
+            ],
+        )
+        self.assertTrue(all(style == "warning" for _message, style, _reset in app._window.statuses))
 
 
 if __name__ == "__main__":

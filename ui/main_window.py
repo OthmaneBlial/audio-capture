@@ -114,6 +114,7 @@ class MainWindow(Gtk.Window):
         .status { color: #B4C6B4; font-size: 12px; font-weight: 700; }
         .status.active { color: #C9F57A; }
         .status.error { color: #FFAA8E; }
+        .status.warning { color: #FFD18A; }
         .segment-strip { background-color: #141B17; border: 1px solid #344338; border-radius: 8px; padding: 6px 10px; }
         .segment-state { color: #AAB8AA; font-size: 11px; }
         .segment-state.pending { color: #D5EAA9; }
@@ -448,13 +449,15 @@ class MainWindow(Gtk.Window):
             "Refresh", "Find currently available microphone inputs", self._on_refresh_input_devices
         )
         device_controls.pack_end(refresh_button, False, False, 0)
+        device_row.pack_start(device_controls, False, False, 0)
+        test_controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._test_microphone_button = self._make_secondary_button(
             "Test microphone",
             "Show the local microphone signal without recording or contacting a provider",
             self._on_test_microphone_clicked,
         )
-        device_controls.pack_end(self._test_microphone_button, False, False, 0)
-        device_row.pack_start(device_controls, False, False, 0)
+        test_controls.pack_start(self._test_microphone_button, False, False, 0)
+        device_row.pack_start(test_controls, False, False, 0)
         self._device_help = self._label(
             "Choose a source, then start a new session to use it.", "settings-help"
         )
@@ -1437,7 +1440,7 @@ class MainWindow(Gtk.Window):
             self._status_reset_source = None
         self._status_label.set_text(message)
         context = self._status_label.get_style_context()
-        for class_name in ("active", "error"):
+        for class_name in ("active", "error", "warning"):
             context.remove_class(class_name)
         if style_class:
             context.add_class(style_class)

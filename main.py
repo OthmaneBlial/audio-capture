@@ -40,6 +40,7 @@ class VoiceTranscriberApp:
         self._vad: Any = None
         self._monitor_audio: Any = None
         self._active_request_ids: set[str] = set()
+        self._reported_dropped_frames = 0
         self._input_device_override = input_device_override
         self._config = ConfigManager()
         self._transcriber = self._build_transcriber()
@@ -140,6 +141,7 @@ class VoiceTranscriberApp:
             # callback still arriving from a cancelled previous session is
             # rejected by the request-id gate below.
             self._reset_transcription_generation()
+            self._reported_dropped_frames = 0
             audio: Any = None
             try:
                 device_index = (
@@ -266,6 +268,7 @@ class VoiceTranscriberApp:
         while self._running.is_set():
             try:
                 chunk = audio.get_audio_chunk(timeout=0.2)
+                self._report_audio_drops(audio)
                 if chunk is None:
                     if not audio.is_running and self._running.is_set():
                         self._running.clear()
@@ -299,6 +302,30 @@ class VoiceTranscriberApp:
                     or False
                 )
                 break
+
+    def _report_audio_drops(self, audio: Any) -> None:
+        """Surface capture backpressure without exposing audio or touching GTK off-thread."""
+        try:
+            dropped_frames = max(0, int(getattr(audio, "dropped_frames", 0)))
+        except (TypeError, ValueError):
+            dropped_frames = 0
+        if dropped_frames <= self._reported_dropped_frames:
+            return
+        self._reported_dropped_frames = dropped_frames
+        message = (
+            f"Audio buffer full · {dropped_frames} frame(s) dropped. "
+            "Please repeat that phrase."
+        )
+
+        def show_notice() -> bool:
+            self._window.set_status(message, "warning", reset_after_ms=6_000)
+            return False
+
+        if GLib is None:
+            # This branch keeps the controller testable without importing GTK.
+            show_notice()
+        else:
+            GLib.idle_add(show_notice)
 
     def _handle_capture_failure(self, message: str) -> None:
         """Bring controller and visible record state back into sync after capture loss."""

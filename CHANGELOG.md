@@ -10,12 +10,16 @@ All notable changes to Voice Transcriber are documented here.
   Zero Data Retention, and per-request billing facts beside the cloud consent.
 - Settings keeps the same disclosure and live provider-document links visible
   for returning users instead of limiting the facts to first run.
+- Capture backpressure is reported in the status line, and the microphone
+  controls remain usable at the minimum window width.
 
 ### Privacy
 
 - The transmission path is unchanged. The added disclosure explains provider
   policy and the 10-second minimum billed length without adding analytics,
   network probes, audio persistence, or transcript persistence.
+- A saturated in-memory audio queue drops its oldest frame and tells the user
+  to repeat the affected phrase; dropped frames are not persisted.
 
 ## [1.0.0] - 2026-08-27
 
