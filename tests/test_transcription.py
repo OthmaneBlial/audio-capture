@@ -67,8 +67,8 @@ class FakeResponse:
     def __exit__(self, *_args: object) -> None:
         return None
 
-    def read(self) -> bytes:
-        return self._payload
+    def read(self, size: int = -1) -> bytes:
+        return self._payload if size < 0 else self._payload[:size]
 
 
 class GroqTranscriptionServiceTests(unittest.TestCase):
@@ -278,6 +278,21 @@ class GroqHTTPTransportTests(unittest.TestCase):
 
         transport = GroqHTTPTransport(api_key="gsk-test-secret", opener=rejected)
         with self.assertRaisesRegex(GroqTransportError, "HTTP 401"):
+            transport.transcribe(
+                b"wav",
+                model="whisper-test",
+                language=None,
+                translate=False,
+            )
+
+    def test_rejects_an_oversized_provider_response(self) -> None:
+        transport = GroqHTTPTransport(
+            api_key="gsk-test-secret",
+            opener=lambda _request, *, timeout: FakeResponse(
+                {"text": "x" * (GroqHTTPTransport.MAX_RESPONSE_BYTES + 1)}
+            ),
+        )
+        with self.assertRaisesRegex(GroqTransportError, "too large"):
             transport.transcribe(
                 b"wav",
                 model="whisper-test",

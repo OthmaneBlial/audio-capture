@@ -16,6 +16,7 @@ class GroqTransportError(RuntimeError):
 
 class GroqHTTPTransport:
     BASE_URL = "https://api.groq.com/openai/v1/audio"
+    MAX_RESPONSE_BYTES = 1_000_000
 
     def __init__(
         self,
@@ -54,7 +55,7 @@ class GroqHTTPTransport:
         )
         try:
             with self._opener(request, timeout=self._timeout) as response:
-                payload = response.read()
+                payload = response.read(self.MAX_RESPONSE_BYTES + 1)
         except urllib.error.HTTPError as error:
             status_code = error.code
             # Python 3.9's HTTPError.close() assumes a response file exists;
@@ -66,6 +67,8 @@ class GroqHTTPTransport:
             raise GroqTransportError(f"Groq returned HTTP {status_code}.") from error
         except (urllib.error.URLError, TimeoutError, OSError) as error:
             raise GroqTransportError("Could not reach Groq before the request timeout.") from error
+        if len(payload) > self.MAX_RESPONSE_BYTES:
+            raise GroqTransportError("Groq returned a response that is too large.")
         try:
             decoded = json.loads(payload.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
