@@ -52,9 +52,18 @@ class ConfigManager:
         config_dir: Optional[Path] = None,
         environ: Optional[Mapping[str, str]] = None,
     ) -> None:
-        self._config_dir = config_dir or Path.home() / ".config" / "voice-transcriber"
-        self._config_file = self._config_dir / "config.json"
         self._environ = environ if environ is not None else os.environ
+        if config_dir is None:
+            configured_base = self._environ.get("XDG_CONFIG_HOME", "").strip()
+            base_dir = (
+                Path(configured_base).expanduser()
+                if configured_base
+                else Path.home() / ".config"
+            )
+            self._config_dir = base_dir / "voice-transcriber"
+        else:
+            self._config_dir = Path(config_dir)
+        self._config_file = self._config_dir / "config.json"
         self._file_config: dict[str, Any] = {}
         self._config = self.DEFAULT_CONFIG.copy()
         self.load()
@@ -86,18 +95,21 @@ class ConfigManager:
 
     def save(self) -> None:
         """Atomically write user settings with owner-only permissions."""
-        self._config_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        descriptor: Optional[int] = None
+        temp_path: Optional[Path] = None
         try:
-            self._config_dir.chmod(0o700)
-        except OSError:
-            LOGGER.debug("Could not tighten permissions on %s", self._config_dir, exc_info=True)
+            self._config_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+            try:
+                self._config_dir.chmod(0o700)
+            except OSError:
+                LOGGER.debug("Could not tighten permissions on %s", self._config_dir, exc_info=True)
 
-        descriptor, temp_name = tempfile.mkstemp(
-            prefix=".config-", suffix=".json", dir=self._config_dir, text=True
-        )
-        temp_path = Path(temp_name)
-        try:
+            descriptor, temp_name = tempfile.mkstemp(
+                prefix=".config-", suffix=".json", dir=self._config_dir, text=True
+            )
+            temp_path = Path(temp_name)
             with os.fdopen(descriptor, "w", encoding="utf-8") as config_file:
+                descriptor = None
                 json.dump(self._config, config_file, indent=2, sort_keys=True)
                 config_file.write("\n")
                 config_file.flush()
@@ -108,7 +120,12 @@ class ConfigManager:
         except OSError as error:
             raise ConfigError(f"Could not save settings to {self._config_file}: {error}") from error
         finally:
-            if temp_path.exists():
+            if descriptor is not None:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
+            if temp_path is not None and temp_path.exists():
                 temp_path.unlink(missing_ok=True)
 
     def get(self, key: str) -> Any:
@@ -144,8 +161,15 @@ class ConfigManager:
     def update(self, values: Mapping[str, Any]) -> None:
         """Persist a group of values as one atomic configuration update."""
         validated = self._validated_values(values, ignore_unknown=False)
+        previous = self._config.copy()
         self._config.update(validated)
-        self.save()
+        try:
+            self.save()
+        except Exception:
+            # A failed write must not leave the running process claiming a
+            # preference that will disappear on the next restart.
+            self._config = previous
+            raise
 
     def has_api_key(self) -> bool:
         """Return whether a plausible Groq key is configured, without exposing it."""

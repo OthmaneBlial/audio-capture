@@ -3,11 +3,23 @@ import stat
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from config import ConfigError, ConfigManager
 
 
 class ConfigManagerTests(unittest.TestCase):
+    def test_default_directory_respects_xdg_config_home(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = ConfigManager(
+                config_dir=None,
+                environ={"XDG_CONFIG_HOME": temporary_directory},
+            )
+            self.assertEqual(
+                config.path,
+                Path(temporary_directory) / "voice-transcriber" / "config.json",
+            )
+
     def test_environment_overrides_saved_api_key_without_overwriting_it(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             config = ConfigManager(Path(temporary_directory), environ={})
@@ -31,6 +43,14 @@ class ConfigManagerTests(unittest.TestCase):
             self.assertEqual(payload["font_size"], 21)
             self.assertEqual(payload["opacity"], 0.8)
             self.assertEqual(stat.S_IMODE(config.path.stat().st_mode), 0o600)
+
+    def test_failed_save_restores_in_memory_configuration(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = ConfigManager(Path(temporary_directory), environ={})
+            with mock.patch.object(config, "save", side_effect=OSError("read-only")):
+                with self.assertRaises(OSError):
+                    config.set("font_size", 24)
+            self.assertEqual(config.get("font_size"), ConfigManager.DEFAULT_CONFIG["font_size"])
 
     def test_invalid_values_are_rejected_and_corrupt_file_falls_back_to_defaults(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
