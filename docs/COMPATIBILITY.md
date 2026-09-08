@@ -8,7 +8,7 @@ Flatpak, and PortAudio stacks may happen to support.
 
 | Path | Evidence | Status |
 | --- | --- | --- |
-| x86_64 Flatpak build/install/remove | Clean GNOME 50 container workflow; run `34252066670` on commit `165f399` passed with pinned actions/image, build, offline rebuild, lints, GTK/Xvfb smoke, and data removal | Automated package evidence; no physical desktop claim |
+| x86_64 Flatpak build/install/remove | Clean GNOME 50 container workflow; run `34253665599` on commit `82a8a16` passed with pinned actions/image, build, offline rebuild, lints, GTK/Xvfb smoke, and data removal | Automated package evidence; no physical desktop claim |
 | GTK 3 on X11 | Xvfb first-run, desk, accessibility, and settings smoke | Automated virtual display; no physical desktop claim |
 | GTK 3 on Wayland | Manifest declares Wayland and fallback X11; unit diagnostics classify Wayland | Declared/logic-tested; real compositor report open |
 | PulseAudio socket in Flatpak | Minimal `--socket=pulseaudio` permission asserted | Declared; real microphone report open |
