@@ -25,7 +25,8 @@ All notable changes to Voice Transcriber are documented here.
 - Explicit microphone selections now store a best-effort opaque identity beside
   the legacy PortAudio index. Startup and `--doctor` refuse a reused index when
   the identity no longer matches, while default-device and one-session CLI
-  overrides remain unchanged.
+  overrides remain unchanged. Legacy saved indexes receive the identity after
+  their next successful open.
 - The experimental local provider now closes a process created during service
   shutdown before registering it, preventing a close race from leaving work
   outside the cancellation set.

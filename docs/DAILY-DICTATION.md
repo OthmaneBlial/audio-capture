@@ -19,7 +19,8 @@ failed. The strip never stores audio or transcript content.
   well as its PortAudio index. If a replugged device reuses that index, startup
   refuses the mismatch and asks you to refresh the picker instead of recording
   from an unexpected microphone. PortAudio does not provide one portable
-  persistent identifier, so this guard is not a hardware guarantee.
+  persistent identifier, so this guard is not a hardware guarantee. A legacy
+  saved index receives its identity after the next successful open.
 - If the status says **Audio buffer full**, the computer could not process the
   microphone quickly enough. The app drops the oldest in-memory frame to stay
   bounded; repeat the phrase after the warning instead of assuming that segment

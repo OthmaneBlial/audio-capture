@@ -46,7 +46,7 @@ Checksum du bundle vérifié : `19f941a5767f7380eb8709bde3de3cbee78647ee263f343a
 
 Le tableau précédent est la photographie de référence prise avant les
 corrections incrémentales. Depuis cette photographie, le checkout `main`
-contient 107 tests déterministes : `scripts/run_checks.py` a passé Ruff,
+contient 108 tests déterministes : `scripts/run_checks.py` a passé Ruff,
 compilation, tests et couverture à 68 % dans le venv temporaire utilisé pour
 la vérification. Le workflow Flatpak GitHub Actions `34253665599` a réussi sur
 le commit `82a8a16` le 8 septembre 2026 : build en ligne, rebuild sans
@@ -197,7 +197,7 @@ terminée lorsque sa validation externe reste ouverte.
 - [x] Autoscroll de relecture, états « traitement restant » et documentation de démarrage alignée.
 - [x] Checks source unifiés, audits sécurité, rapport de release explicite et actions/conteneur épinglés.
 - [x] Smoke Flatpak Linux vérifié sur `82a8a16` (`34253665599`), avec suppression des données.
-- [x] Sélection micro persistante protégée par une identité opaque best effort ; index réutilisé refusé par capture et diagnostics, avec migration des anciennes configurations sans identité.
+- [x] Sélection micro persistante protégée par une identité opaque best effort ; index réutilisé refusé par capture et diagnostics, avec migration des anciennes configurations sans identité après une ouverture réussie.
 - [ ] Compatibilité Linux physique, micro, Orca, portail d’export et transcription Groq réelle.
 - [ ] Cinq sessions utilisateur, canal de mise à jour public et release candidate téléchargée.
 - [ ] Captures GTK réelles et vidéo finale produite après les portes précédentes.

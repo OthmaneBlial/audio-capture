@@ -61,7 +61,9 @@ class FakeAudioCapture:
         self.queue_audio = queue_audio
         self.sample_rate = 16_000
         self.frame_duration_ms = 30
-        self.selected_device = types.SimpleNamespace(name="Test microphone")
+        self.selected_device = types.SimpleNamespace(
+            name="Test microphone", identity="abcdef0123456789abcdef01"
+        )
         self.started = False
         self.stopped = False
         self.stop_clear_queue: Optional[bool] = None
@@ -193,6 +195,19 @@ class VoiceTranscriberAppTests(unittest.TestCase):
                 self.assertTrue(app._start_listening())
                 self.assertEqual(
                     FakeAudioCapture.instances[0].expected_device_identity,
+                    "abcdef0123456789abcdef01",
+                )
+                app._stop_listening()
+
+    def test_legacy_saved_microphone_index_is_migrated_after_successful_open(self) -> None:
+        app = self._new_app(consented=True)
+        app._config._config["input_device_index"] = 3
+        app._config._config["input_device_identity"] = ""
+        with mock.patch.dict(sys.modules, {"audio": self.audio_module}):
+            with mock.patch("main.threading.Thread", FakeThread):
+                self.assertTrue(app._start_listening())
+                self.assertEqual(
+                    app._config.get("input_device_identity"),
                     "abcdef0123456789abcdef01",
                 )
                 app._stop_listening()

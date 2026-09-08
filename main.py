@@ -18,7 +18,7 @@ except ImportError:
     def load_dotenv() -> bool:
         return False
 
-from config import ConfigManager
+from config import ConfigError, ConfigManager
 
 __version__ = "1.0.0"
 LOGGER = logging.getLogger(__name__)
@@ -172,6 +172,22 @@ class VoiceTranscriberApp:
                 selected_device = audio.selected_device
                 if selected_device is not None:
                     self._window.set_input_source(selected_device.name)
+                    if (
+                        device_index is not None
+                        and self._input_device_override is None
+                        and not expected_device_identity
+                    ):
+                        # Legacy configurations only stored the PortAudio index.
+                        # Record the fingerprint after a successful open so the
+                        # next restart can fail closed if that index is reused.
+                        discovered_identity = str(getattr(selected_device, "identity", "") or "")
+                        if discovered_identity:
+                            try:
+                                self._config.set("input_device_identity", discovered_identity)
+                            except ConfigError:
+                                LOGGER.warning(
+                                    "Could not migrate the saved microphone identity; continuing with this session"
+                                )
                 self._audio = audio
                 self._vad = vad
                 self._running.set()
