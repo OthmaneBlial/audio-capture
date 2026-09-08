@@ -1,6 +1,7 @@
 # Voice Transcriber
 
 [![Latest release](https://img.shields.io/github/v/release/OthmaneBlial/audio-capture?display_name=tag&label=release)](https://github.com/OthmaneBlial/audio-capture/releases/latest)
+[![Flatpak](https://github.com/OthmaneBlial/audio-capture/actions/workflows/flatpak.yml/badge.svg)](https://github.com/OthmaneBlial/audio-capture/actions/workflows/flatpak.yml)
 [![Linux](https://img.shields.io/badge/platform-Linux-315532)](docs/SUPPORT.md)
 [![MIT license](https://img.shields.io/github/license/OthmaneBlial/audio-capture)](LICENSE)
 
