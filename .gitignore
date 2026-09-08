@@ -13,6 +13,7 @@ __pycache__/
 .ruff_cache/
 build/
 dist/
+target/
 *.egg-info/
 
 # Local transcripts and editor files
