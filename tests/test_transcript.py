@@ -30,6 +30,14 @@ class SegmentTrackerTests(unittest.TestCase):
         self.assertEqual(tracker.retained_count, 4)
         self.assertEqual([item.ordinal for item in tracker.visible()], [9_997, 9_998, 9_999, 10_000])
 
+    def test_clear_discards_visible_states(self):
+        tracker = SegmentTracker(max_visible=2)
+        tracker.update("request-a", "pending")
+        tracker.update("request-b", "complete")
+        tracker.clear()
+        self.assertEqual(tracker.visible(), [])
+        self.assertEqual(tracker.retained_count, 0)
+
 
 class UndoHistoryTests(unittest.TestCase):
     def test_undo_redo_and_new_edit_contract(self):

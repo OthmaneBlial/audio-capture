@@ -54,6 +54,12 @@ class SegmentTracker:
     def visible(self) -> list[SegmentStatus]:
         return [self._states[item] for item in self._order if item in self._states]
 
+    def clear(self) -> None:
+        """Discard visible request states when their session generation ends."""
+        self._ordinals.clear()
+        self._states.clear()
+        self._order.clear()
+
     @property
     def retained_count(self) -> int:
         """Return the number of request states retained for the recent strip."""

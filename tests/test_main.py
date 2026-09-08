@@ -17,6 +17,7 @@ class FakeWindow:
         self.levels: list[float] = []
         self.transcripts: list[str] = []
         self.statuses: list[tuple[str, str, Optional[int]]] = []
+        self.segment_states_cleared = 0
 
     def show_error(self, message: str) -> None:
         self.errors.append(message)
@@ -34,6 +35,9 @@ class FakeWindow:
         self, message: str, style_class: str = "", *, reset_after_ms: Optional[int] = None
     ) -> None:
         self.statuses.append((message, style_class, reset_after_ms))
+
+    def clear_segment_states(self) -> None:
+        self.segment_states_cleared += 1
 
 
 class FakeAudioCapture:
@@ -176,6 +180,20 @@ class VoiceTranscriberAppTests(unittest.TestCase):
         app._on_transcription_result("segment-stale", "stale text")
         app._on_transcription_result("segment-active", "accepted text")
         self.assertEqual(app._window.transcripts, ["accepted text"])
+
+    def test_error_from_inactive_request_is_ignored(self) -> None:
+        app = self._new_app(consented=True)
+        app._on_transcription_error_result("segment-stale", RuntimeError("stale"))
+        app._active_request_ids.add("segment-active")
+        app._on_transcription_error_result("segment-active", RuntimeError("active"))
+        self.assertEqual(app._window.errors, ["active"])
+
+    def test_reset_generation_clears_visible_segment_states(self) -> None:
+        app = self._new_app(consented=True)
+        app._transcriber.reset_session = mock.Mock()
+        app._reset_transcription_generation()
+        self.assertEqual(app._window.segment_states_cleared, 1)
+        app._transcriber.reset_session.assert_called_once_with()
 
     def test_microphone_test_does_not_require_provider_configuration(self) -> None:
         app = self._new_app(consented=False)

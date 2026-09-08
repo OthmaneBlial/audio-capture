@@ -63,6 +63,7 @@ class TranscriptionProvider(Protocol):
 TranscriptionCallback = Callable[[str], None]
 TranscriptionResultCallback = Callable[[str, str], None]
 ErrorCallback = Callable[[Exception], None]
+TranscriptionErrorCallback = Callable[[str, Exception], None]
 RequestStateCallback = Callable[[str, str, Optional[str]], None]
 
 

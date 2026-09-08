@@ -16,6 +16,7 @@ from .provider import (
     ProviderBoundary,
     ProviderCapabilities,
     ProviderError,
+    TranscriptionErrorCallback,
     TranscriptionResultCallback,
 )
 
@@ -69,6 +70,7 @@ class GroqTranscriptionService:
         on_transcription: Optional[Callable[[str], None]] = None,
         on_transcription_result: Optional[TranscriptionResultCallback] = None,
         on_error: Optional[Callable[[Exception], None]] = None,
+        on_error_result: Optional[TranscriptionErrorCallback] = None,
         on_request_state: Optional[Callable[[str, str, Optional[str]], None]] = None,
         *,
         max_workers: int = 2,
@@ -90,6 +92,7 @@ class GroqTranscriptionService:
         self._on_transcription = on_transcription
         self._on_transcription_result = on_transcription_result
         self._on_error = on_error
+        self._on_error_result = on_error_result
         self._on_request_state = on_request_state
         self._transport_factory = transport_factory
         self._request_timeout_seconds = request_timeout_seconds
@@ -190,7 +193,7 @@ class GroqTranscriptionService:
             ready = self._ordered_results.complete(
                 request_id, None, "error", "Transcription failed"
             )
-            self._report_error(self._normalize_error(error))
+            self._report_error(self._normalize_error(error), request_id=request_id)
             self._release_ready(ready)
         else:
             ready = self._ordered_results.complete(
@@ -323,9 +326,11 @@ class GroqTranscriptionService:
             retryable=True,
         )
 
-    def _report_error(self, error: Exception) -> None:
+    def _report_error(self, error: Exception, *, request_id: Optional[str] = None) -> None:
         LOGGER.warning("Transcription request rejected: %s", error)
-        if self._on_error:
+        if request_id and self._on_error_result:
+            self._on_error_result(request_id, error)
+        elif self._on_error:
             self._on_error(error)
 
     def __enter__(self) -> "GroqTranscriptionService":

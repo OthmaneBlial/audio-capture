@@ -61,6 +61,7 @@ class VoiceTranscriberApp:
             "language": self._config.get("language"),
             "on_transcription_result": self._on_transcription_result,
             "on_error": self._on_transcription_error,
+            "on_error_result": self._on_transcription_error_result,
             "on_request_state": self._on_request_state,
         }
         if self._config.get("provider_mode") == "local_whisper_cpp":
@@ -342,6 +343,9 @@ class VoiceTranscriberApp:
     def _reset_transcription_generation(self) -> None:
         with self._lifecycle_lock:
             self._active_request_ids.clear()
+        clear_segment_states = getattr(self._window, "clear_segment_states", None)
+        if callable(clear_segment_states):
+            clear_segment_states()
         reset_session = getattr(self._transcriber, "reset_session", None)
         if callable(reset_session):
             reset_session()
@@ -372,6 +376,14 @@ class VoiceTranscriberApp:
         self._window.show_error(str(error))
         if self._running.is_set():
             GLib.timeout_add(4_000, lambda: self._window.set_status("Listening…", "active") or False)
+
+    def _on_transcription_error_result(self, request_id: str, error: Exception) -> None:
+        """Ignore errors from a request that Clear or a new session invalidated."""
+        with self._lifecycle_lock:
+            if request_id not in self._active_request_ids:
+                LOGGER.debug("Ignoring transcription error from an inactive request: %s", request_id)
+                return
+        self._on_transcription_error(error)
 
     def run(self) -> None:
         """Open the desktop window and guarantee resource cleanup on exit."""

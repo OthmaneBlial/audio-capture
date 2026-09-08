@@ -1473,6 +1473,14 @@ class MainWindow(Gtk.Window):
         """Show a bounded per-request state without retaining audio or transcript text."""
         GLib.idle_add(self._do_update_segment_state, request_id, state, detail)
 
+    def clear_segment_states(self) -> None:
+        """Remove request-state rows when a transcript generation is abandoned."""
+        self._segment_tracker.clear()
+        for child in self._segment_box.get_children():
+            child.destroy()
+        self._segment_box.set_no_show_all(True)
+        self._segment_box.hide()
+
     def _do_update_segment_state(
         self, request_id: str, state: str, detail: Optional[str]
     ) -> bool:

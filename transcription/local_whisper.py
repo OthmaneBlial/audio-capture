@@ -19,6 +19,7 @@ from .provider import (
     ProviderBoundary,
     ProviderCapabilities,
     ProviderError,
+    TranscriptionErrorCallback,
     TranscriptionResultCallback,
 )
 
@@ -70,6 +71,7 @@ class LocalWhisperTranscriptionService:
         on_transcription: Optional[Callable[[str], None]] = None,
         on_transcription_result: Optional[TranscriptionResultCallback] = None,
         on_error: Optional[Callable[[Exception], None]] = None,
+        on_error_result: Optional[TranscriptionErrorCallback] = None,
         on_request_state: Optional[Callable[[str, str, Optional[str]], None]] = None,
         max_workers: int = 1,
         max_pending_requests: int = 2,
@@ -91,6 +93,7 @@ class LocalWhisperTranscriptionService:
         self._on_transcription = on_transcription
         self._on_transcription_result = on_transcription_result
         self._on_error = on_error
+        self._on_error_result = on_error_result
         self._on_request_state = on_request_state
         self._timeout_seconds = timeout_seconds
         self._process_factory = process_factory
@@ -162,7 +165,9 @@ class LocalWhisperTranscriptionService:
                 request_id, None, "error", "Could not queue request"
             )
             normalized = self._normalize_error(error)
-            if self._on_error:
+            if self._on_error_result:
+                self._on_error_result(request_id, normalized)
+            elif self._on_error:
                 self._on_error(normalized)
             self._release_ready(ready)
             return None
