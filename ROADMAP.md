@@ -1,7 +1,8 @@
 # ROADMAP — Voice Transcriber
 
-> Audit du 8 septembre 2026. Plan d’exécution proposé, pas compte rendu de fonctionnalités livrées.
-> L’audit initial n’a modifié que ce fichier ; les corrections incrémentales sont signalées dans les tâches et leurs commits.
+> Audit initial du 8 septembre 2026, puis mise à jour pour la décision de réécrire le produit en Rust natif.
+> La piste **Phase R** est désormais la piste d’exécution active. Les phases Python 0–7 ci-dessous restent l’historique de l’audit et de ses critères de crédibilité ; elles ne transfèrent aucune preuve au runtime Rust.
+> La phase vidéo reste volontairement la toute dernière phase : elle ne commence qu’après la validation complète de la piste Rust, du paquet final et de la recette utilisateur.
 
 ## 1. Décision produit
 
@@ -446,9 +447,106 @@ terminée lorsque sa validation externe reste ouverte.
 - **Tests/validations :** recette physique des deux configurations minimales, erreurs critiques, provenance, lancement sans clone, désinstallation sur profil jetable ; page/asset HTTP et contrôle visuel après publication.
 - **Dépendances/risques :** 7.1 ; toute correction du code impose un nouveau paquet et la reprise des validations affectées avant la vidéo. Une panne externe laisse la porte ouverte, elle n’autorise pas à substituer une maquette.
 
+## Phase R — Réécriture native Rust multi‑plateforme (piste active)
+
+Cette piste remplace progressivement le runtime Python/GTK par un binaire Rust
+unique. Chaque étape doit être commitée et poussée sur `main` après ses
+contrôles ; une branche verte ou un fichier de workflow ne constitue pas à lui
+seul une preuve de compatibilité physique.
+
+### R0 — Geler le contrat produit et la frontière de migration · P0
+
+- **Objectif :** conserver la proposition review-first pendant la réécriture et éviter qu’un nouveau framework ne transforme le périmètre en promesse vague.
+- **Changements concrets :** maintenir capture locale → VAD local → segment terminé → fournisseur explicite → relecture → copie/export ; documenter que Python/GTK reste transitoire jusqu’à parité ; décider séparément si un provider local Rust est inclus ou reporté.
+- **Fichiers/parties concernés :** `ROADMAP.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/DATA-FLOW.md`, `docs/PROVIDERS.md`, contrat de version dans `Cargo.toml` et `pyproject.toml`.
+- **Critères d’acceptation vérifiables :** aucune doc ne présente le Flatpak Python comme binaire Rust ; les fonctions incluses, exclues et la frontière cloud sont listées ; une correction de code n’est pas annoncée comme release avant son artefact.
+- **Tests/validations nécessaires :** recherche des anciennes commandes/claims dans README/docs/workflows ; revue du diff et test `cargo metadata --locked`.
+- **Dépendances/risques :** aucun code produit préalable ; risque de maintenir deux contrats en parallèle, réduit par un registre de preuves unique.
+
+### R1 — Porter le cœur métier sans interface native · P0
+
+- **Objectif :** obtenir un noyau testable sans micro, fournisseur ou fenêtre.
+- **Changements concrets :** types de configuration validés et écrits atomiquement ; transcript ordonné avec états de segments et undo/redo borné ; historique texte opt-in ; exports texte/Markdown atomiques et refus des symlinks ; VAD indépendant de l’UI.
+- **Fichiers/parties concernés :** `Cargo.toml`, `Cargo.lock`, `src/lib.rs`, `src/config.rs`, `src/transcript.rs`, `src/history.rs`, `src/exports.rs`, `src/vad.rs`.
+- **Critères d’acceptation vérifiables :** un test Rust sans accès système couvre defaults, validation, limites, ordre hors-arrivée, clear/undo, historique, formats et VAD ; aucune donnée audio n’est écrite par ces modules.
+- **Tests/validations nécessaires :** `cargo fmt --all -- --check`, `cargo test --locked --all-targets`, `cargo clippy --locked --all-targets -- -D warnings`, tests symlink/schéma/volume.
+- **Dépendances/risques :** R0 ; migration de schéma à documenter avant de lire un ancien fichier Python.
+
+### R2 — Porter la capture audio et la segmentation réelle · P0
+
+- **Objectif :** fournir le même contrat PCM au VAD sur CoreAudio, WASAPI et ALSA/PipeWire.
+- **Changements concrets :** utiliser CPAL pour énumération et sélection ; persister une identité opaque en plus de l’index d’exécution ; convertir formats/canaux/taux en mono PCM16 16 kHz ; file bornée, niveau RMS, erreurs de stream, arrêt et flush contrôlés ; conserver WebRTC VAD local.
+- **Fichiers/parties concernés :** `src/audio.rs`, `src/vad.rs`, `src/config.rs`, `src/app.rs`, docs support et fixtures audio.
+- **Critères d’acceptation vérifiables :** chaque callback produit des frames 30 ms de 960 octets ; saturation évince explicitement et compte ; identité incohérente refuse l’ouverture ; un silence seul ne crée pas de segment ; aucune capture de test ne part vers le provider.
+- **Tests/validations nécessaires :** tests de conversion/downmix/resampling et file bornée ; `--list-devices --json` ; `--test-microphone --json` sur macOS, Linux et Windows avec périphérique intégré puis USB ; retrait/reconnexion et permission refusée.
+- **Dépendances/risques :** R1 ; différences de permissions, formats et serveurs audio ; une validation CI ne remplace pas un micro physique.
+
+### R3 — Porter la frontière Groq et l’ordonnancement · P0
+
+- **Objectif :** conserver le consentement explicite, les limites mémoire et l’ordre du document lors du passage à un worker Rust.
+- **Changements concrets :** worker HTTP borné avec timeout ; WAV PCM en mémoire ; modèles transcription/traduction exacts ; erreurs auth/rate-limit/réseau/réponse trop grande normalisées ; événements liés à un identifiant et à une séquence ; fermeture sans nouvelle admission.
+- **Fichiers/parties concernés :** `src/provider.rs`, `src/transcript.rs`, `src/config.rs`, `src/app.rs`, docs privacy/provider, tests sans réseau.
+- **Critères d’acceptation vérifiables :** clé absente ou consentement absent bloque avant queue ; aucun événement/log ne contient la clé ou le body ; A puis B restent A puis B même si le transport finit dans l’autre ordre ; queue pleine et fermeture deviennent des états visibles.
+- **Tests/validations nécessaires :** tests WAV/header, limites, erreurs et admission ; faux serveur local ou transport injecté pour auth/429/réponse invalide ; une requête réelle avec clé jetable uniquement lors de la recette humaine.
+- **Dépendances/risques :** R1–R2 ; coût et politique Groq, latence réseau et annulation réelle d’un HTTP actif doivent rester documentés.
+
+### R4 — Porter l’interface desktop et la relecture · P0
+
+- **Objectif :** rendre le parcours complet utilisable dans une fenêtre native commune aux trois OS.
+- **Changements concrets :** egui/eframe comme adaptateur ; écran de démarrage, test micro local, consentement fournisseur, réglages, capture/stop, états pending/transcribing/error, éditeur, undo/redo, copie, exports et historique ; messages d’erreur actionnables ; aucun accès UI depuis le worker.
+- **Fichiers/parties concernés :** `src/app.rs`, `src/main.rs`, `src/config.rs`, `src/exports.rs`, `src/history.rs`, ressources d’icône et docs UX.
+- **Critères d’acceptation vérifiables :** à 480×360 puis 200 % de zoom les actions essentielles restent accessibles ; un utilisateur peut tester le micro sans clé, comprendre ce qui sort de la machine, dicter, corriger, copier et exporter ; un résultat tardif ne réécrit pas une correction manuelle.
+- **Tests/validations nécessaires :** tests reducer/états ; lancement GUI macOS réel avec interaction souris/clavier et capture d’écran datée ; recette Linux X11/Wayland et Windows ; vérification console, focus, redimensionnement et lecteur d’écran lorsque disponible.
+- **Dépendances/risques :** R1–R3 ; eframe est compilable mais sa qualité visuelle et son accessibilité doivent être observées sur chaque backend.
+
+### R5 — Stabiliser le CLI de support et le diagnostic · P1
+
+- **Objectif :** permettre à un utilisateur ou contributeur de prouver son environnement sans divulguer de secret.
+- **Changements concrets :** maintenir `--doctor`, `--list-devices`, `--check-config`, `--test-microphone`, sorties JSON documentées, codes d’échec et version ; éviter toute sonde réseau implicite ; afficher les catégories d’erreur plutôt que les réponses fournisseur.
+- **Fichiers/parties concernés :** `src/main.rs`, `docs/CLI.md`, `docs/SUPPORT.md`, templates d’issues et scripts de collecte.
+- **Critères d’acceptation vérifiables :** les quatre commandes terminent sans fenêtre ; `--doctor` ne contacte pas Groq ; le JSON ne contient ni clé, ni audio, ni valeurs d’environnement ; les codes 0/1/2 sont stables pour la version publiée.
+- **Tests/validations nécessaires :** tests de parsing/help/version ; exécution sur macOS et runners Linux/Windows ; validation de JSON avec `jq` et test d’absence de motifs de secret.
+- **Dépendances/risques :** R2–R4 ; le nombre de périphériques et les messages exacts dépendent de l’hôte.
+
+### R6 — Fermer la matrice CI multi‑plateforme · P1
+
+- **Objectif :** transformer « portable » en builds vérifiables et répétables.
+- **Changements concrets :** CI Rust format/tests/Clippy ; compilation Linux x86_64, macOS arm64 et Windows x86_64 ; installation explicite des headers Linux ; cache Cargo borné ; workflow de release séparé ; conserver le workflow Python uniquement pour la transition.
+- **Fichiers/parties concernés :** `.github/workflows/rust.yml`, `.github/workflows/rust-release.yml`, `.github/workflows/ci.yml`, `Cargo.lock`, docs support.
+- **Critères d’acceptation vérifiables :** un run complet vert sur le SHA courant pour les trois cibles ; artifacts binaires non vides avec `--version` ; aucune étape Rust ne dépend d’un venv Python ; un échec de compilation ou test empêche l’artifact.
+- **Tests/validations nécessaires :** runs GitHub après chaque changement de workflow ; téléchargement des artifacts et checksum ; build local macOS ; rapport des limitations si runner ou matériel manque.
+- **Dépendances/risques :** R1–R5 ; headers système, quota CI et évolution des toolchains peuvent bloquer sans invalider le code local.
+
+### R7 — Remplacer le packaging historique par des artefacts Rust installables · P1
+
+- **Objectif :** donner à chaque OS un chemin d’installation compréhensible et vérifiable.
+- **Changements concrets :** archives Linux, bundle `.app` macOS avec `NSMicrophoneUsageDescription`, ZIP/installeur Windows ; checksums, SBOM et provenance ; documentation de désinstallation et permissions ; décision explicite sur signature/notarisation et publication package-manager.
+- **Fichiers/parties concernés :** `.github/workflows/rust-release.yml`, `packaging/native/`, `packaging/`, `docs/packaging/`, `README.md`, scripts de smoke test.
+- **Critères d’acceptation vérifiables :** chaque archive contient le binaire correspondant au tag, `--doctor` démarre, la checksum vérifie exactement le téléchargement, les chemins d’installation et suppression sont reproduits sur profils propres ; aucune release Rust n’écrase l’ancien asset Python.
+- **Tests/validations nécessaires :** extraction/installation Linux, lancement `.app` et permission micro macOS, lancement Windows, antivirus/SmartScreen documenté, signature si activée, lecture de provenance et test d’un paquet corrompu.
+- **Dépendances/risques :** R6 ; certificats Apple/Windows, runtime système, portails Linux et limites de distribution sont des portes externes.
+
+### R8 — Terminer la parité et retirer les ambiguïtés Python · P0
+
+- **Objectif :** pouvoir appeler le dépôt « réécrit en Rust » sans laisser deux produits contradictoires dans le parcours public.
+- **Changements concrets :** comparer chaque fonction du Python existant ; migrer ou supprimer explicitement les fonctions retenues ; archiver les modules Python avec un guide de transition ; retirer les anciens chemins de lancement des pages principales et relier l’historique v1.0 ; ajouter migration de configuration si nécessaire.
+- **Fichiers/parties concernés :** `main.py`, `audio/`, `transcription/`, `ui/`, `tests/`, `pyproject.toml`, anciens manifests/workflows, `README.md`, docs privacy/support/release.
+- **Critères d’acceptation vérifiables :** matrice feature→preuve complète ; un clone propre suit uniquement Rust ; aucune page ne promet une fonction absente du binaire ; Python reste soit archivé et clairement historique, soit supprimé avec procédure et justification ; versions et changelog concordent.
+- **Tests/validations nécessaires :** comparaison de parcours, tests Rust et anciens tests conservés jusqu’à la fermeture de chaque équivalence ; recherche de commandes mortes ; recette de migration sur configuration existante et profil vierge.
+- **Dépendances/risques :** R1–R7 ; suppression de code est irréversible pour les utilisateurs si les anciennes données ne sont pas migrées, donc documenter avant nettoyage.
+
+### R9 — Préparer l’adoption, les contributions et le dossier de release · P1
+
+- **Objectif :** faire du produit fini un projet GitHub crédible et partageable.
+- **Changements concrets :** capturer de vraies captures de chaque OS validé ; remplacer les previews synthétiques ; README avec problème, installation, limites cloud, support et vidéo ; issues/CONTRIBUTING/SECURITY orientés Rust ; release notes, changelog, topics et page showcase cohérents ; publier seulement après approbation et recette des assets.
+- **Fichiers/parties concernés :** `README.md`, `site/`, `docs/`, `.github/ISSUE_TEMPLATE/`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `ROADMAP.md`, assets de release.
+- **Critères d’acceptation vérifiables :** le premier écran donne le bénéfice, les OS réellement prouvés, la commande d’installation et la limite cloud ; captures et binaire viennent du même SHA ; un contributeur sans clé peut compiler/tester en moins de dix minutes ; aucune star ou compatibilité n’est promise.
+- **Tests/validations nécessaires :** rendu desktop/mobile du site, liens, alt text, poids/format des images, clone propre, parcours issue→PR, vérification des URLs et assets après publication ; revue des claims contre le registre de preuves.
+- **Dépendances/risques :** R6–R8 ; comptes/signatures/hébergement externes restent des gates distinctes et ne doivent pas être simulés.
+
 ## Phase 8 — Créer la vraie vidéo de démonstration du produit terminé
 
-> **Dernière phase, obligatoire.** Aucune capture destinée au film, aucun montage de la vidéo finale avant l’implémentation et la validation de toutes les phases 0 à 7. Les captures statiques de QA précédentes ne sont pas un commencement de cette production vidéo. Si une porte manque, cette phase reste bloquée.
+> **Dernière phase, obligatoire.** Aucune capture destinée au film, aucun montage de la vidéo finale avant l’implémentation et la validation de toutes les phases 0 à 7 **et R0 à R9**. Les captures statiques de QA précédentes ne sont pas un commencement de cette production vidéo. Si une porte manque, cette phase reste bloquée.
 >
 > Utiliser obligatoirement la skill **`ffmpeg-video-editor`**, relue au début de l’exécution. Référence disponible lors de cet audit : `/Users/othmane/.codex/skills/ffmpeg-video-editor/SKILL.md`. Lire aussi ses presets et références utiles ; ne pas supposer que le chemin local sera identique sur une autre machine.
 
