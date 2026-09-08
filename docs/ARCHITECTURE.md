@@ -1,6 +1,6 @@
 # Architecture
 
-Voice Transcriber has one desktop process and four intentionally narrow responsibilities:
+Voice Transcriber has one desktop process and four intentionally narrow responsibilities. The controller accepts a window factory and configuration in tests, so provider and session lifecycle checks do not need to import GTK or open PyAudio; the normal CLI still creates the GTK window.
 
 ```text
 GTK window

@@ -46,8 +46,8 @@ Checksum du bundle vérifié : `19f941a5767f7380eb8709bde3de3cbee78647ee263f343a
 
 Le tableau précédent est la photographie de référence prise avant les
 corrections incrémentales. Depuis cette photographie, le checkout `main`
-contient 108 tests déterministes : `scripts/run_checks.py` a passé Ruff,
-compilation, tests et couverture à 68 % dans le venv temporaire utilisé pour
+contient 109 tests déterministes : `scripts/run_checks.py` a passé Ruff,
+compilation, tests et couverture à 69 % dans le venv temporaire utilisé pour
 la vérification. Le workflow Flatpak GitHub Actions `34254256484` a réussi sur
 le commit `cfcc9e6` le 8 septembre 2026 : build en ligne, rebuild sans
 téléchargement, lints, CLI/doctor, permissions, smoke GTK sous Xvfb et
@@ -199,6 +199,7 @@ terminée lorsque sa validation externe reste ouverte.
 - [x] Smoke Flatpak Linux vérifié sur `cfcc9e6` (`34254256484`), avec suppression des données.
 - [x] Sélection micro persistante protégée par une identité opaque best effort ; index réutilisé refusé par capture et diagnostics, avec migration des anciennes configurations sans identité après une ouverture réussie.
 - [x] Registre de preuves centralisé dans `docs/RELEASE-EVIDENCE.md`, avec séparation explicite entre source, package automatisé et portes humaines.
+- [x] Contrôleur instanciable en headless via une fenêtre injectée, avec test sans import GTK/PyAudio du constructeur.
 - [ ] Compatibilité Linux physique, micro, Orca, portail d’export et transcription Groq réelle.
 - [ ] Cinq sessions utilisateur, canal de mise à jour public et release candidate téléchargée.
 - [ ] Captures GTK réelles et vidéo finale produite après les portes précédentes.
@@ -275,7 +276,7 @@ terminée lorsque sa validation externe reste ouverte.
 ### 2.1 — Extraire les contrats de session et alléger l’UI · P1
 
 - **Objectif :** rendre les scénarios critiques testables sans GTK et les modifications localisées.
-- **Changements :** extraire contrôleur de session/ordonnanceur, dialogues de setup, préférences et historique ; isoler le CSS ; typer les dépendances par protocols. Garder GTK 3 et les modules audio existants, avec refactoring progressif après les tests de régression P0.
+- **Changements :** extraire contrôleur de session/ordonnanceur, dialogues de setup, préférences et historique ; isoler le CSS ; typer les dépendances par protocols. Garder GTK 3 et les modules audio existants, avec refactoring progressif après les tests de régression P0. **Fait localement :** `VoiceTranscriberApp` accepte maintenant une configuration et une fabrique de fenêtre injectées ; le constructeur headless peut créer le provider sans importer GTK/PyAudio et une régression dédiée le vérifie. L’extraction complète de l’ordonnanceur, des dialogues et du CSS reste ouverte.
 - **Fichiers/parties :** `main.py`, `ui/main_window.py`, `transcription/provider.py`, nouveaux modules ciblés sous `ui/` et de session ; `docs/ARCHITECTURE.md`.
 - **Acceptation :** contrôleur instanciable sans importer GTK/PyAudio ; aucun accès widget depuis un worker ; les callbacks portent session/segment ; mêmes raccourcis, formats et paramètres publics.
 - **Tests/validations :** tests de contrat et d’intégration de phase 1, smoke GTK, comparaison visuelle avant/après sur Linux, vérification des imports CLI.

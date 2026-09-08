@@ -30,6 +30,9 @@ All notable changes to Voice Transcriber are documented here.
 - The experimental local provider now closes a process created during service
   shutdown before registering it, preventing a close race from leaving work
   outside the cancellation set.
+- The controller can now be constructed with an injected configuration and
+  window factory, keeping headless provider/session checks independent from
+  GTK and PyAudio imports.
 
 ### Privacy
 

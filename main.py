@@ -9,7 +9,7 @@ import logging
 import signal
 import sys
 import threading
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 try:
     from dotenv import load_dotenv
@@ -30,9 +30,13 @@ _ALSA_ERROR_CALLBACK: Any = None
 class VoiceTranscriberApp:
     """Coordinate microphone capture, VAD, API work, and the GTK window."""
 
-    def __init__(self, *, input_device_override: Optional[int] = None) -> None:
-        from ui import MainWindow
-
+    def __init__(
+        self,
+        *,
+        input_device_override: Optional[int] = None,
+        config: Optional[ConfigManager] = None,
+        window_factory: Optional[Callable[..., Any]] = None,
+    ) -> None:
         self._running = threading.Event()
         self._lifecycle_lock = threading.RLock()
         self._processing_thread: Optional[threading.Thread] = None
@@ -42,9 +46,13 @@ class VoiceTranscriberApp:
         self._active_request_ids: set[str] = set()
         self._reported_dropped_frames = 0
         self._input_device_override = input_device_override
-        self._config = ConfigManager()
+        self._config = config or ConfigManager()
         self._transcriber = self._build_transcriber()
-        self._window = MainWindow(
+        if window_factory is None:
+            from ui import MainWindow
+
+            window_factory = MainWindow
+        self._window = window_factory(
             config=self._config,
             on_start=self._start_listening,
             on_stop=self._stop_listening,

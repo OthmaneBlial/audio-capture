@@ -11,7 +11,7 @@ tester. It is a record of observed results, not a release approval.
 | Surface | Exact evidence | Scope and limit |
 | --- | --- | --- |
 | Source checkout | `main` at `2d2f045` | Documentation commit on top of the code candidate below |
-| Deterministic suite | `python scripts/run_checks.py` passed 108 tests and 68% combined line/branch coverage | No physical microphone, GTK desktop, provider account, or network transcription |
+| Deterministic suite | `python scripts/run_checks.py` passed 109 tests and 69% combined line/branch coverage | No physical microphone, GTK desktop, provider account, or network transcription |
 | Static quality | Ruff, Python compilation, `pip-audit --require-hashes --disable-pip -r packaging/requirements-audit.txt`, and Bandit passed locally | Static/dependency checks; no full operating-system audit |
 | CLI contracts | `python main.py --version` returned `voice-transcriber 1.0.0`; help lists `--list-devices`, `--doctor`, `--device`, and `--probe-provider` | This macOS checkout has no usable GTK/PyAudio runtime for a desktop launch |
 | Privacy boundary | The deterministic privacy suite passed; default history remains off and provider probes are opt-in | Does not prove provider retention or clipboard-manager behavior |

@@ -173,6 +173,20 @@ class VoiceTranscriberAppTests(unittest.TestCase):
         self.assertEqual(FakeAudioCapture.instances, [])
         self.assertIn("cloud data boundary", app._window.errors[0])
 
+    def test_controller_can_be_constructed_with_an_injected_headless_window(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = ConfigManager(config_dir=directory, environ={})
+            window = FakeWindow()
+            app = VoiceTranscriberApp(
+                config=config,
+                window_factory=lambda **_callbacks: window,
+            )
+            try:
+                self.assertIs(app._window, window)
+                self.assertEqual(app._transcriber.provider_id, "groq")
+            finally:
+                app._transcriber.close(wait=True)
+
     def test_confirmed_groq_start_and_stop_manage_capture(self) -> None:
         app = self._new_app(consented=True)
         with mock.patch.dict(sys.modules, {"audio": self.audio_module}):
