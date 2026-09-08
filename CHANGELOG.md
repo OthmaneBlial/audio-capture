@@ -22,6 +22,10 @@ All notable changes to Voice Transcriber are documented here.
   user is reviewing an earlier passage.
 - The contributor fake provider and experimental local provider now follow the
   same ordered, request-identified result and error contract as Groq.
+- Explicit microphone selections now store a best-effort opaque identity beside
+  the legacy PortAudio index. Startup and `--doctor` refuse a reused index when
+  the identity no longer matches, while default-device and one-session CLI
+  overrides remain unchanged.
 
 ### Privacy
 

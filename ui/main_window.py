@@ -57,6 +57,7 @@ class MainWindow(Gtk.Window):
         self._is_listening = False
         self._microphone_test_active = False
         self._has_refreshed_input_devices = False
+        self._input_device_identities: dict[str, str] = {}
         self._status_reset_source: Optional[int] = None
         self._geometry_save_source: Optional[int] = None
         self._pending_geometry: Optional[tuple[int, int]] = None
@@ -727,6 +728,7 @@ class MainWindow(Gtk.Window):
         device_combo = Gtk.ComboBoxText()
         device_combo.append("default", "System default microphone")
         saved_device = self._config.get("input_device_index")
+        saved_identity = self._config.get("input_device_identity")
         selected_device = "default" if saved_device is None else str(saved_device)
         try:
             devices = self._on_list_input_devices() if self._on_list_input_devices else []
@@ -734,9 +736,13 @@ class MainWindow(Gtk.Window):
             LOGGER.debug("Could not discover inputs during first-run setup", exc_info=True)
             devices = []
         known_devices = {"default"}
+        input_device_identities: dict[str, str] = {}
         for device in devices:
             identifier = str(device.index)
             known_devices.add(identifier)
+            identity = str(getattr(device, "identity", "") or "")
+            if identity:
+                input_device_identities[identifier] = identity
             device_combo.append(identifier, f"{device.name}{' · default' if device.is_default else ''}")
         if selected_device not in known_devices and selected_device != "default":
             device_combo.append(selected_device, f"Saved device #{selected_device} · unavailable")
@@ -833,6 +839,12 @@ class MainWindow(Gtk.Window):
                             "input_device_index": None
                             if not selected or selected == "default"
                             else int(selected),
+                            "input_device_identity": ""
+                            if not selected or selected == "default"
+                            else input_device_identities.get(
+                                selected,
+                                saved_identity if selected == str(saved_device) else "",
+                            ),
                             "onboarding_complete": True,
                             "cloud_boundary_confirmed": (
                                 consent.get_active()
@@ -899,6 +911,7 @@ class MainWindow(Gtk.Window):
                     "font_size": int(self._font_scale.get_value()),
                     "opacity": self._opacity_scale.get_value(),
                     "input_device_index": self._selected_input_device_index(),
+                    "input_device_identity": self._selected_input_device_identity(),
                     "capture_mode": self._capture_mode_combo.get_active_id() or "toggle",
                     "copy_on_final": self._copy_on_final_switch.get_active(),
                     "history_enabled": self._history_switch.get_active(),
@@ -955,15 +968,25 @@ class MainWindow(Gtk.Window):
         selected = self._device_combo.get_active_id()
         return None if not selected or selected == "default" else int(selected)
 
+    def _selected_input_device_identity(self) -> str:
+        """Return the opaque identity paired with the current picker entry."""
+        selected = self._device_combo.get_active_id()
+        if not selected or selected == "default":
+            return ""
+        return self._input_device_identities.get(selected, "")
+
     def _refresh_input_devices(self) -> None:
         """Populate the picker only when requested; discovery opens PortAudio briefly."""
+        first_refresh = not self._has_refreshed_input_devices
         selected = self._device_combo.get_active_id()
-        if not self._has_refreshed_input_devices:
+        saved_identity = self._config.get("input_device_identity")
+        if first_refresh:
             saved = self._config.get("input_device_index")
             selected = "default" if saved is None else str(saved)
 
         self._device_combo.remove_all()
         self._device_combo.append("default", "System default microphone")
+        self._input_device_identities = {}
         if self._on_list_input_devices is None:
             self._device_help.set_text("Input discovery is unavailable in this session.")
             self._device_combo.set_active_id("default")
@@ -976,6 +999,8 @@ class MainWindow(Gtk.Window):
             LOGGER.debug("Could not list microphone inputs", exc_info=True)
             self._device_help.set_text("Could not list inputs. The system default remains available.")
             if selected and selected != "default":
+                if first_refresh and saved_identity:
+                    self._input_device_identities[selected] = saved_identity
                 self._device_combo.append(selected, f"Saved device #{selected} · unavailable")
             self._device_combo.set_active_id(selected if selected else "default")
             self._has_refreshed_input_devices = True
@@ -985,6 +1010,9 @@ class MainWindow(Gtk.Window):
         for device in devices:
             identifier = str(device.index)
             available_ids.add(identifier)
+            identity = str(getattr(device, "identity", "") or "")
+            if identity:
+                self._input_device_identities[identifier] = identity
             suffix = " · default" if device.is_default else ""
             self._device_combo.append(identifier, f"{device.name}{suffix}")
         if not devices:
@@ -992,7 +1020,16 @@ class MainWindow(Gtk.Window):
         else:
             self._device_help.set_text(f"{len(devices)} input{'s' if len(devices) != 1 else ''} found. Choice applies next session.")
 
+        if first_refresh and selected != "default" and saved_identity:
+            current_identity = self._input_device_identities.get(selected)
+            if current_identity and current_identity != saved_identity:
+                selected = "default"
+                self._device_help.set_text(
+                    "The saved microphone changed at that index. Choose an input again before saving."
+                )
         if selected not in available_ids and selected != "default":
+            if first_refresh and saved_identity:
+                self._input_device_identities[selected] = saved_identity
             self._device_combo.append(selected, f"Saved device #{selected} · unavailable")
         self._device_combo.set_active_id(selected if selected else "default")
         self._has_refreshed_input_devices = True

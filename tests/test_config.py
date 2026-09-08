@@ -83,6 +83,18 @@ class ConfigManagerTests(unittest.TestCase):
                 with self.assertRaises(ConfigError):
                     config.set("input_device_index", invalid)
 
+    def test_input_device_identity_round_trips_and_is_strictly_validated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config = ConfigManager(Path(temporary_directory), environ={})
+            identity = "abcdef0123456789abcdef01"
+            config.set("input_device_identity", identity)
+            reloaded = ConfigManager(Path(temporary_directory), environ={})
+            self.assertEqual(reloaded.get("input_device_identity"), identity)
+
+            for invalid in (None, True, "too-short", "g" * 24, "a" * 25):
+                with self.assertRaises(ConfigError):
+                    config.set("input_device_identity", invalid)
+
     def test_onboarding_completion_is_explicit_and_boolean(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             config = ConfigManager(Path(temporary_directory), environ={})

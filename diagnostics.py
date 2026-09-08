@@ -179,18 +179,44 @@ def collect_diagnostics(
         next_actions.append("Install PortAudio/PyAudio and verify desktop microphone permission.")
 
     selected_index = config.get("input_device_index")
+    selected_identity = config.get("input_device_identity")
     available_indexes = {int(device.index) for device in devices}
     if selected_index is None:
         checks["selected_microphone"] = _check(
-            "pass", "The system default microphone will be used.", selected_index=None
+            "pass",
+            "The system default microphone will be used.",
+            selected_index=None,
+            identity_checked=False,
         )
     elif selected_index in available_indexes:
-        checks["selected_microphone"] = _check(
-            "pass", f"Saved microphone index {selected_index} is available.", selected_index=selected_index
+        selected_device = next(device for device in devices if int(device.index) == selected_index)
+        current_identity = str(getattr(selected_device, "identity", "") or "")
+        identity_matches = not selected_identity or (
+            bool(current_identity) and current_identity == selected_identity
         )
+        if identity_matches:
+            checks["selected_microphone"] = _check(
+                "pass",
+                f"Saved microphone index {selected_index} is available.",
+                selected_index=selected_index,
+                identity_checked=bool(selected_identity),
+            )
+        else:
+            checks["selected_microphone"] = _check(
+                "fail",
+                f"Saved microphone index {selected_index} now identifies a different input.",
+                selected_index=selected_index,
+                identity_checked=True,
+            )
+            next_actions.append(
+                "Refresh the microphone list and choose the intended input; the app will refuse to open a mismatched saved index."
+            )
     else:
         checks["selected_microphone"] = _check(
-            "fail", f"Saved microphone index {selected_index} is unavailable.", selected_index=selected_index
+            "fail",
+            f"Saved microphone index {selected_index} is unavailable.",
+            selected_index=selected_index,
+            identity_checked=bool(selected_identity),
         )
         next_actions.append("Choose an available microphone in Settings or clear the saved selection.")
 

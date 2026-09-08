@@ -17,7 +17,7 @@ GTK window
 
 ## Data flow
 
-1. `AudioCapture` uses the system default or a saved microphone index, reads 30 ms 16 kHz mono PCM frames into a fixed-size queue, and emits a rate-limited local signal level for GTK.
+1. `AudioCapture` uses the system default or a saved microphone index, reads 30 ms 16 kHz mono PCM frames into a fixed-size queue, and emits a rate-limited local signal level for GTK. Explicit saved selections also carry an opaque best-effort identity fingerprint; a mismatch fails closed instead of silently opening a reused index.
 2. `VoiceActivityDetector` keeps a short rolling buffer and emits a completed segment after silence or the maximum segment duration.
 3. The selected provider receives a valid segment through its explicit
    capability and data-boundary contract. Groq converts it to an in-memory WAV
@@ -51,8 +51,9 @@ configuration file is atomically replaced and set to `0600`; its parent
 directory is set to `0700` where supported. `GROQ_API_KEY` overrides a stored
 key and is not copied into settings when the environment value is active. The
 local executable/model paths are activated only by the explicit source-session
-feature flag and never exposed by diagnostics. Microphone choice is a local
-saved index, with `--device INDEX` taking precedence for one launch.
+feature flag and never exposed by diagnostics. Microphone choice keeps a local
+saved index plus an opaque best-effort identity fingerprint, with `--device
+INDEX` taking precedence for one launch.
 
 History uses a separate schema-versioned owner-only file. Unknown future
 schemas fail closed instead of being overwritten. Expiry is enforced on read

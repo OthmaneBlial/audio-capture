@@ -48,9 +48,15 @@ class FakeAudioCapture:
     instances: list["FakeAudioCapture"] = []
 
     def __init__(
-        self, *, device_index: Optional[int], on_level: object, queue_audio: bool = True
+        self,
+        *,
+        device_index: Optional[int],
+        on_level: object,
+        queue_audio: bool = True,
+        expected_device_identity: Optional[str] = None,
     ) -> None:
         self.device_index = device_index
+        self.expected_device_identity = expected_device_identity
         self.on_level = on_level
         self.queue_audio = queue_audio
         self.sample_rate = 16_000
@@ -177,6 +183,19 @@ class VoiceTranscriberAppTests(unittest.TestCase):
         self.assertFalse(app._running.is_set())
         self.assertTrue(FakeAudioCapture.instances[0].stopped)
         self.assertFalse(FakeAudioCapture.instances[0].stop_clear_queue)
+
+    def test_start_passes_saved_microphone_identity_to_capture(self) -> None:
+        app = self._new_app(consented=True)
+        app._config._config["input_device_index"] = 3
+        app._config._config["input_device_identity"] = "abcdef0123456789abcdef01"
+        with mock.patch.dict(sys.modules, {"audio": self.audio_module}):
+            with mock.patch("main.threading.Thread", FakeThread):
+                self.assertTrue(app._start_listening())
+                self.assertEqual(
+                    FakeAudioCapture.instances[0].expected_device_identity,
+                    "abcdef0123456789abcdef01",
+                )
+                app._stop_listening()
 
     def test_result_from_inactive_request_is_ignored(self) -> None:
         app = self._new_app(consented=True)

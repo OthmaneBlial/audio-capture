@@ -24,12 +24,16 @@ The result is a JSON array. Each item has:
   "index": 2,
   "name": "USB microphone",
   "max_input_channels": 1,
-  "is_default": true
+  "is_default": true,
+  "identity": "5c3a1b9d4ef78120b6d3a10f"
 }
 ```
 
 This command opens PortAudio only for discovery, closes it before returning,
-does not start a stream, and does not contact a transcription provider.
+does not start a stream, and does not contact a transcription provider. The
+identity is an opaque, best-effort fingerprint of the normalized PortAudio
+name, host API, and channel count; it is intended to catch a reused index, not
+to serve as a portable hardware UUID.
 
 ## `--doctor --json`
 
@@ -69,5 +73,5 @@ voice-transcriber --device 2
 ```
 
 The override must be a non-negative integer. It takes precedence for one launch
-without changing the saved device. A failed open leaves the application stopped
-with an actionable error.
+without changing the saved device or checking its saved identity. A failed open
+leaves the application stopped with an actionable error.

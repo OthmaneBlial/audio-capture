@@ -15,6 +15,11 @@ failed. The strip never stores audio or transcript content.
 - Clear always asks for confirmation and explains whether recovery is possible.
 - Use **Test microphone** in Settings to verify the selected local input. It only
   drives the signal meter, keeps no audio queue, and never calls a provider.
+- An explicitly selected input is saved with a best-effort opaque identity as
+  well as its PortAudio index. If a replugged device reuses that index, startup
+  refuses the mismatch and asks you to refresh the picker instead of recording
+  from an unexpected microphone. PortAudio does not provide one portable
+  persistent identifier, so this guard is not a hardware guarantee.
 - If the status says **Audio buffer full**, the computer could not process the
   microphone quickly enough. The app drops the oldest in-memory frame to stay
   bounded; repeat the phrase after the warning instead of assuming that segment

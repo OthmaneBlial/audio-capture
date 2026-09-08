@@ -95,7 +95,8 @@ the app with sensitive speech.
 
 ## What ships today
 
-- Real microphone discovery and persistent device selection.
+- Real microphone discovery and persistent device selection with a best-effort
+  opaque identity check that refuses a reused device index.
 - Local `webrtcvad` speech segmentation and a bounded capture queue.
 - Groq Whisper transcription with optional translation to English.
 - A bounded provider worker pool with normalized network, key, rate-limit,
@@ -117,7 +118,7 @@ operation. See the [provider matrix](docs/PROVIDERS.md).
 | Surface | Evidence-backed status |
 | --- | --- |
 | Package | `v1.0.0` x86_64 Flatpak built, linted, installed, smoke-tested, and mapped to its source tag |
-| Automated behavior | 101 deterministic tests currently pass without a key, microphone, model, or network on this checkout |
+| Automated behavior | 106 deterministic tests currently pass without a key, microphone, model, or network on this checkout |
 | Desktop UI | GTK 3; designed for Debian/Ubuntu-style Linux desktops |
 | Audio route | PyAudio through the host PipeWire/PulseAudio compatibility path |
 | Physical compatibility | Real PipeWire/PulseAudio plus Wayland/X11 reports are still being collected |
@@ -156,6 +157,11 @@ defaults < ${XDG_CONFIG_HOME:-$HOME/.config}/voice-transcriber/config.json < env
 `GROQ_API_KEY` has the highest precedence and is never logged. Run
 `python main.py --doctor` for local readiness checks; only the explicit
 `--doctor --probe-provider` option contacts Groq, and it sends no audio.
+An explicitly selected microphone keeps its PortAudio index for compatibility
+and a local opaque identity fingerprint. If the index later describes a
+different input, the app refuses to open it until you refresh and choose again;
+the fingerprint is best effort because PortAudio has no portable persistent
+device identifier across all backends.
 
 ## Develop without a microphone or key
 

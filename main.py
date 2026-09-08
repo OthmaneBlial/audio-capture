@@ -150,7 +150,16 @@ class VoiceTranscriberApp:
                     if self._input_device_override is not None
                     else self._config.get("input_device_index")
                 )
-                audio = AudioCapture(device_index=device_index, on_level=self._on_input_level)
+                expected_device_identity = (
+                    None
+                    if self._input_device_override is not None or device_index is None
+                    else self._config.get("input_device_identity")
+                )
+                audio = AudioCapture(
+                    device_index=device_index,
+                    expected_device_identity=expected_device_identity,
+                    on_level=self._on_input_level,
+                )
                 vad = VoiceActivityDetector(
                     sample_rate=audio.sample_rate,
                     frame_duration_ms=audio.frame_duration_ms,
@@ -515,6 +524,7 @@ def _run_device_list(*, as_json: bool) -> int:
                         "name": device.name,
                         "max_input_channels": device.max_input_channels,
                         "is_default": device.is_default,
+                        "identity": device.identity,
                     }
                     for device in devices
                 ],

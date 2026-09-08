@@ -13,6 +13,7 @@ from diagnostics import collect_diagnostics, diagnostics_json, format_diagnostic
 class FakeDevice:
     index: int
     is_default: bool = False
+    identity: str = ""
 
 
 class DiagnosticsTests(unittest.TestCase):
@@ -130,6 +131,29 @@ class DiagnosticsTests(unittest.TestCase):
 
             self.assertFalse(report["ready"])
             self.assertEqual(report["checks"]["selected_microphone"]["status"], "fail")
+
+    def test_saved_microphone_identity_mismatch_fails_readiness(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = self._config(
+                directory,
+                api_key="gsk-valid-test-key",
+                input_device_index=4,
+                input_device_identity="abcdef0123456789abcdef01",
+            )
+            report = collect_diagnostics(
+                config,
+                app_version="test",
+                environ={"XDG_SESSION_TYPE": "x11"},
+                system_name="Linux",
+                release_info={"ID": "ubuntu"},
+                gtk_probe=lambda: "3.24.0",
+                device_probe=lambda: [FakeDevice(4, True, "111111111111111111111111")],
+            )
+
+            self.assertFalse(report["ready"])
+            selected = report["checks"]["selected_microphone"]
+            self.assertEqual(selected["status"], "fail")
+            self.assertTrue(selected["identity_checked"])
 
     def test_local_provider_diagnostics_validate_files_without_network_or_paths(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

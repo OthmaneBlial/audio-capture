@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import math
 import queue
@@ -24,6 +25,26 @@ class InputDevice:
     name: str
     max_input_channels: int
     is_default: bool = False
+    identity: str = ""
+
+
+class DeviceIdentityMismatch(RuntimeError):
+    """Raised when a saved index no longer describes the selected microphone."""
+
+
+def device_identity(info: dict[str, Any]) -> str:
+    """Return a stable, opaque best-effort identity for a PortAudio input.
+
+    PortAudio does not expose one portable persistent identifier across all
+    backends.  The normalized name, host API, and channel count catch the
+    common case where a replugged device takes a previously saved index while
+    keeping the human-readable device name out of the config file.
+    """
+    name = " ".join(str(info.get("name", "")).split()).casefold()
+    host_api = str(info.get("hostApi", "unknown")).strip().casefold() or "unknown"
+    channels = str(int(info.get("maxInputChannels", 0)))
+    material = "|".join((name, host_api, channels))
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()[:24]
 
 
 def list_input_devices(*, pyaudio_factory: Callable[[], Any] = pyaudio.PyAudio) -> list[InputDevice]:
@@ -50,6 +71,7 @@ def list_input_devices(*, pyaudio_factory: Callable[[], Any] = pyaudio.PyAudio) 
                     name=name,
                     max_input_channels=channels,
                     is_default=index == default_index,
+                    identity=device_identity(info),
                 )
             )
         return devices
@@ -82,6 +104,7 @@ class AudioCapture:
         on_audio_chunk: Optional[Callable[[bytes], None]] = None,
         *,
         device_index: Optional[int] = None,
+        expected_device_identity: Optional[str] = None,
         on_level: Optional[Callable[[float], None]] = None,
         queue_audio: bool = True,
         pyaudio_factory: Callable[[], Any] = pyaudio.PyAudio,
@@ -92,6 +115,10 @@ class AudioCapture:
             or (isinstance(device_index, int) and device_index < 0)
         ):
             raise ValueError("device_index must be a non-negative integer or None")
+        if expected_device_identity is not None and (
+            not isinstance(expected_device_identity, str) or len(expected_device_identity) > 128
+        ):
+            raise ValueError("expected_device_identity must be text or None")
         self._pyaudio: Optional[pyaudio.PyAudio] = None
         self._stream: Optional[pyaudio.Stream] = None
         self._running = threading.Event()
@@ -101,6 +128,9 @@ class AudioCapture:
         self._on_level = on_level
         self._queue_audio = queue_audio
         self._device_index = device_index
+        self._expected_device_identity = (
+            expected_device_identity.strip() if expected_device_identity is not None else None
+        ) or None
         self._pyaudio_factory = pyaudio_factory
         self._selected_device: Optional[InputDevice] = None
         self._last_level_at = 0.0
@@ -125,7 +155,15 @@ class AudioCapture:
                     name=device_name or "unknown microphone",
                     max_input_channels=int(device.get("maxInputChannels", 0)),
                     is_default=self._device_index is None,
+                    identity=device_identity(device),
                 )
+                if (
+                    self._expected_device_identity is not None
+                    and self._selected_device.identity != self._expected_device_identity
+                ):
+                    raise DeviceIdentityMismatch(
+                        "The saved microphone changed at this index. Refresh Settings and choose the intended input."
+                    )
                 LOGGER.info("Using input device: %s", self._selected_device.name)
                 open_options: dict[str, Any] = {
                     "format": self.FORMAT,
@@ -140,6 +178,8 @@ class AudioCapture:
                 self._stream = self._pyaudio.open(**open_options)
             except Exception as error:
                 self._cleanup_resources()
+                if isinstance(error, DeviceIdentityMismatch):
+                    raise
                 microphone = "the selected microphone" if self._device_index is not None else "the default microphone"
                 raise RuntimeError(
                     f"Could not open {microphone}. Check that a microphone is connected "

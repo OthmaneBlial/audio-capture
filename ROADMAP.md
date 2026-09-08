@@ -46,8 +46,8 @@ Checksum du bundle vérifié : `19f941a5767f7380eb8709bde3de3cbee78647ee263f343a
 
 Le tableau précédent est la photographie de référence prise avant les
 corrections incrémentales. Depuis cette photographie, le checkout `main`
-contient 100 tests déterministes : `scripts/run_checks.py` a passé Ruff,
-compilation, tests et couverture à 67 % dans le venv temporaire utilisé pour
+contient 106 tests déterministes : `scripts/run_checks.py` a passé Ruff,
+compilation, tests et couverture à 68 % dans le venv temporaire utilisé pour
 la vérification. Le workflow Flatpak GitHub Actions `34252066670` a réussi sur
 le commit `165f399` le 8 septembre 2026 : build en ligne, rebuild sans
 téléchargement, lints, CLI/doctor, permissions, smoke GTK sous Xvfb et
@@ -196,6 +196,7 @@ terminée lorsque sa validation externe reste ouverte.
 - [x] Autoscroll de relecture, états « traitement restant » et documentation de démarrage alignée.
 - [x] Checks source unifiés, audits sécurité, rapport de release explicite et actions/conteneur épinglés.
 - [x] Smoke Flatpak Linux vérifié sur `165f399` (`34252066670`), avec suppression des données.
+- [x] Sélection micro persistante protégée par une identité opaque best effort ; index réutilisé refusé par capture et diagnostics, avec migration des anciennes configurations sans identité.
 - [ ] Compatibilité Linux physique, micro, Orca, portail d’export et transcription Groq réelle.
 - [ ] Cinq sessions utilisateur, canal de mise à jour public et release candidate téléchargée.
 - [ ] Captures GTK réelles et vidéo finale produite après les portes précédentes.
@@ -319,7 +320,7 @@ terminée lorsque sa validation externe reste ouverte.
 ### 3.2 — Stabiliser sélection audio et push-to-talk · P1 · F09–F11
 
 - **Objectif :** aucune ambiguïté sur quand on écoute et quel périphérique est utilisé.
-- **Changements :** séparer amorçage et fin de parole ; calibrer les mots courts et la coupure à 20 s ; conserver suffisamment de contexte sans promettre zéro silence dans les segments. Résoudre le micro sauvegardé avec identité vérifiée plutôt qu’un index seul ; gérer changement/retrait. Ajouter press/release clavier et perte de focus, ou renommer honnêtement le mode souris si le clavier n’est pas supporté. **Fait localement :** le seuil d’amorçage VAD utilise maintenant la durée minimale configurée, une séquence de 300 ms de parole produit un segment dans le test déterministe, et une fenêtre push-to-talk qui perd le focus arrête sa session ; la mesure sur micros réels et l’identité persistante du périphérique restent ouvertes.
+- **Changements :** séparer amorçage et fin de parole ; calibrer les mots courts et la coupure à 20 s ; conserver suffisamment de contexte sans promettre zéro silence dans les segments. Résoudre le micro sauvegardé avec identité vérifiée plutôt qu’un index seul ; gérer changement/retrait. Ajouter press/release clavier et perte de focus, ou renommer honnêtement le mode souris si le clavier n’est pas supporté. **Fait localement :** le seuil d’amorçage VAD utilise maintenant la durée minimale configurée, une séquence de 300 ms de parole produit un segment dans le test déterministe, une fenêtre push-to-talk qui perd le focus arrête sa session, et une sélection persistée conserve une empreinte opaque best effort qui refuse un index réutilisé dans la capture et le diagnostic ; la mesure sur micros réels reste ouverte.
 - **Fichiers/parties :** `audio/vad.py`, `capture.py`, `config.py`, contrôleur, `ui/`, tests audio/VAD, `docs/DAILY-DICTATION.md`.
 - **Acceptation :** une phrase courte au seuil documenté passe ; silence seul ne déclenche pas d’upload ; mots aux limites préservés ; aucun mauvais micro choisi silencieusement ; relâchement, perte de focus et fermeture arrêtent le mode maintenu.
 - **Tests/validations :** corpus déterministe trame par trame, mots courts/bruit/longue parole ; micro USB retiré/rebranché ; Ctrl+Enter répétitif, Tab/Alt+Tab pendant l’appui et événements de relâchement perdus.

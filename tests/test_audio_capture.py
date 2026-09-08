@@ -27,8 +27,8 @@ class FakePyAudio:
         self.stream = FakeStream()
         self.devices = {
             0: {"name": "Desktop speakers", "maxInputChannels": 0, "index": 0},
-            2: {"name": "  USB   microphone  ", "maxInputChannels": 2, "index": 2},
-            5: {"name": "Built-in microphone", "maxInputChannels": 1, "index": 5},
+            2: {"name": "  USB   microphone  ", "maxInputChannels": 2, "index": 2, "hostApi": 1},
+            5: {"name": "Built-in microphone", "maxInputChannels": 1, "index": 5, "hostApi": 1},
         }
 
     def get_default_input_device_info(self) -> dict[str, object]:
@@ -100,6 +100,34 @@ class AudioCaptureTests(unittest.TestCase):
             capture.stop()
             self.module.threading.Thread = original_thread
         self.assertTrue(client.terminated)
+
+    def test_saved_device_identity_blocks_a_reused_index(self) -> None:
+        client = FakePyAudio()
+        capture = self.module.AudioCapture(
+            device_index=5,
+            expected_device_identity="000000000000000000000000",
+            pyaudio_factory=lambda: client,
+        )
+        original_thread = self.module.threading.Thread
+        self.module.threading.Thread = FakeThread
+        try:
+            with self.assertRaises(self.module.DeviceIdentityMismatch):
+                capture.start()
+            self.assertEqual(client.open_options, {})
+        finally:
+            capture.stop()
+            self.module.threading.Thread = original_thread
+        self.assertTrue(client.terminated)
+
+    def test_device_identity_is_opaque_and_ignores_display_whitespace(self) -> None:
+        first = self.module.device_identity(
+            {"name": "  USB   MICROPHONE ", "maxInputChannels": 2, "hostApi": 1}
+        )
+        second = self.module.device_identity(
+            {"name": "USB microphone", "maxInputChannels": 2, "hostApi": 1}
+        )
+        self.assertEqual(first, second)
+        self.assertRegex(first, r"^[0-9a-f]{24}$")
 
     def test_signal_level_is_bounded_and_tracks_louder_pcm(self) -> None:
         silence = b"\x00\x00" * 20

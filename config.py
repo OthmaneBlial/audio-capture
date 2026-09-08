@@ -36,6 +36,7 @@ class ConfigManager:
         "window_height": 520,
         "sticky_mode": False,
         "input_device_index": None,
+        "input_device_identity": "",
         "onboarding_complete": False,
         "capture_mode": "toggle",
         "copy_on_final": False,
@@ -197,6 +198,15 @@ class ConfigManager:
             if not isinstance(value, str):
                 raise ConfigError(f"{key} must be text")
             return value.strip()
+        if key == "input_device_identity":
+            if not isinstance(value, str):
+                raise ConfigError("input_device_identity must be text")
+            identity = value.strip().lower()
+            if identity and (
+                len(identity) != 24 or any(character not in "0123456789abcdef" for character in identity)
+            ):
+                raise ConfigError("input_device_identity must be an empty string or a 24-character hex value")
+            return identity
         if key == "provider_mode":
             if value not in {"groq", "local_whisper_cpp"}:
                 raise ConfigError("provider_mode must be groq or local_whisper_cpp")
