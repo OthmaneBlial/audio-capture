@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <id>io.github.othmaneblial.audio_capture</id>
   <name>Voice Transcriber</name>
-  <summary>Review-first Linux dictation with an explicit cloud boundary</summary>
+  <summary>Native Rust dictation desk with an explicit cloud boundary</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <developer id="io.github.othmaneblial">
@@ -10,13 +10,14 @@
   </developer>
   <description>
     <p>
-      Voice Transcriber turns spoken notes, prompts, emails, tickets, and drafts
-      into editable text you review before copying or explicitly exporting it.
+      Voice Transcriber is a native Rust desktop desk for Linux, macOS, and
+      Windows. It turns spoken notes, prompts, emails, tickets, and drafts into
+      editable text you review before copying or explicitly exporting it.
     </p>
     <p>
       Voice activity detection and the input meter run locally. Completed speech
-      segments are sent to Groq Whisper; the application does not save raw audio
-      or collect analytics.
+      segments are sent to Groq Whisper only after explicit consent; the
+      application does not save raw audio or collect analytics.
     </p>
   </description>
   <launchable type="desktop-id">io.github.othmaneblial.audio_capture.desktop</launchable>
@@ -28,11 +29,11 @@
   <url type="vcs-browser">https://github.com/OthmaneBlial/audio-capture</url>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/OthmaneBlial/audio-capture/d98f1992bf33c4f6c94f3deb76046a553c0ca830/site/assets/demo-02-active.png</image>
+      <image>https://raw.githubusercontent.com/OthmaneBlial/audio-capture/main/site/assets/demo-02-active.png</image>
       <caption>A visible microphone signal, speech state, and transcript result area</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/OthmaneBlial/audio-capture/d98f1992bf33c4f6c94f3deb76046a553c0ca830/site/assets/demo-03-complete.png</image>
+      <image>https://raw.githubusercontent.com/OthmaneBlial/audio-capture/main/site/assets/demo-03-complete.png</image>
       <caption>A completed transcript ready to copy, clear, or export</caption>
     </screenshot>
   </screenshots>

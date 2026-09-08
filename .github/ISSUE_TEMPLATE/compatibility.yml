@@ -1,5 +1,5 @@
-name: Linux audio compatibility report
-description: Report a reproducible microphone, audio-server, desktop-session, or package problem.
+name: Audio compatibility report
+description: Report a reproducible microphone, desktop, native archive, or provider problem.
 labels: [bug, hardware-compatibility]
 body:
   - type: markdown
@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: Exact app version
-      placeholder: "0.6.0"
+      placeholder: "1.2.0"
     validations:
       required: true
   - type: dropdown
@@ -18,25 +18,29 @@ body:
     attributes:
       label: Installation path
       options:
-        - Release Flatpak asset
-        - Source setup on Debian/Ubuntu
+        - Linux native archive
+        - macOS native archive
+        - Windows native archive
+        - Cargo source build
         - Unsupported or modified package
     validations:
       required: true
   - type: input
     id: system
     attributes:
-      label: Distribution and desktop
-      placeholder: "Ubuntu 26.04, GNOME 50"
+      label: Operating system and desktop
+      placeholder: "macOS 26.6, arm64"
     validations:
       required: true
   - type: dropdown
     id: session
     attributes:
-      label: Display session
+      label: Display/session
       options:
         - Wayland
         - X11
+        - macOS window server
+        - Windows desktop
         - Unknown
     validations:
       required: true
@@ -47,8 +51,9 @@ body:
       options:
         - PipeWire with PulseAudio compatibility
         - PulseAudio
-        - Direct ALSA or other unsupported route
-        - Unknown
+        - CoreAudio
+        - WASAPI
+        - Other/unknown
     validations:
       required: true
   - type: input
