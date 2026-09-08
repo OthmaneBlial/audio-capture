@@ -95,6 +95,18 @@ class ConfigManagerTests(unittest.TestCase):
                 with self.assertRaises(ConfigError):
                     config.set("onboarding_complete", invalid)
 
+    def test_cloud_boundary_confirmation_is_private_and_boolean(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            config_directory = Path(temporary_directory)
+            config = ConfigManager(config_directory, environ={})
+            self.assertFalse(config.get("cloud_boundary_confirmed"))
+            config.set("cloud_boundary_confirmed", True)
+            reloaded = ConfigManager(config_directory, environ={})
+            self.assertTrue(reloaded.get("cloud_boundary_confirmed"))
+            for invalid in (1, "true", None):
+                with self.assertRaises(ConfigError):
+                    config.set("cloud_boundary_confirmed", invalid)
+
     def test_daily_dictation_preferences_are_private_validated_and_off_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             config = ConfigManager(Path(temporary_directory), environ={})

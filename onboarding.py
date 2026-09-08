@@ -38,6 +38,11 @@ def validate_cloud_setup(api_key: str, *, data_boundary_confirmed: bool) -> str:
     return cleaned_key
 
 
+def cloud_boundary_is_required(provider_mode: str) -> bool:
+    """Return whether the active provider can transmit speech off-device."""
+    return provider_mode == "groq"
+
+
 def validate_local_setup(binary_path: object, model_path: object) -> tuple[str, str]:
     """Validate user-supplied experimental local runtime paths without executing them."""
     if not isinstance(binary_path, str) or not binary_path.strip():

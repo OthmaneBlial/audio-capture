@@ -27,6 +27,7 @@ class ConfigManager:
 
     DEFAULT_CONFIG: dict[str, Any] = {
         "api_key": "",
+        "cloud_boundary_confirmed": False,
         "font_size": 17,
         "language": "auto",
         "translate_to_english": False,
@@ -208,6 +209,7 @@ class ConfigManager:
             "translate_to_english",
             "sticky_mode",
             "onboarding_complete",
+            "cloud_boundary_confirmed",
             "copy_on_final",
             "history_enabled",
         }:

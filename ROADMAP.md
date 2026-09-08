@@ -192,10 +192,10 @@ Ordre de grandeur : **29–53 jours de travail**, non engagement calendaire. Les
 ### 1.1 — Appliquer le consentement au point d’envoi · P0 · F01
 
 - **Objectif :** aucune transmission cloud sans accord correspondant au fournisseur actif.
-- **Changements :** état de consentement versionné et distinct de l’onboarding ; garde dans le contrôleur et à la soumission ; mêmes règles après Explore first, clé d’environnement, Settings, migration et changement de provider ; action de retrait arrêtant la capture et les travaux encore annulables.
+- **Changements :** état de consentement versionné et distinct de l’onboarding ; garde dans le contrôleur et à la soumission ; mêmes règles après Explore first, clé d’environnement, Settings, migration et changement de provider ; action de retrait arrêtant la capture et les travaux encore annulables. **Fait localement :** la configuration expose `cloud_boundary_confirmed`, l’onboarding et Settings l’exigent pour Groq, et `_start_listening()` bloque une capture cloud non confirmée ; les tests contrôleur/configuration couvrent le garde-fou.
 - **Fichiers/parties :** `config.py`, `onboarding.py`, `main.py`, `transcription/provider.py`, services, `ui/main_window.py`, `tests/test_onboarding.py`, nouveaux tests contrôleur.
 - **Acceptation :** aucun appel du faux transport quand le consentement manque ou est retiré ; l’UI demande l’accord avant toute soumission ; le diagnostic par défaut reste sans réseau. Un appel déjà envoyé ne peut pas être « désenvoyé » : l’UI l’explique.
-- **Tests/validations :** matrice première ouverture/Explore first/clé env/clé sauvegardée/changement fournisseur/retrait ; assert sur le nombre d’appels, pas seulement sur une case cochée.
+- **Tests/validations :** tests locaux de matrice clé d’environnement/consentement et démarrage contrôleur ; restent à valider la première ouverture/Explore first, le retrait pendant une session, l’annulation des travaux en vol et l’assertion réseau bout en bout sur le paquet Linux.
 - **Dépendances/risques :** 0.1 ; migration des configurations existantes, erreur de classement entre configuration valide et consentement valide.
 
 ### 1.2 — Corriger le contrat modèle, langue et traduction · P0 · F02

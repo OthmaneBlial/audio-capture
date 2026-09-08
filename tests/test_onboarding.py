@@ -8,6 +8,7 @@ from onboarding import (
     GROQ_PROVIDER_FACTS_REVIEWED,
     GROQ_SPEECH_TO_TEXT_URL,
     OnboardingError,
+    cloud_boundary_is_required,
     groq_cloud_disclosure,
     validate_cloud_setup,
     validate_local_setup,
@@ -15,6 +16,10 @@ from onboarding import (
 
 
 class OnboardingTests(unittest.TestCase):
+    def test_cloud_boundary_is_required_only_for_cloud_provider(self) -> None:
+        self.assertTrue(cloud_boundary_is_required("groq"))
+        self.assertFalse(cloud_boundary_is_required("local_whisper_cpp"))
+
     def test_cloud_setup_requires_plausible_key_and_explicit_confirmation(self) -> None:
         with self.assertRaises(OnboardingError):
             validate_cloud_setup("short", data_boundary_confirmed=True)

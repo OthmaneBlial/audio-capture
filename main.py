@@ -117,6 +117,14 @@ class VoiceTranscriberApp:
                     )
                 self._window.show_error(message)
                 return False
+            if (
+                self._transcriber.provider_id == "groq"
+                and not self._config.get("cloud_boundary_confirmed")
+            ):
+                self._window.show_error(
+                    "Confirm the Groq cloud data boundary in Settings before starting a session."
+                )
+                return False
 
             audio: Any = None
             try:

@@ -19,6 +19,7 @@ from onboarding import (
     GROQ_DATA_CONTROLS_URL,
     GROQ_SPEECH_TO_TEXT_URL,
     OnboardingError,
+    cloud_boundary_is_required,
     groq_cloud_disclosure,
     validate_cloud_setup,
     validate_local_setup,
@@ -378,6 +379,15 @@ class MainWindow(Gtk.Window):
         self._api_entry.set_placeholder_text("gsk_…")
         self._api_entry.set_text(self._config.saved_value("api_key") or "")
         api_row.pack_start(self._api_entry, False, False, 0)
+        self._cloud_consent_check = Gtk.CheckButton(
+            label="I understand that completed speech segments are sent to Groq"
+        )
+        self._cloud_consent_check.set_active(self._config.get("cloud_boundary_confirmed"))
+        self._cloud_consent_check.set_tooltip_text(
+            "Required before a Groq session can send audio"
+        )
+        self._cloud_consent_check.get_accessible().set_name("Confirm Groq cloud data boundary")
+        api_row.pack_start(self._cloud_consent_check, False, False, 0)
         if self._config.source_for("api_key") == "environment":
             self._api_entry.set_text("")
             self._api_entry.set_placeholder_text("Set by GROQ_API_KEY")
@@ -806,6 +816,11 @@ class MainWindow(Gtk.Window):
                             if not selected or selected == "default"
                             else int(selected),
                             "onboarding_complete": True,
+                            "cloud_boundary_confirmed": (
+                                consent.get_active()
+                                if provider_mode == "groq"
+                                else False
+                            ),
                         }
                     )
                 except (ConfigError, OnboardingError) as error:
@@ -833,6 +848,18 @@ class MainWindow(Gtk.Window):
             provider_mode = self._provider_combo.get_active_id() or "groq"
             local_binary_path = self._local_binary_entry.get_text()
             local_model_path = self._local_model_entry.get_text()
+            if cloud_boundary_is_required(provider_mode):
+                configured_key = (
+                    self._config.get("api_key")
+                    if self._config.source_for("api_key") == "environment"
+                    else self._api_entry.get_text()
+                )
+                clean_key = validate_cloud_setup(
+                    configured_key,
+                    data_boundary_confirmed=self._cloud_consent_check.get_active(),
+                )
+            else:
+                clean_key = self._config.saved_value("api_key")
             if provider_mode == "local_whisper_cpp":
                 if not self._experimental_local_available:
                     raise OnboardingError(
@@ -845,7 +872,7 @@ class MainWindow(Gtk.Window):
                 {
                     "api_key": self._config.saved_value("api_key")
                     if self._config.source_for("api_key") == "environment"
-                    else self._api_entry.get_text(),
+                    else clean_key,
                     "provider_mode": provider_mode,
                     "local_binary_path": local_binary_path,
                     "local_model_path": local_model_path,
@@ -858,6 +885,11 @@ class MainWindow(Gtk.Window):
                     "copy_on_final": self._copy_on_final_switch.get_active(),
                     "history_enabled": self._history_switch.get_active(),
                     "history_retention_days": int(self._history_retention.get_value()),
+                    "cloud_boundary_confirmed": (
+                        self._cloud_consent_check.get_active()
+                        if cloud_boundary_is_required(provider_mode)
+                        else self._config.get("cloud_boundary_confirmed")
+                    ),
                 }
             )
         except (ConfigError, OnboardingError) as error:
