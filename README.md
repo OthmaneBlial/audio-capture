@@ -150,7 +150,7 @@ python main.py
 Settings resolve as:
 
 ```text
-defaults < ~/.config/voice-transcriber/config.json < environment variables
+defaults < ${XDG_CONFIG_HOME:-$HOME/.config}/voice-transcriber/config.json < environment variables
 ```
 
 `GROQ_API_KEY` has the highest precedence and is never logged. Run
