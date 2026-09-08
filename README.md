@@ -12,6 +12,10 @@ Groq provider boundary, the egui desktop interface, and diagnostic commands.
 The old Python runtime was removed from `main`; historical release assets are
 not Rust artifacts and are not used by the current build.
 
+![Voice Transcriber native Rust desktop ready state](site/assets/native-rust-ready.png)
+
+*Actual macOS arm64 build, captured locally with no provider key configured.*
+
 ## Why this exists
 
 Most voice-typing tools inject words into whichever application currently has

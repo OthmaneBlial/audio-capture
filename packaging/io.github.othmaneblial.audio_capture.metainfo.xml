@@ -29,8 +29,8 @@
   <url type="vcs-browser">https://github.com/OthmaneBlial/audio-capture</url>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/OthmaneBlial/audio-capture/main/site/assets/demo-02-active.png</image>
-      <caption>A visible microphone signal, speech state, and transcript result area</caption>
+      <image>https://raw.githubusercontent.com/OthmaneBlial/audio-capture/main/site/assets/native-rust-ready.png</image>
+      <caption>Native Rust desktop ready state with microphone controls and editable review desk</caption>
     </screenshot>
     <screenshot>
       <image>https://raw.githubusercontent.com/OthmaneBlial/audio-capture/main/site/assets/demo-03-complete.png</image>
