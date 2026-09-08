@@ -163,11 +163,7 @@ defaults < ~/.config/voice-transcriber/config.json < environment variables
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-test.txt
-ruff check .
-python -m unittest discover -s tests -v
-coverage run --branch -m unittest discover -s tests
-coverage report --omit='tests/*,scripts/*,ui/*,audio/__init__.py' --fail-under=65
-python -m compileall -q audio transcription ui benchmarks scripts config.py main.py
+python scripts/run_checks.py
 ```
 
 The suite injects native and provider boundaries and exercises capture, VAD,

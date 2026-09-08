@@ -20,14 +20,8 @@ jobs:
           cache-dependency-path: requirements-test.txt
       - name: Install pure verification and security tools
         run: python -m pip install --upgrade pip -r requirements-test.txt pip-audit bandit
-      - name: Lint and compile source
-        run: |
-          ruff check .
-          python -m compileall -q audio transcription ui benchmarks scripts config.py diagnostics.py exports.py history.py main.py onboarding.py platform_capabilities.py transcript.py
-      - name: Run tests and core coverage
-        run: |
-          coverage run --branch -m unittest discover -s tests -v
-          coverage report --omit='tests/*,scripts/*,ui/*,audio/__init__.py' --show-missing --fail-under=65
+      - name: Run source checks
+        run: python scripts/run_checks.py
       - name: Audit dependencies and Python security
         run: |
           pip-audit --require-hashes --disable-pip -r packaging/requirements-audit.txt

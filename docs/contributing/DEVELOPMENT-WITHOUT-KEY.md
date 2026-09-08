@@ -12,12 +12,7 @@ On a machine with Python 3.9 or newer:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-test.txt
-python -m unittest discover -s tests -v
-ruff check .
-coverage run --branch -m unittest discover -s tests
-coverage report --omit='tests/*,scripts/*,ui/*,audio/__init__.py' --fail-under=65
-python -m compileall -q audio transcription ui config.py diagnostics.py \
-  exports.py history.py main.py onboarding.py platform_capabilities.py transcript.py
+python scripts/run_checks.py
 ```
 
 The standard-library tests provide fake PyAudio streams, HTTP responses,
