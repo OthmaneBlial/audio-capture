@@ -37,6 +37,7 @@ pub struct VoiceTranscriberApp {
     status: String,
     error: Option<String>,
     last_saved: Option<Instant>,
+    session_generation: u64,
 }
 
 impl VoiceTranscriberApp {
@@ -68,6 +69,7 @@ impl VoiceTranscriberApp {
             status: "Ready for a local microphone".into(),
             error: load_warning,
             last_saved: None,
+            session_generation: 1,
         };
         app.apply_style(cc);
         Ok(app)
@@ -141,6 +143,7 @@ impl VoiceTranscriberApp {
         if self.capture.is_some() {
             return;
         }
+        self.invalidate_session();
         let identity = (!self.config.input_device_identity.is_empty())
             .then_some(self.config.input_device_identity.as_str());
         match AudioCapture::open(self.config.input_device_index, identity) {
@@ -202,7 +205,10 @@ impl VoiceTranscriberApp {
     }
 
     fn submit_segment(&mut self, segment: Vec<u8>) {
-        match self.provider.submit(segment) {
+        match self
+            .provider
+            .submit_for_generation(segment, self.session_generation)
+        {
             Ok(request_id) => {
                 self.status = format!("Speech segment {request_id} queued for transcription");
                 self.error = None;
@@ -218,6 +224,9 @@ impl VoiceTranscriberApp {
     }
 
     fn apply_provider_event(&mut self, event: ProviderEvent) {
+        if !event_is_current_generation(&event, self.session_generation) {
+            return;
+        }
         let text = event.text.clone().unwrap_or_default();
         let status = match event.state {
             RequestState::Pending => SegmentStatus::Pending,
@@ -254,6 +263,17 @@ impl VoiceTranscriberApp {
             }
             Err(error) => self.error = Some(error),
         }
+    }
+
+    fn invalidate_session(&mut self) {
+        self.session_generation = self.session_generation.saturating_add(1);
+    }
+
+    fn clear_transcript(&mut self) {
+        self.invalidate_session();
+        self.transcript.clear();
+        self.status = "Transcript cleared".into();
+        self.error = None;
     }
 
     fn export_transcript(&mut self, format: ExportFormat) {
@@ -388,7 +408,7 @@ impl VoiceTranscriberApp {
                             self.transcript.undo();
                         }
                         if ui.button("Clear").clicked() {
-                            self.transcript.clear();
+                            self.clear_transcript();
                         }
                     });
                 });
@@ -527,8 +547,7 @@ impl VoiceTranscriberApp {
                             self.save_settings();
                         }
                         if ui.button("Reset transcript").clicked() {
-                            self.transcript.clear();
-                            self.status = "Transcript cleared".into();
+                            self.clear_transcript();
                         }
                         if let Some(saved) = self.last_saved {
                             ui.label(RichText::new(format!("saved {}s ago", saved.elapsed().as_secs())).color(MUTED));
@@ -583,10 +602,33 @@ fn settings_from_config(config: &AppConfig) -> GroqSettings {
     }
 }
 
+fn event_is_current_generation(event: &ProviderEvent, current_generation: u64) -> bool {
+    event.session_generation == current_generation
+}
+
 fn copy_text(text: &str) -> Result<(), String> {
     let mut clipboard =
         Clipboard::new().map_err(|error| format!("Clipboard unavailable: {error}"))?;
     clipboard
         .set_text(text.to_owned())
         .map_err(|error| format!("Could not copy transcript: {error}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stale_provider_events_are_rejected_after_session_reset() {
+        let event = ProviderEvent {
+            request_id: 7,
+            session_generation: 3,
+            sequence: 7,
+            state: RequestState::Complete,
+            text: Some("old result".into()),
+            detail: "Added to transcript".into(),
+        };
+        assert!(!event_is_current_generation(&event, 4));
+        assert!(event_is_current_generation(&event, 3));
+    }
 }

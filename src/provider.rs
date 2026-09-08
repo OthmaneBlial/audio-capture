@@ -85,6 +85,9 @@ impl RequestState {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProviderEvent {
     pub request_id: u64,
+    /// Session generation selected by the UI. Late events from an invalidated
+    /// session can be discarded without touching the current transcript.
+    pub session_generation: u64,
     /// Monotonic submission order used by the transcript reducer.
     pub sequence: u64,
     pub state: RequestState,
@@ -94,6 +97,7 @@ pub struct ProviderEvent {
 
 struct TranscriptionJob {
     request_id: u64,
+    session_generation: u64,
     sequence: u64,
     audio: Vec<u8>,
     settings: GroqSettings,
@@ -153,6 +157,17 @@ impl GroqProvider {
     /// Queue one completed PCM segment. The request receives a stable sequence
     /// number before any worker thread can emit a result.
     pub fn submit(&mut self, audio: Vec<u8>) -> Result<u64, ProviderError> {
+        self.submit_for_generation(audio, 0)
+    }
+
+    /// Queue a segment associated with a UI session generation. The default
+    /// [`Self::submit`] helper remains useful to library callers that do not
+    /// need stale-result isolation.
+    pub fn submit_for_generation(
+        &mut self,
+        audio: Vec<u8>,
+        session_generation: u64,
+    ) -> Result<u64, ProviderError> {
         if self.closed.load(Ordering::Acquire) {
             return Err(ProviderError::Closed);
         }
@@ -169,6 +184,7 @@ impl GroqProvider {
         self.next_request_id = self.next_request_id.saturating_add(1);
         let job = TranscriptionJob {
             request_id,
+            session_generation,
             sequence: request_id,
             audio,
             settings,
@@ -180,6 +196,7 @@ impl GroqProvider {
                 // bounded job queue keeps raw audio memory under control.
                 self.emit(ProviderEvent {
                     request_id,
+                    session_generation,
                     sequence: request_id,
                     state: RequestState::Pending,
                     text: None,
@@ -236,6 +253,7 @@ fn worker_loop(
         if closed.load(Ordering::Acquire) {
             let _ = events.send(ProviderEvent {
                 request_id: job.request_id,
+                session_generation: job.session_generation,
                 sequence: job.sequence,
                 state: RequestState::Cancelled,
                 text: None,
@@ -245,6 +263,7 @@ fn worker_loop(
         }
         let _ = events.send(ProviderEvent {
             request_id: job.request_id,
+            session_generation: job.session_generation,
             sequence: job.sequence,
             state: RequestState::Transcribing,
             text: None,
@@ -258,6 +277,7 @@ fn worker_loop(
         let event = match result {
             Ok(text) if !text.is_empty() => ProviderEvent {
                 request_id: job.request_id,
+                session_generation: job.session_generation,
                 sequence: job.sequence,
                 state: RequestState::Complete,
                 text: Some(text),
@@ -265,6 +285,7 @@ fn worker_loop(
             },
             Ok(_) => ProviderEvent {
                 request_id: job.request_id,
+                session_generation: job.session_generation,
                 sequence: job.sequence,
                 state: RequestState::Error,
                 text: None,
@@ -272,6 +293,7 @@ fn worker_loop(
             },
             Err(error) => ProviderEvent {
                 request_id: job.request_id,
+                session_generation: job.session_generation,
                 sequence: job.sequence,
                 state: RequestState::Error,
                 text: None,
