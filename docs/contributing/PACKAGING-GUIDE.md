@@ -35,8 +35,7 @@ the containerized Flatpak workflow can run:
 
 ```bash
 python3 scripts/check_release.py 1.0.0
-python3 -m unittest discover -s tests -v
-ruff check .
+python3 scripts/run_checks.py
 ```
 
 Use the current project version in place of `1.0.0`. Read the full

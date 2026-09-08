@@ -29,7 +29,7 @@ Le nombre de stars ne constitue ni un test d’acceptation ni une promesse. Une 
 
 | Contrôle | Résultat | Limite |
 | --- | --- | --- |
-| Suite standard, Python 3.14.6 | **69 tests passent**, aucun échec | Doubles de PyAudio, VAD, HTTP et processus ; ne valide pas le micro ni le fournisseur réel |
+| Suite standard, Python 3.14.6 | **96 tests passent** sur le checkout courant, aucun échec | Doubles de PyAudio, VAD, HTTP et processus ; ne valide pas le micro ni le fournisseur réel |
 | Ruff `check --no-cache .` | Passe | Analyse statique, pas preuve fonctionnelle |
 | `scripts/check_release.py v1.0.0` | Passe | Vérifie les chaînes de version et rubriques, pas l’identité du code avec le binaire publié |
 | Bandit, périmètre et seuil `-ll` du workflow | Aucun résultat bloquant | Ne signifie pas absence de défaut de sécurité |

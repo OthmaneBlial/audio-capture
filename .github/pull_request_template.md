@@ -4,8 +4,7 @@ Describe the user-facing change and why it belongs here.
 
 ## Verification
 
-- [ ] `python -m unittest discover -s tests -v`
-- [ ] `ruff check .`
+- [ ] `python scripts/run_checks.py`
 - [ ] Manual GTK/audio verification, or why it was not possible
 
 ## Privacy and security
