@@ -159,20 +159,25 @@ class GroqTranscriptionService:
             self._notify_request(request_id, "error", "Queue is full")
             return None
 
-        self._ordered_results.register(request_id)
-        self._notify_request(request_id, "pending", "Waiting for Groq")
-        try:
-            future = self._executor.submit(self._transcribe_raw, audio_data)
-        except Exception as error:
-            self._pending.release()
-            ready = self._ordered_results.complete(
-                request_id, None, "error", "Could not queue request"
-            )
-            normalized = self._normalize_error(error)
-            self._report_error(normalized)
-            self._release_ready(ready)
-            return None
         with self._lock:
+            if self._closed:
+                self._pending.release()
+                self._report_error(TranscriptionError("The transcription service is shutting down."))
+                self._notify_request(request_id, "error", "Service is shutting down")
+                return None
+            self._ordered_results.register(request_id)
+            self._notify_request(request_id, "pending", "Waiting for Groq")
+            try:
+                future = self._executor.submit(self._transcribe_raw, audio_data)
+            except Exception as error:
+                self._pending.release()
+                ready = self._ordered_results.complete(
+                    request_id, None, "error", "Could not queue request"
+                )
+                normalized = self._normalize_error(error)
+                self._report_error(normalized, request_id=request_id)
+                self._release_ready(ready)
+                return None
             self._futures.add(future)
         future.add_done_callback(lambda completed: self._finish_request(request_id, completed))
         return future
@@ -254,7 +259,9 @@ class GroqTranscriptionService:
 
     def reset_session(self) -> None:
         """Invalidate result ordering and visible states before a new transcript generation."""
-        for request_id in self._ordered_results.reset():
+        with self._lock:
+            request_ids = self._ordered_results.reset()
+        for request_id in request_ids:
             self._notify_request(request_id, "cancelled", "Session was reset")
 
     def _notify_request(self, request_id: str, state: str, detail: str) -> None:

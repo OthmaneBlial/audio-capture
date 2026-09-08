@@ -155,23 +155,27 @@ class LocalWhisperTranscriptionService:
                 self._on_error(error)
             self._report_request(request_id, "error", "Queue is full")
             return None
-        self._ordered_results.register(request_id)
-        self._report_request(request_id, "pending", "Running local model")
-        try:
-            future = self._executor.submit(self._transcribe_raw, audio_data)
-        except Exception as error:
-            self._pending.release()
-            ready = self._ordered_results.complete(
-                request_id, None, "error", "Could not queue request"
-            )
-            normalized = self._normalize_error(error)
-            if self._on_error_result:
-                self._on_error_result(request_id, normalized)
-            elif self._on_error:
-                self._on_error(normalized)
-            self._release_ready(ready)
-            return None
         with self._lock:
+            if self._closed:
+                self._pending.release()
+                self._report_request(request_id, "error", "Service is shutting down")
+                return None
+            self._ordered_results.register(request_id)
+            self._report_request(request_id, "pending", "Running local model")
+            try:
+                future = self._executor.submit(self._transcribe_raw, audio_data)
+            except Exception as error:
+                self._pending.release()
+                ready = self._ordered_results.complete(
+                    request_id, None, "error", "Could not queue request"
+                )
+                normalized = self._normalize_error(error)
+                if self._on_error_result:
+                    self._on_error_result(request_id, normalized)
+                elif self._on_error:
+                    self._on_error(normalized)
+                self._release_ready(ready)
+                return None
             self._futures.add(future)
         future.add_done_callback(lambda completed: self._finish_request(request_id, completed))
         return future
@@ -191,7 +195,9 @@ class LocalWhisperTranscriptionService:
 
     def reset_session(self) -> None:
         """Invalidate result ordering and visible states before a new transcript generation."""
-        for request_id in self._ordered_results.reset():
+        with self._lock:
+            request_ids = self._ordered_results.reset()
+        for request_id in request_ids:
             self._report_request(request_id, "cancelled", "Session was reset")
 
     def close(self, wait: bool = False) -> None:
