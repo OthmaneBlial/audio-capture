@@ -10,9 +10,12 @@ verification boundary, and privacy-safe reporting rules:
 - [Orca first-run and dictation-desk review](https://github.com/OthmaneBlial/audio-capture/issues/5)
 - [French installation and privacy guidance](https://github.com/OthmaneBlial/audio-capture/issues/6)
 - [Public Flatpak install and removal reproduction](https://github.com/OthmaneBlial/audio-capture/issues/7)
-- [Fake provider-boundary contract fixture](https://github.com/OthmaneBlial/audio-capture/issues/8)
 - [Laptop tiny.en benchmark reproduction](https://github.com/OthmaneBlial/audio-capture/issues/9)
 - [v1 asset, SBOM, and provenance verification](https://github.com/OthmaneBlial/audio-capture/issues/10)
+
+Issue #8 is the historical fixture task completed by merged PR #11. The
+provider-boundary fixture remains part of the contributor documentation, but it
+is no longer advertised as an available task.
 
 Use the [contributor map](contributing/README.md) before claiming a task. The
 older candidate patterns below remain useful when one of the published issues
