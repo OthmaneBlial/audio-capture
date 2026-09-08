@@ -184,6 +184,11 @@ class LocalWhisperTranscriptionService:
                     pass
         return cancelled
 
+    def reset_session(self) -> None:
+        """Invalidate result ordering and visible states before a new transcript generation."""
+        for request_id in self._ordered_results.reset():
+            self._report_request(request_id, "cancelled", "Session was reset")
+
     def close(self, wait: bool = False) -> None:
         with self._lock:
             self._closed = True

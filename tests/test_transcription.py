@@ -204,6 +204,40 @@ class GroqTranscriptionServiceTests(unittest.TestCase):
             transport.release_first.set()
             service.close(wait=True)
 
+    def test_reset_session_drops_old_results_and_unblocks_new_generation(self) -> None:
+        transport = OutOfOrderTransport()
+        received: list[tuple[str, str]] = []
+        service = GroqTranscriptionService(
+            api_key="valid-test-key-12345",
+            transport_factory=FakeFactory(transport),
+            on_transcription_result=lambda request_id, text: received.append((request_id, text)),
+            max_workers=2,
+            max_pending_requests=3,
+        )
+        try:
+            first = service.transcribe_async(b"\x00\x00" * 80)
+            self.assertIsNotNone(first)
+            self.assertTrue(transport.first_started.wait(timeout=1))
+            second = service.transcribe_async(b"\x00\x00" * 80)
+            self.assertIsNotNone(second)
+            self.assertTrue(transport.second_started.wait(timeout=1))
+            service.reset_session()
+            third = service.transcribe_async(b"\x00\x00" * 80)
+            self.assertIsNotNone(third)
+            self.assertEqual(third.result(timeout=2), "SECOND")
+            for _ in range(100):
+                if received:
+                    break
+                threading.Event().wait(0.001)
+            self.assertEqual([text for _, text in received], ["SECOND"])
+            transport.release_first.set()
+            self.assertEqual(first.result(timeout=2), "FIRST")
+            self.assertEqual(second.result(timeout=2), "SECOND")
+            self.assertEqual([text for _, text in received], ["SECOND"])
+        finally:
+            transport.release_first.set()
+            service.close(wait=True)
+
 
 class GroqHTTPTransportTests(unittest.TestCase):
     def test_posts_multipart_wav_and_reads_json_without_putting_key_in_body(self) -> None:

@@ -249,6 +249,11 @@ class GroqTranscriptionService:
                     cancelled += 1
         return cancelled
 
+    def reset_session(self) -> None:
+        """Invalidate result ordering and visible states before a new transcript generation."""
+        for request_id in self._ordered_results.reset():
+            self._notify_request(request_id, "cancelled", "Session was reset")
+
     def _notify_request(self, request_id: str, state: str, detail: str) -> None:
         if self._on_request_state:
             try:

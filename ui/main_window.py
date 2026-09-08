@@ -39,6 +39,7 @@ class MainWindow(Gtk.Window):
         config: ConfigManager,
         on_start: Optional[Callable[[], bool]] = None,
         on_stop: Optional[Callable[[], None]] = None,
+        on_clear: Optional[Callable[[], None]] = None,
         on_settings_change: Optional[Callable[[], None]] = None,
         on_list_input_devices: Optional[Callable[[], list[Any]]] = None,
     ) -> None:
@@ -46,6 +47,7 @@ class MainWindow(Gtk.Window):
         self._config = config
         self._on_start = on_start
         self._on_stop = on_stop
+        self._on_clear = on_clear
         self._on_settings_change_cb = on_settings_change
         self._on_list_input_devices = on_list_input_devices
         self._is_listening = False
@@ -1129,6 +1131,8 @@ class MainWindow(Gtk.Window):
         dialog.add_button("Discard transcript", Gtk.ResponseType.ACCEPT)
         try:
             if dialog.run() == Gtk.ResponseType.ACCEPT:
+                if self._on_clear:
+                    self._on_clear()
                 self._replace_transcript("", remember=False)
                 self._undo_history.clear()
                 self.set_status("Transcript permanently cleared from this desk")

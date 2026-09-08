@@ -105,3 +105,14 @@ class OrderedResultBuffer:
                 ready.append(self._completed.pop(self._next_to_release))
                 self._next_to_release += 1
             return ready
+
+    def reset(self) -> list[str]:
+        """Invalidate all registered and completed requests for a new session."""
+        with self._lock:
+            request_ids = list(self._request_sequences)
+            request_ids.extend(request_id for request_id, *_ in self._completed.values())
+            self._request_sequences.clear()
+            self._completed.clear()
+            self._sequences = itertools.count(1)
+            self._next_to_release = 1
+            return request_ids

@@ -46,6 +46,7 @@ class VoiceTranscriberApp:
             config=self._config,
             on_start=self._start_listening,
             on_stop=self._stop_listening,
+            on_clear=self._cancel_pending_transcriptions,
             on_settings_change=self._on_settings_change,
             on_list_input_devices=self._list_input_devices,
         )
@@ -79,8 +80,7 @@ class VoiceTranscriberApp:
         if self._transcriber.provider_id != desired_provider or desired_provider == "local_whisper_cpp":
             if self._running.is_set():
                 self._stop_listening()
-            with self._lifecycle_lock:
-                self._active_request_ids.clear()
+            self._reset_transcription_generation()
             previous = self._transcriber
             self._transcriber = self._build_transcriber()
             previous.close(wait=False)
@@ -132,7 +132,7 @@ class VoiceTranscriberApp:
             # A new recording session starts a new transcript generation. Any
             # callback still arriving from a cancelled previous session is
             # rejected by the request-id gate below.
-            self._active_request_ids.clear()
+            self._reset_transcription_generation()
             audio: Any = None
             try:
                 device_index = (
@@ -248,6 +248,18 @@ class VoiceTranscriberApp:
                 LOGGER.debug("Ignoring transcription result from an inactive request: %s", request_id)
                 return
         self._on_transcription(text)
+
+    def _reset_transcription_generation(self) -> None:
+        with self._lifecycle_lock:
+            self._active_request_ids.clear()
+        reset_session = getattr(self._transcriber, "reset_session", None)
+        if callable(reset_session):
+            reset_session()
+
+    def _cancel_pending_transcriptions(self) -> int:
+        """Invalidate current callbacks and cancel queued provider work after Clear."""
+        self._reset_transcription_generation()
+        return self._transcriber.cancel_pending()
 
     def _on_transcription(self, text: str) -> None:
         if text.strip():
