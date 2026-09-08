@@ -1,5 +1,0 @@
-# Full source development environment: native runtime plus the pure test tools.
-# GTK and PortAudio development libraries are installed by setup.sh on
-# Debian/Ubuntu before pip resolves the native Python packages.
--r requirements.txt
--r requirements-test.txt

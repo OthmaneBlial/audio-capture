@@ -1,5 +1,0 @@
-# Credential-free, hardware-free checks. Runtime GTK/PortAudio packages are
-# intentionally kept in requirements.txt and are not needed by the test suite.
-coverage>=7.0,<8
-ruff>=0.6,<1
-build>=1.0,<2
