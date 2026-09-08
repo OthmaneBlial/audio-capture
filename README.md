@@ -10,6 +10,7 @@ copy or export it when it is ready.**
 [Download v1.0 for x86_64 Linux](https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak)
 · [Open the product tour](https://othmaneblial.github.io/audio-capture/#proof)
 · [Inspect the privacy boundary](docs/PRIVACY.md)
+· [Read the release evidence](docs/RELEASE-EVIDENCE.md)
 · [Read the docs](https://othmaneblial.github.io/audio-capture/docs.html)
 
 ![Voice Transcriber guided tour: ready, listening, and transcript states](site/assets/voice-transcriber-tour.gif)
