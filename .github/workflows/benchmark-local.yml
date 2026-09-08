@@ -14,8 +14,8 @@ jobs:
     env:
       WHISPER_CPP_REV: 978113305b2ead22249b881deafa131dc8884911
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
       - name: Install decoder and build tools
@@ -51,7 +51,7 @@ jobs:
             --provider-model "whisper.cpp@$WHISPER_CPP_REV; ggml-tiny.en.bin sha256=$model_sha" \
             --hardware-label "GitHub ubuntu-latest x86_64; $cpu; 2 build threads" \
             --output benchmarks/results/local-tiny-en-github-runner.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: local-tiny-en-benchmark-receipt
           path: benchmarks/results/local-tiny-en-github-runner.json

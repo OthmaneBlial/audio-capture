@@ -12,8 +12,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
           cache: pip
@@ -32,14 +32,14 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      image: ghcr.io/flathub-infra/flatpak-github-actions@sha256:1b74b57fa75e61b217e90072aec7ba7d618613fea982106cb3e813c002662162 # gnome-50
       options: --privileged
     permissions:
       contents: read
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Establish exact release version
         run: |
           version="${GITHUB_REF_NAME#v}"
@@ -55,7 +55,7 @@ jobs:
           flatpak-builder-lint --exceptions \
             --user-exceptions packaging/flatpak-lint-exceptions.json \
             appstream packaging/io.github.othmaneblial.audio_capture.metainfo.xml
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.7
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@401fe28a8384095fc1531b9d320b292f0ee45adb # v6.7
         with:
           bundle: voice-transcriber.flatpak
           manifest-path: io.github.othmaneblial.audio_capture.yml
@@ -101,12 +101,12 @@ jobs:
             --version "$VERSION" --commit "$GITHUB_SHA" --output release/release-notes.md
       - name: Generate build provenance attestation
         id: provenance
-        uses: actions/attest@v4
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.0.0
         with:
           subject-path: release/voice-transcriber-${{ env.VERSION }}-x86_64.flatpak
       - name: Generate SBOM attestation
         id: sbom-attestation
-        uses: actions/attest@v4
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.0.0
         with:
           subject-path: release/voice-transcriber-${{ env.VERSION }}-x86_64.flatpak
           sbom-path: release/voice-transcriber-${{ env.VERSION }}.cdx.json
@@ -114,7 +114,7 @@ jobs:
         run: |
           cp "${{ steps.provenance.outputs.bundle-path }}" "release/voice-transcriber-$VERSION-provenance.sigstore.json"
           cp "${{ steps.sbom-attestation.outputs.bundle-path }}" "release/voice-transcriber-$VERSION-sbom-attestation.sigstore.json"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: voice-transcriber-${{ github.ref_name }}-release
           path: release/
@@ -129,7 +129,7 @@ jobs:
     steps:
       - name: Establish release version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: voice-transcriber-${{ github.ref_name }}-release
           path: release
