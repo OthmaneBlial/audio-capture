@@ -27,6 +27,7 @@ def run_report(
     workflow_url: str,
     *,
     flatpak_status: str = "not-recorded",
+    source_quality_status: str = "not-recorded",
 ) -> tuple[dict[str, object], bool]:
     suite = discover_suite()
     started = time.perf_counter()
@@ -39,7 +40,40 @@ def run_report(
         "workflow_run": workflow_url,
         "environment": {"system": platform.platform(), "python": platform.python_version()},
         "automated": {
+            "release_ready": bool(
+                source_quality_status == "passed"
+                and flatpak_status == "passed"
+                and result.wasSuccessful()
+            ),
+            "steps": {
+                "source_quality": {
+                    "status": source_quality_status,
+                    "source": "scripts/run_checks.py and release quality job",
+                },
+                "unit_tests": {
+                    "status": "passed" if result.wasSuccessful() else "failed",
+                    "source": "scripts/run_release_tests.py",
+                    "tests_run": result.testsRun,
+                    "failures": len(result.failures),
+                    "errors": len(result.errors),
+                    "skipped": len(result.skipped),
+                },
+                "privacy_regression_suite": {
+                    "status": "passed" if result.wasSuccessful() else "failed",
+                    "source": "tests/test_privacy.py and the deterministic suite",
+                },
+                "flatpak_build_install_cli_permissions_gtk_uninstall": {
+                    "status": flatpak_status,
+                    "source": "packaging/smoke_test_flatpak.sh",
+                },
+                "manual_hardware": {
+                    "status": "not-recorded",
+                    "source": "docs/packaging/RELEASE-CHECKLIST.md",
+                },
+            },
+            # Keep the original compact fields for consumers of the v1 schema.
             "unit_tests": {
+                "status": "passed" if result.wasSuccessful() else "failed",
                 "run": result.testsRun,
                 "failures": len(result.failures),
                 "errors": len(result.errors),
@@ -72,6 +106,12 @@ def main() -> int:
         default="not-recorded",
         help="machine status from the installed-bundle smoke step",
     )
+    parser.add_argument(
+        "--source-quality-status",
+        choices=("not-recorded", "passed"),
+        default="not-recorded",
+        help="status from the source quality job that gates this report",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     report, passed = run_report(
@@ -79,6 +119,7 @@ def main() -> int:
         args.commit,
         args.workflow_url,
         flatpak_status=args.flatpak_status,
+        source_quality_status=args.source_quality_status,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

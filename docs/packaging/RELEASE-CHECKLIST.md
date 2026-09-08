@@ -4,6 +4,11 @@ This checklist distinguishes an automated package build from a supported public
 release. Record the commit, bundle checksum, tester environment, and evidence
 URL for every completed run.
 
+The generated test report has an `automated.release_ready` field and a status
+for each gate. `release_ready: true` requires the source-quality job, the
+deterministic suite, and the installed-bundle smoke to report `passed`; a
+`not-recorded` step remains an open gate even when another step is green.
+
 ## Automated package gate
 
 - [x] Unit tests, Ruff, and Python compilation pass.

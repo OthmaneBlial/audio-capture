@@ -64,14 +64,23 @@ class ReleaseToolTests(unittest.TestCase):
             report["automated"]["flatpak_build_install_cli_permissions_gtk_uninstall"]["status"],
             "not-recorded",
         )
+        self.assertEqual(report["automated"]["steps"]["source_quality"]["status"], "not-recorded")
+        self.assertEqual(report["automated"]["steps"]["manual_hardware"]["status"], "not-recorded")
+        self.assertFalse(report["automated"]["release_ready"])
         with mock.patch.object(run_release_tests, "discover_suite", return_value=unittest.TestSuite()):
             report, _ = run_release_tests.run_report(
-                "1.0.0", "abc123", "https://example.invalid", flatpak_status="passed"
+                "1.0.0",
+                "abc123",
+                "https://example.invalid",
+                flatpak_status="passed",
+                source_quality_status="passed",
             )
         self.assertEqual(
             report["automated"]["flatpak_build_install_cli_permissions_gtk_uninstall"]["status"],
             "passed",
         )
+        self.assertEqual(report["automated"]["steps"]["source_quality"]["status"], "passed")
+        self.assertTrue(report["automated"]["release_ready"])
 
 if __name__ == "__main__":
     unittest.main()
