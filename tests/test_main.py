@@ -119,19 +119,29 @@ class VoiceTranscriberAppTests(unittest.TestCase):
     def setUp(self) -> None:
         FakeAudioCapture.instances.clear()
         FakeThread.instances.clear()
+        self._apps: list[VoiceTranscriberApp] = []
         self.audio_module = types.ModuleType("audio")
         self.audio_module.AudioCapture = FakeAudioCapture
         self.audio_module.VoiceActivityDetector = FakeVad
 
+    def tearDown(self) -> None:
+        for app in self._apps:
+            app._test_tmpdir.cleanup()
+
+    def _new_app(self, *, consented: bool) -> VoiceTranscriberApp:
+        app = make_app(consented=consented)
+        self._apps.append(app)
+        return app
+
     def test_groq_start_requires_cloud_boundary_confirmation_at_controller(self) -> None:
-        app = make_app(consented=False)
+        app = self._new_app(consented=False)
         with mock.patch.dict(sys.modules, {"audio": self.audio_module}):
             self.assertFalse(app._start_listening())
         self.assertEqual(FakeAudioCapture.instances, [])
         self.assertIn("cloud data boundary", app._window.errors[0])
 
     def test_confirmed_groq_start_and_stop_manage_capture(self) -> None:
-        app = make_app(consented=True)
+        app = self._new_app(consented=True)
         with mock.patch.dict(sys.modules, {"audio": self.audio_module}):
             with mock.patch("main.threading.Thread", FakeThread):
                 self.assertTrue(app._start_listening())
@@ -143,14 +153,14 @@ class VoiceTranscriberAppTests(unittest.TestCase):
         self.assertTrue(FakeAudioCapture.instances[0].stopped)
 
     def test_result_from_inactive_request_is_ignored(self) -> None:
-        app = make_app(consented=True)
+        app = self._new_app(consented=True)
         app._active_request_ids.add("segment-active")
         app._on_transcription_result("segment-stale", "stale text")
         app._on_transcription_result("segment-active", "accepted text")
         self.assertEqual(app._window.transcripts, ["accepted text"])
 
     def test_microphone_test_does_not_require_provider_configuration(self) -> None:
-        app = make_app(consented=False)
+        app = self._new_app(consented=False)
         app._transcriber.configured = False
         with mock.patch.dict(sys.modules, {"audio": self.audio_module}):
             self.assertTrue(app._start_microphone_test(device_index=3))

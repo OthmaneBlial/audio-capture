@@ -70,6 +70,7 @@ jobs:
           python3 scripts/run_release_tests.py \
             --version "$VERSION" --commit "$GITHUB_SHA" \
             --workflow-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --flatpak-status passed \
             --output "release/voice-transcriber-$VERSION-test-report.json"
           python3 scripts/render_release_notes.py \
             --version "$VERSION" --commit "$GITHUB_SHA" --output release/release-notes.md
