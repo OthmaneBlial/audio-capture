@@ -248,7 +248,7 @@ Ordre de grandeur : **29–53 jours de travail**, non engagement calendaire. Les
 ### 2.2 — Borner toutes les ressources et rendre les pertes visibles · P1 · F08
 
 - **Objectif :** une longue session et un réseau dégradé ne dégradent pas progressivement l’app.
-- **Changements :** éviction réelle des états finalisés, conservation séparée des seuls états en cours ; budget de snapshots en octets et regroupement des éditions ; limites documentées de l’historique et des réponses HTTP ; gestion atomique admission/fermeture de l’executor ; indication des pertes de trames et de saturation avec action de reprise.
+- **Changements :** éviction réelle des états finalisés, conservation séparée des seuls états en cours ; budget de snapshots en octets et regroupement des éditions ; limites documentées de l’historique et des réponses HTTP ; gestion atomique admission/fermeture de l’executor ; indication des pertes de trames et de saturation avec action de reprise. **Fait localement :** `SegmentTracker` évince maintenant les états et identifiants hors de la fenêtre visible, avec compteur borné et test à 10 000 requêtes ; les budgets audio, historique, HTTP et executor restent à traiter.
 - **Fichiers/parties :** `transcript.py`, `history.py`, `audio/capture.py`, services/transport, contrôleur et tests de stress.
 - **Acceptation :** 10 000 segments ne créent pas 10 000 états conservés ; limites mesurées et constantes indépendamment de la durée ; saturation visible, pas de retry illimité ni de nouvelle copie d’audio persistée.
 - **Tests/validations :** stress déterministe, réponse surdimensionnée, fermeture concurrente, 429, panne prolongée, session réelle de 30 minutes ; vérifier mémoire et nombre de threads après retour au repos.

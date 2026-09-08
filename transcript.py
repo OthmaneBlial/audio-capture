@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
 from typing import Literal, Optional
 
@@ -27,7 +28,8 @@ class SegmentTracker:
         self._max_visible = max_visible
         self._ordinals: dict[str, int] = {}
         self._states: dict[str, SegmentStatus] = {}
-        self._order: list[str] = []
+        self._order: deque[str] = deque()
+        self._next_ordinal = 1
 
     def update(
         self,
@@ -40,15 +42,28 @@ class SegmentTracker:
         if state not in {"pending", "complete", "error"}:
             raise ValueError(f"unsupported segment state: {state}")
         if request_id not in self._ordinals:
-            self._ordinals[request_id] = len(self._ordinals) + 1
+            self._ordinals[request_id] = self._next_ordinal
+            self._next_ordinal += 1
             self._order.append(request_id)
+            self._evict_oldest()
         safe_detail = (detail or self._default_detail(state)).strip()
         status = SegmentStatus(request_id, self._ordinals[request_id], state, safe_detail)
         self._states[request_id] = status
         return status
 
     def visible(self) -> list[SegmentStatus]:
-        return [self._states[item] for item in self._order[-self._max_visible :] if item in self._states]
+        return [self._states[item] for item in self._order if item in self._states]
+
+    @property
+    def retained_count(self) -> int:
+        """Return the number of request states retained for the recent strip."""
+        return len(self._states)
+
+    def _evict_oldest(self) -> None:
+        while len(self._order) > self._max_visible:
+            expired = self._order.popleft()
+            self._ordinals.pop(expired, None)
+            self._states.pop(expired, None)
 
     @staticmethod
     def _default_detail(state: SegmentState) -> str:

@@ -22,6 +22,14 @@ class SegmentTrackerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             tracker.update("request", "unknown")  # type: ignore[arg-type]
 
+    def test_retained_state_is_bounded_after_many_requests(self):
+        tracker = SegmentTracker(max_visible=4)
+        for index in range(10_000):
+            tracker.update(f"request-{index}", "complete")
+
+        self.assertEqual(tracker.retained_count, 4)
+        self.assertEqual([item.ordinal for item in tracker.visible()], [9_997, 9_998, 9_999, 10_000])
+
 
 class UndoHistoryTests(unittest.TestCase):
     def test_undo_redo_and_new_edit_contract(self):
