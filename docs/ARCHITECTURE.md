@@ -1,63 +1,60 @@
 # Architecture
 
-Voice Transcriber has one desktop process and four intentionally narrow responsibilities. The controller accepts a window factory and configuration in tests, so provider and session lifecycle checks do not need to import GTK or open PyAudio; the normal CLI still creates the GTK window.
+The active rewrite is one native Rust process with a UI adapter at the edge.
+The core modules do not import egui, open a window, or require a real
+microphone, which keeps safety and ordering tests deterministic.
 
 ```text
-GTK window
-  ├── controller (`main.py`)
-  ├── microphone capture (`audio/capture.py`)
-  ├── voice activity detection (`audio/vad.py`)
-  ├── provider contract (`transcription/provider.py`)
-  │   ├── Groq cloud (`transcription/groq_service.py`)
-  │   └── experimental local (`transcription/local_whisper.py`)
-  ├── edit/request state (`transcript.py`)
-  ├── structured exports (`exports.py`)
-  └── opt-in local history (`history.py`)
+egui desktop adapter (`src/app.rs`)
+  ├── microphone capture (`src/audio.rs`, CPAL)
+  ├── voice activity detection (`src/vad.rs`, WebRTC VAD)
+  ├── provider boundary (`src/provider.rs`, Groq worker)
+  ├── review document (`src/transcript.rs`)
+  ├── atomic exports (`src/exports.rs`)
+  ├── opt-in text history (`src/history.rs`)
+  └── validated settings (`src/config.rs`)
 ```
 
 ## Data flow
 
-1. `AudioCapture` uses the system default or a saved microphone index, reads 30 ms 16 kHz mono PCM frames into a fixed-size queue, and emits a rate-limited local signal level for GTK. Explicit saved selections also carry an opaque best-effort identity fingerprint; a mismatch fails closed instead of silently opening a reused index.
-2. `VoiceActivityDetector` keeps a short rolling buffer and emits a completed segment after silence or the maximum segment duration.
-3. The selected provider receives a valid segment through its explicit
-   capability and data-boundary contract. Groq converts it to an in-memory WAV
-   request in a two-worker pool. Experimental local mode wraps it as WAV and
-   passes a Linux memory-backed descriptor to one user-supplied whisper.cpp
-   process at a time.
-4. Bounded request IDs expose pending/complete/error state without storing audio or text in the tracker.
-5. Results return to GTK through its idle queue and are appended to the editable transcript.
-
-No audio recording is persisted by the application. In Groq mode, segments are
-sent only after speech has been detected. In experimental local mode, the app
-creates no raw-audio path and terminates active CLI work during shutdown. The
-transcript remains in GTK until clear/copy/export or explicitly enabled local
-text history.
+1. `AudioCapture` enumerates the current host inputs, opens the selected
+   default configuration, converts its channels and sample rate to mono 16 kHz
+   PCM16, and puts complete 30 ms frames into a bounded queue.
+2. `VoiceActivityDetector` consumes those frames locally. It keeps a short
+   rolling pre-roll, closes a segment after sustained silence, and enforces
+   minimum and maximum speech durations.
+3. `GroqProvider` admits only completed segments after both a plausible key and
+   explicit cloud consent are present. A worker builds an in-memory WAV request,
+   applies a timeout, and emits metadata-only request events.
+4. The app maps events to ordered segment states. Complete text is rebuilt in
+   sequence order in the editable transcript; pending and failed segments stay
+   visible for review.
+5. Copy, export, and optional text-only history are explicit user actions.
+   Raw microphone data is never written by the Rust path.
 
 ## Reliability boundaries
 
-- The microphone queue drops oldest frames if processing falls behind, preserving real-time behavior instead of growing memory indefinitely.
-- Provider shutdown closes the admission window and terminates a local process
-  created during the close race before it can escape the tracked process set.
-- Input discovery opens PortAudio only on demand and releases it immediately; a saved unavailable device remains visible so the user can correct it rather than silently falling back.
-- The input meter is derived from an in-memory PCM RMS value and is never written to disk or sent to Groq.
-- The API boundary rejects malformed, empty, and oversized PCM data.
-- Each provider has a small bounded queue; overflow becomes a visible,
-  normalized, actionable message.
-- The small standard-library HTTP transport has a fixed timeout and no hidden SDK retry queue, so the app's own bound remains predictable.
-- Stop first signals capture, waits briefly for the processor, then flushes a final valid segment.
+- The audio queue is bounded to 64 frames. When it saturates, the oldest frame
+  is discarded and a counter remains available to the UI/diagnostics.
+- Provider admission is bounded to four jobs. Queue overflow is a visible,
+  actionable error rather than an unbounded thread or memory backlog.
+- Device identities are opaque SHA-256-derived values; a stale saved identity
+  fails closed instead of silently opening a reused enumeration index.
+- Provider errors contain status categories and remediation text, never a key,
+  response body, or raw audio.
+- Configuration, history, and exports use size limits, schema checks where
+  applicable, symlink refusal, and atomic replacement.
+- The diagnostic CLI is local-only. A real microphone test reports frame count
+  and signal level but discards the captured frames.
 
 ## Configuration boundary
 
-Settings use the precedence `defaults < config file < environment`. The
-configuration file is atomically replaced and set to `0600`; its parent
-directory is set to `0700` where supported. `GROQ_API_KEY` overrides a stored
-key and is not copied into settings when the environment value is active. The
-local executable/model paths are activated only by the explicit source-session
-feature flag and never exposed by diagnostics. Microphone choice keeps a local
-saved index plus an opaque best-effort identity fingerprint, with `--device
-INDEX` taking precedence for one launch.
+Settings follow `defaults < local config < GROQ_API_KEY environment override`.
+The persisted key is owner-local configuration; the environment key takes
+precedence and is not copied into the file. The cloud consent checkbox is
+stored separately from key presence, so adding a key alone never silently
+enables upload.
 
-History uses a separate schema-versioned owner-only file. Unknown future
-schemas fail closed instead of being overwritten. Expiry is enforced on read
-and write; one entry, every entry, or all sandbox data can be deleted without
-touching explicit exports.
+The Python/GTK implementation and its local whisper.cpp experiment remain in
+the repository as migration material. They are not part of the Rust runtime
+path and should not be used as evidence for Rust platform support.

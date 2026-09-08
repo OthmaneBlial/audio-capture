@@ -1,25 +1,29 @@
 # Provider capability and boundary matrix
 
-| Contract | Groq cloud | Local whisper.cpp prototype |
+The Rust rewrite currently exposes one provider. A provider is considered
+supported only after its implementation, live request gate, error behavior, and
+platform packaging have evidence in this repository.
+
+| Contract | Groq cloud (Rust) | whisper.cpp (legacy Python) |
 | --- | --- | --- |
-| Status | Supported cloud path; current Flatpak | Experimental source install only; disabled in Flatpak |
-| Audio destination | Completed segment to Groq over HTTPS | Linux memory-backed descriptor to user-supplied local process |
+| Status | Implemented boundary; live key/request gate pending | Experimental migration material only |
+| Audio destination | Completed segment to Groq over HTTPS | User-supplied local process on Linux |
 | Credential | User-managed Groq API key | None |
-| Model | `whisper-large-v3-turbo` for transcription; `whisper-large-v3` for translation | User-supplied GGML model; exact capabilities vary |
-| App language choices | Auto, EN, FR, ES, DE, IT, PT, AR, ZH | Same UI choices, constrained by the selected model |
-| Translate to English | Available | CLI capability exposed; model/build dependent |
-| Queue | Bounded, up to four pending requests | Bounded, up to two with one worker |
-| Cancellation | Queued work cancels; active HTTP ends at timeout | Queued work cancels; active process is terminated on close/reconfigure |
-| Normalized errors | Auth, rate limit, network, queue, malformed/oversized audio | Setup, timeout, process/model mismatch, queue, malformed/oversized audio |
-| Raw-audio files written by app | No | No |
+| Model | `whisper-large-v3-turbo` transcription; `whisper-large-v3` translation | User-supplied model/build |
+| Language | Automatic detection or configured UI language | Depends on selected model |
+| Translation | Optional English translation | Legacy adapter behavior |
+| Queue | Four in-memory jobs, one worker | Legacy Python limits |
+| Cancellation | Shutdown closes admission; active HTTP ends at timeout | Legacy process lifecycle |
+| Errors | Consent, key, queue, auth, rate-limit, network, malformed/oversized audio | Legacy setup/process errors |
+| Raw-audio files written by app | No | No claim for the legacy adapter |
 | Automatic downloads | No | No |
 
-The UI reads this same distinction as a visible data-boundary label. Provider
-selection is offered only when the experimental source-session flag is present;
-otherwise users see the supported Groq path without a non-functional promise.
+The Rust UI does not advertise offline transcription. A future local Rust
+provider must reuse the same explicit capability and data-boundary contract,
+then pass a separate packaging and first-success gate before appearing here as
+supported.
 
-The benchmark contract lives in [`benchmarks/README.md`](../benchmarks/README.md).
-A provider result is meaningful only with corpus checksum/composition, exact
-model/build, hardware, WER numerator/denominator, latency percentiles, and failed
-samples. The local prototype remains unsupported until that evidence and the
-same Flatpak/real-device first-success gate as Groq both pass.
+Provider tests use malformed audio, key/consent checks, WAV headers, and
+bounded admission without contacting a live service. A real provider report
+must use a disposable user key and must never include that key, request body, or
+transcript in an issue.

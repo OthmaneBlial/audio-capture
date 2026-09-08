@@ -1,55 +1,47 @@
 # Supported environments
 
-Voice Transcriber publishes a narrow support boundary so that “supported”
-means tested, not merely expected to work.
+The support boundary distinguishes observed evidence from a build that is only
+expected to work. The table below describes the active Rust rewrite; the old
+Python/GTK v1.0 package has a separate historical boundary in its release
+documentation.
 
-## Current support contract
+## Rust rewrite status
 
-| Surface | Supported in v1.0.0 | Evidence | Status |
-| --- | --- | --- | --- |
-| Operating system | Debian/Ubuntu Linux desktops | `setup.sh` uses `apt`; v1 verification ran on Ubuntu | Supported source install |
-| Desktop toolkit | GTK 3 | Application imports GTK 3 explicitly | Supported |
-| Audio API | PortAudio through PyAudio | Unit-tested discovery, selection, level calculation, and cleanup | Supported API; real hardware verification required |
-| Audio servers | PipeWire/PulseAudio through the system PortAudio route | Documented setup path | Expected; compatibility reports welcome |
-| Display session | X11 and Wayland GTK sessions | Flatpak declares Wayland and fallback X11 sockets | Package smoke-tested; real desktop reports welcome |
-| CPU architecture | `x86_64` | The v1 Flatpak workflow built, installed, and removed the public bundle shape | Automated package path proven for v1 |
-| Python | 3.9 or newer | Package metadata declares `>=3.9`; v1 CI exercised 3.9, 3.11, and 3.14 | Declared range with release-specific boundary evidence |
-| Transcription | Groq `whisper-large-v3-turbo` | Fake-client contract tests; user-managed key | Supported cloud path |
-| Installation | Versioned Flatpak release asset; source setup remains available | Clean user-scope install/CLI/metadata/uninstall workflow | Primary package path |
-| Packaged app | Flatpak | Source-pinned manifest, minimal permissions, checksum, and release bundle | Supported on the declared boundary after real-device gate |
-| Other package formats | Debian package, AppImage | No release artifact exists | Not supported |
-| Other platforms | macOS, Windows, mobile, browser | No native implementation or verification | Not supported |
+| Surface | Current evidence | Status |
+| --- | --- | --- |
+| macOS arm64 | Local `cargo check`, tests, CLI device discovery, and a real three-second microphone stream on this Mac | Development smoke-tested |
+| Linux x86_64 | GitHub Actions build/test matrix configured; physical desktop/audio session not yet reported | Pending first green run and hardware report |
+| Windows x86_64 | GitHub Actions MSVC build matrix configured; no local Windows session | Pending first green run and hardware report |
+| egui desktop UI | Native binary compiles locally | Manual interaction and screenshots still required |
+| CPAL audio | Three macOS input devices enumerated; 94 frames received from the default Jabra stream | macOS path smoke-tested; other backends pending |
+| Groq provider | Consent/key gate, WAV contract, queue and error tests; no user-key request in this checkout | Contract-tested; live provider gate pending |
+| Packaging | No Rust release asset or installer | Not published |
 
-“Expected” is deliberately weaker than “supported”: it means the underlying
-stack should work, but this project has not yet published repeatable evidence
-for the exact combination.
+“Pending” means the project has an implementation path but lacks reproducible
+evidence for the exact environment. It must not be presented as a support claim
+in release notes until the corresponding build and runtime checks pass.
 
-The repository's general `CI` workflow is manually paused as of 1 September
-2026. CI statements above are release-specific historical evidence, not a claim
-that the general workflow currently runs on every push. Flatpak packaging and
-CodeQL are separate workflows.
+## Local compatibility report
 
-See [Linux compatibility evidence](COMPATIBILITY.md) for the explicit
-X11/Wayland and PipeWire/PulseAudio evidence levels and the bounded reproduction
-protocol. Use the structured compatibility issue form instead of a full system
-dump.
+For a privacy-safe report, run:
 
-## Hardware verification report
+```bash
+voice-transcriber --doctor --json
+voice-transcriber --list-devices --json
+voice-transcriber --test-microphone --json
+```
 
-When reporting a microphone issue, include only:
+Include the operating system, desktop session, audio backend, command output,
+and visible error. Do not include API keys, recordings, transcripts, full
+configuration files, or personal paths.
 
-- distribution and version;
-- desktop environment and X11/Wayland session;
-- PipeWire or PulseAudio version, if known;
-- microphone connection type (built-in, USB, Bluetooth);
-- sanitized output from `python main.py --list-devices --json`;
-- the visible error and reproduction steps.
+## Historical Python package
 
-Never include an API key, recording, transcript, full environment dump, or
-configuration file.
+The existing v1.0.0 x86_64 Flatpak is a Python/GTK Linux artifact. Its support
+claims, checksum, and smoke-test evidence remain in
+[`docs/RELEASE-EVIDENCE.md`](RELEASE-EVIDENCE.md) and
+[`docs/packaging/FLATPAK.md`](packaging/FLATPAK.md). Those documents do not
+transfer support to the Rust rewrite.
 
-## Maintainer response target
-
-Reproducible bug reports should receive an acknowledgement within seven days.
-Security reports follow [SECURITY.md](../SECURITY.md) and remain private until
-a coordinated fix is available.
+Security reports belong in [SECURITY.md](../SECURITY.md) and should remain
+private until a coordinated fix is available.

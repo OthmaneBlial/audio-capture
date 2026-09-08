@@ -1,77 +1,69 @@
 # Command-line contracts
 
-The CLI provides diagnostics and overrides without opening the GTK window.
-Machine-readable fields are versioned so support tooling can fail closed when a
-future schema changes.
+The Rust binary exposes local diagnostics without opening the desktop window.
+No diagnostic command sends audio or calls Groq.
 
-## Exit codes
+## Commands and exit codes
 
-| Command | `0` | `1` | `2` |
+| Command | Exit `0` | Exit `1` | Exit `2` |
 | --- | --- | --- | --- |
-| `--check-config` | Active provider is configured | Not used | Groq key or experimental local flag/files are incomplete |
-| `--list-devices` | Discovery ran, including an empty result | Native dependency or PortAudio discovery failure | Invalid arguments |
-| `--doctor` | Required readiness checks pass | One or more required checks fail | Invalid arguments |
-| GUI launch | Window exited normally | GTK import or runtime startup failure | Invalid arguments |
+| `--check-config` | The file parses and passes validation | Invalid/unreadable configuration | Invalid command-line arguments |
+| `--list-devices` | Input discovery completed | The host cannot enumerate inputs | Invalid command-line arguments |
+| `--doctor` | Configuration and input discovery completed | A required local check failed | Invalid command-line arguments |
+| `--test-microphone` | A three-second stream opened without a stream error | The stream could not open or reported an error | Invalid command-line arguments |
+| no flag | Desktop window exits normally | Native window startup failure | Invalid command-line arguments |
 
-`argparse` may use exit code `2` for any invalid option combination.
+`clap` owns `--help`, `--version`, and invalid argument handling.
 
 ## `--list-devices --json`
 
-The result is a JSON array. Each item has:
+The result is a JSON array. Each item currently contains:
 
 ```json
 {
-  "index": 2,
-  "name": "USB microphone",
-  "max_input_channels": 1,
-  "is_default": true,
-  "identity": "5c3a1b9d4ef78120b6d3a10f"
+  "index": 0,
+  "name": "Built-in Microphone",
+  "identity": "5c3a1b9d4ef78120b6d3a10f",
+  "default": true,
+  "channels": 1,
+  "sample_rate": 48000,
+  "sample_format": "F32"
 }
 ```
 
-This command opens PortAudio only for discovery, closes it before returning,
-does not start a stream, and does not contact a transcription provider. The
-identity is an opaque, best-effort fingerprint of the normalized PortAudio
-name, host API, and channel count; it is intended to catch a reused index, not
-to serve as a portable hardware UUID.
+The command performs discovery only. The identity is an opaque SHA-256-derived
+fingerprint of the backend identity, normalized device name, and channel count;
+it detects a reused saved selection but is not a hardware UUID.
 
 ## `--doctor --json`
 
-Schema version `1` returns:
+The current compact report contains `ok`, `config_ok`,
+`provider_configured`, `input_devices`, and `version`. It intentionally does
+not include API keys or environment values. A future schema version will be
+added before external support tooling depends on this output.
 
-- `schema_version`: integer contract version;
-- `app_version`: application version;
-- `ready`: whether all required checks pass;
-- `provider_probe_requested`: whether network/key verification was requested;
-- `checks`: platform, desktop session, GTK, microphones, selected microphone,
-  configuration, and provider results;
-- `next_actions`: deduplicated safe remediation steps.
+## `--check-config --json`
 
-Each check has `status` equal to `pass`, `warn`, `fail`, or `skip`, plus a
-human-readable `summary`. The report includes microphone indexes but does not
-include microphone names, the API key, environment values, paths, IP addresses,
-or provider response bodies.
+The report contains `ok`, `provider_configured`, and the local configuration
+path. `ok` means the file is valid; a missing key or cloud consent makes the
+provider unavailable but does not make the local file invalid.
 
-For Groq, the provider check is `skip` and `contacted` is `false` by default.
-Only this explicit command transmits the configured credential to the Groq
-models endpoint:
+## `--test-microphone --json`
 
-```bash
-voice-transcriber --doctor --probe-provider --json
+This command opens the default input for three seconds, counts the 30 ms
+16-kHz frames delivered by the bounded queue, reports the maximum local signal
+level, then stops the stream. It never stores the frames or sends them to a
+provider. Example shape:
+
+```json
+{
+  "ok": true,
+  "device": "Built-in Microphone",
+  "frames": 94,
+  "peak_level": 0.12,
+  "stream_error": null
+}
 ```
 
-It never transmits audio. It reports authentication/reachability status without
-printing the credential or response body. For experimental local mode, the
-provider check never contacts a network endpoint: it reports only whether the
-explicit feature flag, executable bit, and model file are present, without
-printing their paths.
-
-## Session-only device override
-
-```bash
-voice-transcriber --device 2
-```
-
-The override must be a non-negative integer. It takes precedence for one launch
-without changing the saved device or checking its saved identity. A failed open
-leaves the application stopped with an actionable error.
+Use it for a privacy-safe compatibility report. Do not attach recordings or
+configuration files.

@@ -1,196 +1,158 @@
 # Voice Transcriber
 
-[![Latest release](https://img.shields.io/github/v/release/OthmaneBlial/audio-capture?display_name=tag&label=release)](https://github.com/OthmaneBlial/audio-capture/releases/latest)
-[![Flatpak](https://github.com/OthmaneBlial/audio-capture/actions/workflows/flatpak.yml/badge.svg)](https://github.com/OthmaneBlial/audio-capture/actions/workflows/flatpak.yml)
-[![Linux](https://img.shields.io/badge/platform-Linux-315532)](docs/SUPPORT.md)
+[![Rust CI](https://github.com/OthmaneBlial/audio-capture/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/audio-capture/actions/workflows/rust.yml)
+[![Legacy Python CI](https://github.com/OthmaneBlial/audio-capture/actions/workflows/ci.yml/badge.svg)](https://github.com/OthmaneBlial/audio-capture/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/github/license/OthmaneBlial/audio-capture)](LICENSE)
 
-**A review-first dictation desk for Linux. Speak a draft, edit the result, then
-copy or export it when it is ready.**
+**A review-first dictation desk for Linux, macOS, and Windows.** Speak a draft,
+inspect the ordered transcript, edit it, then decide what to copy or export.
 
-[Download v1.0 for x86_64 Linux](https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak)
-· [Open the product tour](https://othmaneblial.github.io/audio-capture/#proof)
-· [Inspect the privacy boundary](docs/PRIVACY.md)
-· [Read the release evidence](docs/RELEASE-EVIDENCE.md)
-· [Read the docs](https://othmaneblial.github.io/audio-capture/docs.html)
-
-![Voice Transcriber guided tour: ready, listening, and transcript states](site/assets/voice-transcriber-tour.gif)
-
-> The tour uses synthetic sample text and reproducible previews of the current
-> GTK interface. The application never inserts a fake transcript.
+The repository is in the middle of a native Rust rewrite. The current `main`
+branch contains the portable core, the CPAL microphone adapter, the explicit
+Groq provider boundary, a native egui desktop interface, and diagnostic
+commands. There is **no Rust v1.1 release or downloadable Rust binary yet**;
+the release page still contains the older Python/GTK v1.0 Linux package.
 
 ## Why this exists
 
-Most voice-typing tools try to put words directly into whichever app has focus.
-Voice Transcriber gives the words a checkpoint first. It is deliberately built
-for prompts, emails, tickets, notes, and other drafts you want to review before
-they reach another application.
+Most voice-typing tools inject words into whichever application currently has
+focus. Voice Transcriber gives the words a checkpoint first, which fits prompts,
+emails, tickets, notes, and other drafts that need review before they are shared.
 
 ```text
-microphone -> local speech detection -> transcription -> edit -> copy or export
+microphone -> local PCM conversion -> local VAD -> explicit provider -> edit -> copy/export
 ```
 
-The supported package uses Groq for transcription, so this is **privacy-explicit
-cloud dictation—not an offline transcription claim**. Silence detection and the
-input meter stay local; completed speech segments cross a visible provider
-boundary only after you configure a key and confirm that boundary.
+The default provider path uses Groq Whisper. Silence detection, resampling,
+the input meter, ordering, and the review document stay local. Completed speech
+segments cross the cloud boundary only after a key is configured and the user
+confirms that boundary in Settings.
 
-| Voice Transcriber is | Voice Transcriber does not pretend to be |
-| --- | --- |
-| A focused review-and-copy workspace | Invisible system-wide typing |
-| A lightweight path with no model download | A packaged offline engine |
-| Explicit about what stays local and what is sent | “100% private” cloud transcription |
-| Available today as an x86_64 Flatpak bundle | A Flathub, ARM, macOS, or Windows release |
+## Current Rust surface
 
-## Install v1.0
+- Native egui desktop window with a dark, keyboard-friendly review workspace.
+- CPAL input discovery on the host backend, opaque device identities, bounded
+  frame queue, level meter, mono downmix, and resampling to 16 kHz PCM16.
+- Local WebRTC VAD with minimum speech, silence, and maximum segment limits.
+- Groq worker with a bounded request queue, WAV encoding, translation support,
+  ordered request events, and credential-safe error messages.
+- Editable transcript with segment states, undo/redo, clear, clipboard copy,
+  text/Markdown export, and opt-in bounded text-only history.
+- Non-network diagnostics that can be scripted in CI or support reports:
+  `--doctor`, `--list-devices`, `--check-config`, and a three-second real
+  `--test-microphone` smoke test.
 
-The release is a checksum-verifiable `x86_64` Flatpak bundle. Add Flathub for
-the GNOME runtime, download the two release files, verify them, and install:
+The Rust GUI has been compiled locally on macOS arm64. The real microphone
+smoke test has opened the default Jabra input and received PCM frames on this
+Mac. Linux and Windows builds are covered by the Rust GitHub Actions matrix;
+their first green run is still the evidence gate for those targets. Manual GUI
+interaction, provider requests with a user key, and packaged Rust releases are
+deliberately not described as complete until they are tested.
+
+## Run from source
+
+Install Rust 1.95 or newer. On macOS, install Xcode Command Line Tools. On
+Windows, install the MSVC Rust toolchain and its Visual Studio build tools. On
+Linux, install the development headers for the audio backend and the windowing
+stack used by your distribution (usually ALSA/PipeWire plus X11 or Wayland).
 
 ```bash
-flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-curl -fLO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak
-curl -fLO https://github.com/OthmaneBlial/audio-capture/releases/download/v1.0.0/voice-transcriber-1.0.0-x86_64.flatpak.sha256
-sha256sum --check voice-transcriber-1.0.0-x86_64.flatpak.sha256
-flatpak install --user ./voice-transcriber-1.0.0-x86_64.flatpak
-flatpak run io.github.othmaneblial.audio_capture
+git clone https://github.com/OthmaneBlial/audio-capture.git
+cd audio-capture
+cargo run -- --doctor
+cargo run -- --list-devices
+cargo run
 ```
 
-This standalone bundle does not add an application update remote; update it by
-installing a newer verified release. See the [complete install, update, and
-removal guide](docs/packaging/FLATPAK.md).
+The first GUI launch may require the operating system's microphone permission.
+Use the **Test microphone** button before enabling cloud transcription.
 
-You can inspect the interface, microphone picker, signal meter, diagnostics,
-and data boundary without a key. To transcribe, add a Groq API key you control
-in Settings. **Start listening** remains blocked until the selected provider is
-ready—there is no demo-output fallback hidden in the app.
-
-## The 30-second workflow
-
-1. **Pick a microphone.** Confirm the source with a local, non-recording meter.
-2. **Speak naturally.** Local VAD filters silence and closes each speech segment.
-3. **Review the result.** Pending, completed, and failed segments remain visible
-   while the transcript stays editable.
-4. **Use the words.** Copy the desk, clear it, or export plain text, Markdown,
-   or a timestamped note to a destination you choose.
-
-Keyboard controls cover start/stop, copy, undo/redo, text sizing, and focused
-push-to-talk. There is no global-shortcut or active-window insertion claim yet.
-
-## What stays local and what leaves
-
-| Data | Current behavior |
-| --- | --- |
-| Microphone frames | Held in a bounded memory queue; never saved by the app. If the queue saturates, the status reports dropped frames and asks you to repeat the phrase |
-| Voice activity detection | Runs locally; silence is not submitted |
-| Completed speech segment | Encoded in memory and sent to Groq in the supported cloud path |
-| Input signal meter | Calculated locally; never persisted or uploaded |
-| Live transcript | Remains in the GTK desk until copy, clear, export, or exit |
-| Optional history | Text only, off by default, retention-limited, and clearable |
-| Settings and saved key | Owner-only local configuration where POSIX permissions apply |
-| Analytics and crash reporting | None |
-
-Provider-side processing is controlled by the provider account and its current
-policies. Read the [complete data flow](docs/DATA-FLOW.md), [privacy
-notice](docs/PRIVACY.md), and [threat model](docs/THREAT-MODEL.md) before using
-the app with sensitive speech.
-
-## What ships today
-
-- Real microphone discovery and persistent device selection with a best-effort
-  opaque identity check that refuses a reused device index.
-- Local `webrtcvad` speech segmentation and a bounded capture queue.
-- Groq Whisper transcription with optional translation to English.
-- A bounded provider worker pool with normalized network, key, rate-limit,
-  malformed-audio, and full-queue failures.
-- An editable transcript with undo/redo, segment states, copy, clear, and three
-  explicit export formats.
-- Optional text-only history with 1–365 day retention and per-entry deletion.
-- A keyboard-friendly GTK desk with adjustable type, opacity, and keep-on-top.
-- Stable configuration, device, readiness, and privacy-safe doctor commands.
-- Release checksum, test report, CycloneDX SBOM, and Sigstore provenance.
-
-The source tree also contains an **experimental** `whisper.cpp` adapter behind
-an explicit feature flag. You must supply the binary and GGML model yourself;
-it is disabled in the v1 Flatpak and is not advertised as supported offline
-operation. See the [provider matrix](docs/PROVIDERS.md).
-
-## Evidence and known limits
-
-| Surface | Evidence-backed status |
-| --- | --- |
-| Package | `v1.0.0` x86_64 Flatpak built, linted, installed, smoke-tested, and mapped to its source tag |
-| Automated behavior | 109 deterministic tests currently pass without a key, microphone, model, or network on this checkout |
-| Desktop UI | GTK 3; designed for Debian/Ubuntu-style Linux desktops |
-| Audio route | PyAudio through the host PipeWire/PulseAudio compatibility path |
-| Physical compatibility | Real PipeWire/PulseAudio plus Wayland/X11 reports are still being collected |
-| Delivery | Clipboard and explicit local export; no simulated typing into other apps |
-
-Automated boundary tests are not real microphone evidence. The [support
-matrix](docs/SUPPORT.md) separates what has been proven from what still needs a
-physical Linux session, and the open [compatibility issue
-form](.github/ISSUE_TEMPLATE/compatibility.yml) collects only privacy-safe data.
-
-## Source installation details
-
-The Flatpak is the user path. This source setup is for development on
-Debian/Ubuntu-style systems:
+Useful scripted checks:
 
 ```bash
-sudo apt update
-sudo apt install -y python3 python3-pip python3-venv python3-gi gir1.2-gtk-3.0 \
-  portaudio19-dev python3-pyaudio libcairo2-dev libgirepository1.0-dev pkg-config
-python3 -m venv venv --system-site-packages
-source venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-cp .env.example .env
-python main.py --check-config
-python main.py --list-devices
-python main.py
+cargo test --all-targets
+cargo clippy --all-targets -- -D warnings
+cargo run -- --check-config --json
+cargo run -- --test-microphone --json
 ```
 
-Settings resolve as:
+The diagnostic commands never send audio to Groq. `--doctor` checks local
+configuration and input-device availability; it does not perform a provider
+probe.
+
+## Configure transcription
+
+The effective key comes from `GROQ_API_KEY` when present, otherwise from the
+local Settings field. The key is never printed by the application or included
+in provider events.
+
+```bash
+export GROQ_API_KEY="your-key"
+cargo run
+```
+
+In Settings, select a language or automatic detection, optionally enable
+English translation, and explicitly confirm that completed speech is sent to
+Groq over HTTPS. Without both consent and a plausible key, **Start listening**
+stays blocked; **Test microphone** remains local.
+
+## Data boundary
+
+| Data | Rust behavior |
+| --- | --- |
+| Microphone frames | Bounded in memory; never written as audio files |
+| VAD and input level | Computed locally |
+| Completed speech segment | Encoded in memory and sent to Groq only after consent |
+| Transcript | Editable in the current desk; copy/export is explicit |
+| Optional history | Text only, off by default, bounded and retention-limited |
+| API key | Environment or local configuration; excluded from logs/events |
+| Analytics | None implemented |
+
+Provider-side processing follows the provider account and current policy. See
+[`docs/PRIVACY.md`](docs/PRIVACY.md), [`docs/DATA-FLOW.md`](docs/DATA-FLOW.md),
+and [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) before using sensitive audio.
+
+## Architecture
 
 ```text
-defaults < ${XDG_CONFIG_HOME:-$HOME/.config}/voice-transcriber/config.json < environment variables
+src/config.rs       validated settings and atomic persistence
+src/audio.rs        CPAL devices, conversion, bounded PCM frame queue
+src/vad.rs          local WebRTC VAD segmentation
+src/provider.rs     consent gate, bounded Groq worker, safe events
+src/transcript.rs   ordered review document and undo/redo
+src/exports.rs      atomic text/Markdown exports
+src/history.rs      opt-in bounded text history
+src/app.rs          egui desktop adapter
+src/main.rs         GUI entry point and diagnostic CLI
 ```
 
-`GROQ_API_KEY` has the highest precedence and is never logged. Run
-`python main.py --doctor` for local readiness checks; only the explicit
-`--doctor --probe-provider` option contacts Groq, and it sends no audio.
-An explicitly selected microphone keeps its PortAudio index for compatibility
-and a local opaque identity fingerprint. Older saved selections receive the
-fingerprint after their next successful open. If the index later describes a
-different input, the app refuses to open it until you refresh and choose again;
-the fingerprint is best effort because PortAudio has no portable persistent
-device identifier across all backends.
+The core modules are intentionally independent of egui and microphone access,
+so storage, ordering, safety limits, and provider contracts can be tested on a
+machine without a key or an audio device.
 
-## Develop without a microphone or key
+## Releases and packaging
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements-test.txt
-python scripts/run_checks.py
-```
+Rust binaries are not published yet. The repository still contains the
+transitional Python/GTK implementation and its historical x86_64 Flatpak
+workflow; that package is labeled as the old v1.0 product and is not evidence
+that the Rust rewrite has been released. The migration roadmap covers parity,
+native packaging, signed release assets, installation documentation, and the
+real product demo video that must be recorded only after those gates pass.
 
-The suite injects native and provider boundaries and exercises capture, VAD,
-transcription, configuration, privacy regressions, history, export, diagnostics,
-provider contracts, benchmark math, and release tooling. Start with the
-[contributor map](docs/contributing/README.md) or choose a scoped
-[`good first issue`](https://github.com/OthmaneBlial/audio-capture/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+See [`ROADMAP.md`](ROADMAP.md) for the implementation order and acceptance
+criteria. Do not use an old release asset as a Rust build artifact.
 
-## What comes next
+## Contributing
 
-The next meaningful product gates are a discoverable/updateable Linux package,
-physical desktop/audio compatibility reports, a supported local provider with
-model lifecycle, and portal-backed global shortcuts. They are tracked in the
-[roadmap](ROADMAP.md) and will not become claims before their evidence exists.
+Start with `cargo test --all-targets`, `cargo fmt --all -- --check`, and
+`cargo clippy --all-targets -- -D warnings`. Changes that touch audio or the
+provider boundary should include deterministic tests and a note about the
+platform evidence they require. Never commit API keys, raw recordings,
+personal configuration files, or screenshots containing sensitive text.
 
-If the review-first workflow fits your Linux setup, **star the repository and
-tell us your distro, desktop session, and audio route** through the structured
-[compatibility report](https://github.com/OthmaneBlial/audio-capture/issues/new?template=compatibility.yml).
+Bug reports and compatibility reports should include the output of
+`voice-transcriber --doctor --json` and the host OS/audio backend, without
+including credentials or recordings. Security reports belong in
+[`SECURITY.md`](SECURITY.md), not in a public issue.
 
-Released under the [MIT License](LICENSE). Security reports belong in the
-private process described by [SECURITY.md](SECURITY.md), never in a public issue.
+Released under the [MIT License](LICENSE).
