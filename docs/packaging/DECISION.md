@@ -1,77 +1,41 @@
-# Packaging decision: Flatpak first
+# Packaging decision: native Rust archives
 
 ## Decision
 
-Voice Transcriber will use **Flatpak as its primary Linux package**. A Debian
-package may follow only when its dependency/update contract can be tested with
-the same rigor. AppImage is not planned while native GTK, PortAudio, and portal
-behaviour remain harder to make auditable there.
+The supported packaging path is the native Rust release workflow. It publishes
+one archive for Linux x86_64, macOS arm64, and Windows x86_64 from the exact
+version tag. The project does not currently publish a sandboxed Linux package,
+installer, package-manager formula, or automatic updater.
 
-The stable application ID is:
+## Why native archives first
 
-```text
-io.github.othmaneblial.audio_capture
-```
+- The application already builds as one self-contained Rust desktop binary.
+- The same archive contract can be inspected on all three release targets.
+- A checksum-backed archive is easier to reproduce and validate while the
+  project collects real microphone and desktop evidence.
+- Platform-specific signing, notarization, installers, and package-manager
+  publication can be added after the binary behavior is stable.
 
-The initial manifest targets `org.gnome.Platform//50` and its matching SDK,
-which are current for this packaging decision. Runtime branches are reviewed at
-each GNOME release rather than treated as permanent.
+## Artifact contract
 
-## Why Flatpak
-
-- It gives the app an explicit, inspectable runtime permission contract.
-- It packages the GTK/Python/native stack without relying on an unknown host
-  Python environment.
-- GTK file choosers can use portals for an explicitly selected export instead
-  of granting broad home-directory access.
-- The generated Python and native source modules can be pinned and rebuilt
-  without network access during the build phase.
-
-## Permission contract
-
-| Permission | Reason |
+| Target | Archive |
 | --- | --- |
-| Wayland socket | Native GTK display |
-| Fallback X11 socket and IPC | Desktop compatibility when Wayland is unavailable |
-| PulseAudio socket | Microphone capture through PortAudio/PyAudio; this permission covers more than input and is disclosed as such |
-| Network share | Groq HTTPS requests; Flatpak cannot narrow this to one hostname |
+| Linux x86_64 | `voice-transcriber-<version>-x86_64-unknown-linux-gnu.tar.gz` |
+| macOS arm64 | `voice-transcriber-<version>-aarch64-apple-darwin.app.zip` |
+| Windows x86_64 | `voice-transcriber-<version>-x86_64-pc-windows-msvc.zip` |
 
-The package deliberately does **not** request `home`, `host`, `device=all`, or
-portal D-Bus names. Export must remain an explicit GTK file-chooser operation.
-
-## Reproducible dependency contract
-
-- PortAudio `v19.7.0` is source-pinned by SHA-256 in the main manifest.
-- PyAudio, WebRTC VAD, and python-dotenv are exact-version, hashed sources in
-  `packaging/python3-dependencies.json`.
-- PyGObject comes from the GNOME runtime and is not duplicated through pip.
-- The Groq SDK was removed in favour of the small tested stdlib HTTP boundary,
-  eliminating a large transitive HTTP/Pydantic/Rust dependency tree.
-- The application module installs with `--no-deps --no-build-isolation`.
-
-Regenerate the Python module with the official `flatpak-pip-generator` whenever
-`packaging/requirements-flatpak.txt` changes. Review all new URLs, versions, and
-hashes before committing.
+Every archive contains the native binary, `README.md`, and `LICENSE`; every
+archive has a SHA-256 sidecar. The macOS archive includes a minimal `.app` with
+`NSMicrophoneUsageDescription`.
 
 ## Required gates
 
-1. Validate the desktop file and MetaInfo without the network.
-2. Run Flatpak manifest, AppStream, and exported-repository lint with zero
-   errors.
-3. Fetch declared sources, then rebuild with `flatpak-builder --disable-download`.
-4. Install the produced bundle on a clean user installation, run `--version`,
-   `--help`, and `--doctor --json`, inspect permissions/metadata, then uninstall.
-5. On real Linux hardware, verify launcher/icon, X11 and Wayland GTK launch,
-   microphone enumeration and capture, one real Groq transcription, file chooser
-   export, and data removal.
-6. Treat a Flathub PR test build and an official Flathub publication as separate
-   future gates. A local or CI bundle is not a Flathub release.
+1. Run format, locked tests, clippy, and dependency policy checks.
+2. Build each target on its native GitHub Actions runner.
+3. Verify archive names, checksums, version metadata, and release notes.
+4. Extract the downloaded asset on a clean profile and run the diagnostics.
+5. Collect target-specific microphone/UI/provider evidence before expanding
+   the support claim.
 
-## Primary references
-
-- [Flatpak manifests](https://docs.flatpak.org/en/latest/manifests.html)
-- [Flatpak sandbox permissions](https://docs.flatpak.org/en/latest/sandbox-permissions.html)
-- [Python dependencies in Flatpak](https://docs.flatpak.org/en/latest/python.html)
-- [Flathub application requirements](https://docs.flathub.org/docs/for-app-authors/requirements)
-- [Flathub linter](https://docs.flathub.org/docs/for-app-authors/linter)
-
+Signing, notarization, installers, and distribution services are future phases,
+not implied by a green archive build.

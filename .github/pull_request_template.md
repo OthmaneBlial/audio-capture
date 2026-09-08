@@ -4,8 +4,11 @@ Describe the user-facing change and why it belongs here.
 
 ## Verification
 
-- [ ] `python scripts/run_checks.py`
-- [ ] Manual GTK/audio verification, or why it was not possible
+- [ ] `cargo fmt --all -- --check`
+- [ ] `cargo test --locked --all-targets`
+- [ ] `cargo clippy --locked --all-targets -- -D warnings`
+- [ ] Manual audio/UI verification, or a precise explanation of why it was not possible
+- [ ] Documentation and release notes match the observed behavior
 
 ## Privacy and security
 

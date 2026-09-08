@@ -1,36 +1,30 @@
-# Linux compatibility evidence
+# Cross-platform compatibility evidence
 
 Last reviewed: 8 September 2026
 
-“Declared”, “automated”, “expected”, and “real-device verified” are separate
-states. This table is intentionally narrower than the combinations the GTK,
-Flatpak, and PortAudio stacks may happen to support.
+“Declared”, “automated”, “smoke-tested”, and “real-device verified” are separate
+states. This table records only evidence observed for the native Rust build.
 
 | Path | Evidence | Status |
 | --- | --- | --- |
-| x86_64 Flatpak build/install/remove | Clean GNOME 50 container workflow; run `34255478952` on commit `cee8dc8` passed with pinned actions/image, build, offline rebuild, lints, GTK/Xvfb smoke, and data removal | Automated package evidence; no physical desktop claim |
-| GTK 3 on X11 | Xvfb first-run, desk, accessibility, and settings smoke | Automated virtual display; no physical desktop claim |
-| GTK 3 on Wayland | Manifest declares Wayland and fallback X11; unit diagnostics classify Wayland | Declared/logic-tested; real compositor report open |
-| PulseAudio socket in Flatpak | Minimal `--socket=pulseaudio` permission asserted | Declared; real microphone report open |
-| PipeWire through PulseAudio compatibility | Intended desktop route documented by PortAudio stack | Expected; real microphone report open |
-| Source install on Debian/Ubuntu | `setup.sh`, diagnostics, CI unit contracts | Source contract; native library/hardware report open |
-| Direct ALSA/JACK | JACK disabled in bundled PortAudio; no declared direct ALSA support | Not supported |
-| Bluetooth microphones | No repeatable codec/device evidence | Not supported yet |
-| aarch64 or other architectures | No published package build | Not supported |
+| macOS arm64 | Local release build, CLI diagnostics, device discovery, and a real three-second microphone stream | Development smoke-tested |
+| Linux x86_64 | Native build/test job in `.github/workflows/rust.yml` | CI path; physical desktop/audio report pending |
+| Windows x86_64 | Native MSVC build/test job in `.github/workflows/rust.yml` | CI path; physical desktop/audio report pending |
+| Groq cloud provider | Consent gate, bounded worker, WAV contract, and normalized-error tests | Contract-tested; user-key request pending |
+| Other architectures | No configured release artifact | Not supported by the current release workflow |
 
 ## Reproduction protocol
 
-1. Record app version, distribution, desktop, X11/Wayland, PipeWire/PulseAudio,
-   installation path, architecture, and microphone connection type.
-2. Run `voice-transcriber --doctor --json` and review the output locally.
-3. Open the app, refresh inputs, select the default and one explicit device,
-   observe the local meter, then start/stop one short segment.
-4. For a tester-owned provider configuration, verify one final transcript,
-   copy, explicit export, history-off restart, and uninstall/data removal.
-5. Publish only the compatibility outcome and sanitized diagnostics. Never
-   publish keys, audio, transcript content, config files, device serials, or
-   unrelated environment variables.
+1. Record app version, OS, desktop/session, architecture, audio backend,
+   installation path, and microphone connection type.
+2. Run `voice-transcriber --doctor --json` and review it locally.
+3. Run `--list-devices --json`, select an input, and run
+   `--test-microphone --json`.
+4. For a tester-owned Groq key, verify one short transcript, stop/flush,
+   copy, explicit export, history-off restart, and failure behavior.
+5. Publish only sanitized diagnostics. Never publish keys, audio, transcript
+   content, serials, private paths, or unrelated environment variables.
 
-Use the repository's **Linux audio compatibility report** issue form. A report
-does not enter the supported table until the exact path is reproducible and the
-privacy/cleanup steps pass.
+Use the repository's compatibility issue form. A report enters the supported
+table only when the exact path is reproducible and the cleanup/privacy steps
+pass.

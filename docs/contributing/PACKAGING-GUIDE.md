@@ -1,42 +1,37 @@
-# Packaging and release guide
+# Native packaging guide
 
-The supported binary path is one `x86_64` Flatpak release asset. Source install
-remains available for development. Do not add another package format without a
-maintainer-approved support and clean-removal plan.
+The supported release path is the Rust workflow in
+[`.github/workflows/rust-release.yml`](../../.github/workflows/rust-release.yml).
+It builds one archive per target and emits a SHA-256 checksum beside each
+archive.
 
-## Important files
-
-| File | Purpose |
-| --- | --- |
-| `io.github.othmaneblial.audio_capture.yml` | Runtime, sources, build, and sandbox permissions |
-| `packaging/python3-dependencies.json` | Hash-pinned Python source modules |
-| `packaging/*.desktop`, `*.metainfo.xml`, icons | Desktop integration and AppStream metadata |
-| `packaging/smoke_test_flatpak.sh` | Installed-bundle CLI, permissions, GTK, and removal proof |
-| `.github/workflows/flatpak.yml` | Pull/branch package validation and offline rebuild |
-| `.github/workflows/release.yml` | Tag-only build, tests, checksum, SBOM, attestations, and release |
+| Target | Artifact | Packaging details |
+| --- | --- | --- |
+| Linux x86_64 | `voice-transcriber-<version>-x86_64-unknown-linux-gnu.tar.gz` | Binary, README, and MIT license |
+| macOS arm64 | `voice-transcriber-<version>-aarch64-apple-darwin.app.zip` | Minimal `.app`, microphone usage description, README, and license |
+| Windows x86_64 | `voice-transcriber-<version>-x86_64-pc-windows-msvc.zip` | Binary, README, and MIT license |
 
 ## Invariants
 
-- Keep permissions limited to Wayland, fallback X11/IPC, PulseAudio, and the
-  network needed by the supported Groq path. Do not add broad filesystem or
-  device access.
-- Every source used by the build is pinned. The clean second build must succeed
-  with `--disable-download`.
-- Manifest, AppStream, exported repository, desktop file, and installed bundle
-  checks are separate gates.
-- Version surfaces must agree across Python metadata, CLI, AppStream,
-  changelog, filename, tag, and release title.
-- A headless Xvfb pass is not physical microphone or desktop-session evidence.
+- The Cargo package version, tag, changelog, AppStream metadata, archive name,
+  and release title must agree.
+- Archives contain only the native Rust binary and reviewed documentation.
+- Checksums are generated from the exact uploaded bytes.
+- The workflow does not claim signing, notarization, installer registration,
+  auto-update, package-manager publication, or hardware support.
+- A CI build is separate from a clean extraction and runtime check.
 
-## Before proposing a packaging change
-
-Run the release checker and deterministic suite locally, then push a branch so
-the containerized Flatpak workflow can run:
+## Before a packaging change
 
 ```bash
-python3 scripts/check_release.py 1.0.0
-python3 scripts/run_checks.py
+cargo fmt --all -- --check
+cargo test --locked --all-targets
+cargo clippy --locked --all-targets -- -D warnings
+cargo build --locked --release
 ```
 
-Use the current project version in place of `1.0.0`. Read the full
-[Flatpak instructions](../packaging/FLATPAK.md), [linter policy](../packaging/FLATPAK-LINT.md), [release checklist](../packaging/RELEASE-CHECKLIST.md), and [version policy](../VERSION-POLICY.md). Only a maintainer creates release tags.
+For a downloaded archive, extract it into a clean directory and run
+`--version`, `--doctor --json`, `--list-devices --json`, and
+`--test-microphone --json` where a microphone is available. Do not include keys,
+recordings, transcripts, private paths, or full environment dumps in release
+evidence.

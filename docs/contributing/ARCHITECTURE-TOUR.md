@@ -1,48 +1,33 @@
-# Architecture tour for contributors
+# Rust architecture tour
 
-Voice Transcriber is one GTK process with deliberately narrow boundaries. The
-shortest mental model is:
+The binary starts in `src/main.rs`. It parses the diagnostic flags first; a
+normal launch creates the native egui application in `src/app.rs`.
 
-```text
-microphone -> bounded frames -> local VAD -> selected provider -> editable GTK text
-```
+## Core path
 
-## Follow one spoken segment
+1. `src/config.rs` validates settings and persists them atomically in the
+   platform user directory.
+2. `src/audio.rs` discovers CPAL inputs, converts arbitrary host sample formats
+   to mono PCM16, resamples to 16 kHz, and keeps a bounded frame queue.
+3. `src/vad.rs` applies local WebRTC VAD, pre-roll, silence, and maximum-segment
+   limits.
+4. `src/provider.rs` admits completed segments only after key and consent
+   checks, then sends in-memory WAV data to Groq from a bounded worker.
+5. `src/transcript.rs` orders request results and owns the editable undo/redo
+   document.
+6. `src/exports.rs` writes confirmed text/Markdown destinations atomically;
+   `src/history.rs` stores optional bounded text history.
 
-1. `audio/capture.py` discovers an input and reads 30 ms, 16 kHz mono PCM
-   frames. Its queue is bounded and may drop old frames to preserve real-time
-   behavior.
-2. `audio/vad.py` decides locally whether frames contain speech. It emits one
-   completed segment after silence or the maximum duration.
-3. `transcription/provider.py` defines capabilities, limits, cancellation,
-   normalized failures, and the data-boundary wording shared by providers.
-4. `transcription/groq_service.py` sends the completed segment through a small
-   bounded cloud worker pool. `transcription/local_whisper.py` is an explicit,
-   source-only experimental implementation that passes WAV through a Linux
-   memory descriptor to a user-supplied executable.
-5. `main.py` returns results to GTK's main loop. `transcript.py` owns editable
-   text and request states; `exports.py` and `history.py` own explicit text
-   persistence.
+The UI polls typed events and renders state; it does not own audio conversion,
+HTTP parsing, persistence, or credential formatting. External work remains off
+the egui frame loop.
 
-## Where a change belongs
+## Review checklist
 
-- Capture, device selection, and local signal level belong under `audio/`.
-- Provider-specific HTTP or process details stay behind the provider contract.
-- UI widgets and layouts belong under `ui/`; orchestration belongs in
-  `main.py`, not in a widget.
-- Exported files and opt-in history are separate persistence contracts. Do not
-  create a new audio-persistence path.
-- Configuration uses `defaults < config file < environment`; diagnostics must
-  disclose readiness, never a secret or a private local path.
+When changing a boundary, ask:
 
-## Reliability and privacy invariants
-
-- Keep capture and provider queues bounded.
-- Do not block GTK's main loop with microphone, network, or local-model work.
-- Do not log response bodies, credentials, transcript text, audio, or local
-  model paths.
-- Do not imply that Groq mode is offline or that the application controls
-  provider-side retention.
-- Keep history disabled by default and exports deliberate.
-
-Read the deeper [architecture note](../ARCHITECTURE.md), [data-flow contract](../DATA-FLOW.md), [provider matrix](../PROVIDERS.md), and [threat model](../THREAT-MODEL.md) before changing a boundary.
+- Is the queue or response size bounded?
+- Can a stale session update the current transcript?
+- Does an error reveal credentials, response bodies, audio, or private paths?
+- Is the behavior deterministic without a microphone, provider, or window?
+- Does the documentation describe the current Rust implementation exactly?

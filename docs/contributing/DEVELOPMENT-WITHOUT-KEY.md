@@ -7,8 +7,9 @@ desktop session.
 
 ```bash
 cargo fmt --all -- --check
-cargo test --all-targets
-cargo clippy --all-targets -- -D warnings
+cargo test --locked --all-targets
+cargo clippy --locked --all-targets -- -D warnings
+cargo deny check advisories licenses bans sources
 ```
 
 These checks exercise configuration validation, bounded history and exports,
@@ -34,6 +35,3 @@ it in a command copied into an issue, test fixture, screenshot, or commit.
 Enable the cloud-boundary checkbox in Settings, speak a short phrase, review
 the result, and record only the status/error category and platform. Do not
 attach audio, request bodies, keys, or private transcripts.
-
-The legacy Python commands remain available while migration work is underway,
-but new Rust changes must be validated with the commands above.

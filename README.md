@@ -1,17 +1,16 @@
 # Voice Transcriber
 
 [![Rust CI](https://github.com/OthmaneBlial/audio-capture/actions/workflows/rust.yml/badge.svg)](https://github.com/OthmaneBlial/audio-capture/actions/workflows/rust.yml)
-[![Legacy Python CI](https://github.com/OthmaneBlial/audio-capture/actions/workflows/ci.yml/badge.svg)](https://github.com/OthmaneBlial/audio-capture/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/github/license/OthmaneBlial/audio-capture)](LICENSE)
 
 **A review-first dictation desk for Linux, macOS, and Windows.** Speak a draft,
 inspect the ordered transcript, edit it, then decide what to copy or export.
 
-The repository is in the middle of a native Rust rewrite. The current `main`
+The project is implemented as one native Rust application. The current `main`
 branch contains the portable core, the CPAL microphone adapter, the explicit
-Groq provider boundary, a native egui desktop interface, and diagnostic
-commands. There is **no Rust v1.1 release or downloadable Rust binary yet**;
-the release page still contains the older Python/GTK v1.0 Linux package.
+Groq provider boundary, the egui desktop interface, and diagnostic commands.
+The old Python runtime was removed from `main`; historical release assets are
+not Rust artifacts and are not used by the current build.
 
 ## Why this exists
 
@@ -42,12 +41,12 @@ confirms that boundary in Settings.
   `--doctor`, `--list-devices`, `--check-config`, and a three-second real
   `--test-microphone` smoke test.
 
-The Rust GUI has been compiled locally on macOS arm64. The real microphone
-smoke test has opened the default Jabra input and received PCM frames on this
-Mac. Linux and Windows builds are covered by the Rust GitHub Actions matrix;
-their first green run is still the evidence gate for those targets. Manual GUI
-interaction, provider requests with a user key, and packaged Rust releases are
-deliberately not described as complete until they are tested.
+The Rust GUI has been compiled locally on macOS arm64. A real microphone smoke
+test has opened a local input and received PCM frames on this Mac. Linux and
+Windows builds are covered by the Rust GitHub Actions matrix; each target still
+needs its own runtime and hardware evidence before being called supported.
+Provider requests with a user key and downloaded release assets are separate
+validation gates and are documented as such until they are observed.
 
 ## Run from source
 
@@ -132,20 +131,23 @@ machine without a key or an audio device.
 
 ## Releases and packaging
 
-Rust binaries are not published yet. The repository still contains the
-transitional Python/GTK implementation and its historical x86_64 Flatpak
-workflow; that package is labeled as the old v1.0 product and is not evidence
-that the Rust rewrite has been released. The migration roadmap covers parity,
-native packaging, signed release assets, installation documentation, and the
-real product demo video that must be recorded only after those gates pass.
+Rust release archives are built by [`.github/workflows/rust-release.yml`](.github/workflows/rust-release.yml)
+for Linux x86_64, macOS arm64, and Windows x86_64. Each archive contains the
+native binary and a SHA-256 checksum. Release notes must state which targets
+were built, which were run, and which still need physical hardware evidence.
+
+The old Python/GTK package is historical and is not a supported installation
+path for the Rust application. Use the current release page and
+[`packaging/native/README.md`](packaging/native/README.md) for the native
+archives.
 
 See [`ROADMAP.md`](ROADMAP.md) for the implementation order and acceptance
 criteria. Do not use an old release asset as a Rust build artifact.
 
 ## Contributing
 
-Start with `cargo test --all-targets`, `cargo fmt --all -- --check`, and
-`cargo clippy --all-targets -- -D warnings`. Changes that touch audio or the
+Start with `cargo test --locked --all-targets`, `cargo fmt --all -- --check`,
+and `cargo clippy --locked --all-targets -- -D warnings`. Changes that touch audio or the
 provider boundary should include deterministic tests and a note about the
 platform evidence they require. Never commit API keys, raw recordings,
 personal configuration files, or screenshots containing sensitive text.

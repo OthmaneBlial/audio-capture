@@ -2,52 +2,51 @@
 
 Last reviewed: 8 September 2026
 
-This register separates evidence for the current source checkout, automated
-package checks, and gates that still require a real Linux desktop or a human
-tester. It is a record of observed results, not a release approval.
+This register separates evidence for the current native Rust checkout from
+gates that still require a real desktop, provider account, or downloaded
+release asset. It is a record of observed results, not release approval.
 
-## Source and automated checks
-
-| Surface | Exact evidence | Scope and limit |
-| --- | --- | --- |
-| Source code candidate | `cee8dc8` | Last code commit exercised by the source/package gates; later `main` commits are documentation-only |
-| Deterministic suite | `python scripts/run_checks.py` passed 109 tests and 69% combined line/branch coverage | No physical microphone, GTK desktop, provider account, or network transcription |
-| Release report contract | `scripts/run_release_tests.py` generated schema 1 with 109 tests, `automated.release_ready: true`, and `manual_hardware.passed: false` when supplied the observed source and Flatpak statuses | `release_ready` is an automated gate only; it does not promote a public release or prove hardware |
-| Static quality | Ruff, Python compilation, `pip-audit --require-hashes --disable-pip -r packaging/requirements-audit.txt`, and Bandit passed locally | Static/dependency checks; no full operating-system audit |
-| CLI contracts | `python main.py --version` returned `voice-transcriber 1.0.0`; help lists `--list-devices`, `--doctor`, `--device`, and `--probe-provider` | This macOS checkout has no usable GTK/PyAudio runtime for a desktop launch |
-| Privacy boundary | The deterministic privacy suite passed; default history remains off and provider probes are opt-in | Does not prove provider retention or clipboard-manager behavior |
-
-## Package candidate
+## Source and local checks
 
 | Surface | Exact evidence | Scope and limit |
 | --- | --- | --- |
-| Flatpak candidate source | Code candidate `cee8dc8` | The workflow checked out the pushed `main` commit |
-| Build and install | GitHub Actions Flatpak run [`34255478952`](https://github.com/OthmaneBlial/audio-capture/actions/runs/34255478952) passed | GNOME 50 container, not a physical desktop |
-| Package checks | Online build, no-download rebuild, manifest/export lints, installed CLI/doctor, permissions, GTK/Xvfb smoke, and uninstall with `--delete-data` passed | A non-blocking icon-theme warning remains in the container log |
-| Public stable release | Existing `v1.0.0` remains the historical public asset | It points to an older source commit and must not be described as containing the current fixes |
+| Runtime language | `git ls-files` contains Rust sources under `src/`; no tracked Python source or Python build metadata remains | GitHub language statistics can lag after a rewrite |
+| Deterministic suite | `cargo test --locked --all-targets` passes 23 Rust tests in the current checkout | No physical Linux/Windows desktop or live provider request |
+| Static quality | `cargo fmt --all -- --check` and `cargo clippy --locked --all-targets -- -D warnings` pass locally | Does not replace platform runtime testing |
+| Dependency policy | `cargo deny check advisories licenses bans sources` is part of the release gate | Advisory databases and network availability can change |
+| CLI contracts | `--doctor --json`, `--list-devices --json`, and `--test-microphone --json` run locally on macOS | Hardware evidence is specific to this Mac |
+| Real microphone | Three-second local smoke test received PCM frames and reported a peak level, then discarded them | Does not prove speech recognition or another OS/backend |
 
-The candidate has not been promoted to a new public tag or release in this
-register. A new release must repeat the source, package, human desktop, and
-downloaded-asset gates in `docs/packaging/RELEASE-CHECKLIST.md`.
+## Packaging and release gates
+
+The native release workflow builds Linux x86_64, macOS arm64, and Windows
+x86_64 archives, writes SHA-256 checksums, and publishes them from a version
+tag. A tag or a successful build alone is not evidence that a downloaded binary
+was installed and exercised.
+
+Before calling a release ready, record:
+
+- the exact tag, commit, workflow URL, archive names, and checksums;
+- a clean extraction and `--version`/`--doctor` check for every available host;
+- the macOS microphone smoke test and a Linux/Windows hardware report when
+  available;
+- one tester-owned Groq transcript and translation request, including failure
+  handling, without retaining the key, audio, or transcript;
+- the final README links, release notes, and screenshots.
 
 ## Open acceptance gates
 
-- A real Debian/Ubuntu Linux desktop report covering X11/Wayland, PipeWire or
-  PulseAudio, launcher, permissions, default and explicit microphone capture,
-  short speech, stop/flush, copy, portal export, history, and data removal.
-- One tester-owned Groq transcription and translation run, including invalid
-  key, offline, rate-limit, missing-device, and saturated-queue behavior.
-- Five consented first-use sessions, with failures retained in the report and
-  no credentials, recordings, transcript text, or private paths collected.
-- A downloaded release asset installed on a clean profile, followed by the
-  same desktop checks and an update/removal check.
-- Real GTK screenshots and the final demonstration video. The video phase is
-  intentionally last and cannot use the synthetic site tour as evidence.
+- A clean downloaded-asset install/update/removal check.
+- Full manual UI review of start/stop, settings, device refresh, transcript
+  ordering, copy, export, history, and error states.
+- One real provider request with a disposable user-managed key.
+- Linux and Windows runtime reports for their audio backends.
+- A genuine product demonstration video captured after all preceding gates.
 
 ## Evidence hygiene
 
 Record the exact commit, workflow URL, package filename/checksum, environment,
 date, command or scenario, and result. Keep keys, audio, transcript content,
 device serials, private paths, and full environment dumps out of this file and
-out of public issues. “Not recorded”, “failed”, “skipped”, and “passed” are
-different states.
+public issues. “Not recorded”, “failed”, “skipped”, and “passed” are different
+states.

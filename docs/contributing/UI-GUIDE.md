@@ -10,31 +10,33 @@ action easier to understand.
 - Preserve visible ready, listening, detected-speech, pending, complete, error,
   and stopped states.
 - Keep microphone, active provider, and its data-boundary label discoverable.
-- Never claim a global shortcut, tray behavior, or local provider on a desktop
-  where capability detection says it is unavailable.
+- Never claim a global shortcut or offline provider that the native app does not
+  implement.
 - Destructive text actions require confirmation; exports show the destination;
   history remains opt-in.
 
 ## Accessibility contract
 
-- Every interactive widget needs a useful accessible name.
-- All setup and daily actions must work by keyboard with a visible focus path.
+- Every interactive egui widget needs a useful visible label or tooltip.
+- Setup and daily actions must work by keyboard with a visible focus path.
 - Do not encode state only by color, motion, or an icon.
-- Respect text-size controls and reduced visual space without truncating the
-  privacy boundary or next action.
-- Preserve a logical mapped-widget focus order under the GTK smoke harness.
+- Respect text-size controls and narrow windows without hiding the privacy
+  boundary or next action.
+- Keep settings grouped in a predictable order and ensure checkbox outlines and
+  selected states remain visible in the dark theme.
 
 ## Verification
 
-Run unit tests and Ruff for every change. If widget structure, labels, first
-run, or the recording desk changes, also run:
+Run the Rust checks for every change:
 
 ```bash
-xvfb-run -a python3 tests/gtk_accessibility_smoke.py
+cargo fmt --all -- --check
+cargo test --locked --all-targets
+cargo clippy --locked --all-targets -- -D warnings
 ```
 
-The smoke check proves mapped GTK structure under Xvfb, not real Wayland/X11
-input, a screen-reader session, or a microphone. State those manual gaps in the
-pull request. If the public guided tour changes, edit `site/product-tour.html`,
-run `scripts/render_demo_assets.sh`, inspect every generated frame, and keep the
-synthetic-data disclosure next to the images.
+If the desktop interaction changes, launch the native binary on the target OS,
+capture a screenshot of the changed state, exercise keyboard focus, and record
+any missing OS/device evidence in the pull request. Automated unit tests do not
+prove a real compositor, screen reader, microphone permission, or provider
+request.

@@ -1,17 +1,11 @@
-# Flatpak linter exception
+# Retired sandbox-lint note
 
-The Flatpak ID `io.github.othmaneblial.audio_capture` shipped before the
-Flathub linter gate was added. Flathub derives the affiliation URL
-`https://github.com/othmaneblial/audio_capture` from that ID, while the
-canonical repository uses the hyphenated name
-`https://github.com/OthmaneBlial/audio-capture`.
+The previous sandbox package had a local metadata exception for its application
+identifier. That exception is inactive: the current release workflow builds
+native Rust archives and does not run a sandbox linter. It must not be cited as
+distribution approval or as evidence for the current application.
 
-Changing the application ID now would create a different installed application
-and strand existing user data. CI therefore supplies one local exception:
-`appid-url-not-reachable`. The actual homepage, bug tracker, VCS URL, release
-source mapping, and immutable screenshot URLs remain explicit in AppStream.
-
-No permission, filesystem, network, sandbox, source, AppStream-content, or
-exported-repository error is excepted. A future Flathub submission must request
-manual affiliation review or deliberately migrate the application ID; this
-local CI exception is not represented as Flathub approval.
+If a future sandbox package is proposed, create a new manifest, permission
+review, offline build, install/removal test, and distribution review from the
+current Rust source. Do not revive the old workflow or its permissions by
+copying this note.

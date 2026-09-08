@@ -2,10 +2,9 @@
 
 ## Is Voice Transcriber fully offline?
 
-Not in the supported Flatpak. It detects speech locally, then sends completed
-speech segments to Groq for transcription. A source-only whisper.cpp prototype
-exists behind an explicit feature flag, but it is not yet a supported packaged
-backend.
+No. Capture, VAD, the input meter, and editing are local, but the implemented
+transcription path sends completed speech segments to Groq after explicit
+consent. An offline provider is not part of the supported current build.
 
 ## Does the app save my recordings?
 
@@ -15,41 +14,39 @@ opt-in transcript history are separate, visible choices.
 
 ## Do I need a Groq key just to open it?
 
-No. You can inspect first-run setup, Settings, privacy information, and detected
-microphones without a key. The app blocks Start rather than manufacturing a
-fake transcript.
+No. You can open the desktop, inspect Settings, list microphones, and run the
+local microphone test without a key. Start remains blocked until configuration
+and cloud consent are valid; the app never fabricates a transcript.
 
-## Why does the Flatpak have network and PulseAudio permissions?
+## Which systems are supported?
 
-PulseAudio permission exposes the desktop's PipeWire/PulseAudio-compatible
-microphone route. Network permission is needed to send completed speech
-segments to Groq in the supported cloud mode. The package has no broad home or
-host filesystem access.
+The native Rust build targets Linux x86_64, macOS arm64, and Windows x86_64.
+macOS arm64 has a local build and real microphone smoke-test evidence. Linux and
+Windows have CI build paths; runtime and hardware support still require a report
+for the exact OS, audio backend, and device. See [SUPPORT.md](SUPPORT.md).
+
+## Why does the app need network access?
+
+Only the Groq provider path uses the network, and only for a completed segment
+after the key and cloud-boundary checkbox are accepted. Diagnostics and the
+microphone test are local-only.
 
 ## Where is transcript history stored?
 
-History is disabled by default. When you explicitly enable it, the Settings
-screen discloses its sandboxed local location and retention period. You can
-delete one entry, clear all history, or remove all sandbox data during Flatpak
-uninstall. Explicitly exported files remain at the destination you chose.
-
-## Which Linux systems are supported?
-
-The primary artifact is an `x86_64` Flatpak using GTK 3 and the system
-PipeWire/PulseAudio route, with Wayland and fallback X11 permissions. The
-[support matrix](SUPPORT.md) distinguishes automated evidence from real-device
-evidence. macOS, Windows, mobile, browser, Debian packages, and AppImage are not
-currently supported.
+History is disabled by default. When enabled, the application stores bounded
+text history in its platform-appropriate user data directory, with retention
+limits and clear/delete controls. Audio is never added to history.
 
 ## How can I report a problem without exposing private data?
 
-Use `voice-transcriber --doctor --json`, review the output, and open the
+Run `voice-transcriber --doctor --json`, review the output, and use the
 structured bug or compatibility form. Never attach an API key, recording,
 transcript, config file, home path, or full environment dump. Report suspected
 security or privacy flaws privately through [`SECURITY.md`](../SECURITY.md).
 
-## How can I help if I do not have an API key?
+## How can I help without an API key or microphone?
 
-The deterministic suite fakes native and provider boundaries. Follow the
-[contributor map](contributing/README.md) and choose a public `good first issue`
-with explicit acceptance criteria.
+The Rust core has deterministic tests for configuration, audio conversion,
+framing, VAD, provider admission, transcript ordering, exports, and history.
+Follow the [contributor map](contributing/README.md) and choose an issue with
+explicit acceptance criteria.

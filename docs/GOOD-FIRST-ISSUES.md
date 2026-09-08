@@ -1,68 +1,42 @@
 # Good first issue candidates
 
-## Published contribution queue
+The previous issue queue was closed during the Rust rewrite because its
+acceptance criteria described the removed runtime. New public tasks should be
+opened only after a maintainer checks them against the current source and
+release goals.
 
-The maintained public tasks below each name a maintainer, acceptance criteria,
-verification boundary, and privacy-safe reporting rules:
+## Bounded Rust tasks
 
-- [Ubuntu GNOME Wayland + PipeWire compatibility](https://github.com/OthmaneBlial/audio-capture/issues/3)
-- [Debian X11 + PulseAudio compatibility](https://github.com/OthmaneBlial/audio-capture/issues/4)
-- [Orca first-run and dictation-desk review](https://github.com/OthmaneBlial/audio-capture/issues/5)
-- [French installation and privacy guidance](https://github.com/OthmaneBlial/audio-capture/issues/6)
-- [Public Flatpak install and removal reproduction](https://github.com/OthmaneBlial/audio-capture/issues/7)
-- [Laptop tiny.en benchmark reproduction](https://github.com/OthmaneBlial/audio-capture/issues/9)
-- [v1 asset, SBOM, and provenance verification](https://github.com/OthmaneBlial/audio-capture/issues/10)
+### Add a deterministic provider fixture
 
-Issue #8 is the historical fixture task completed by merged PR #11. The
-provider-boundary fixture remains part of the contributor documentation, but it
-is no longer advertised as an available task.
+Exercise a normalized Groq response and malformed-response branch through an
+injected transport without contacting the network.
 
-Use the [contributor map](contributing/README.md) before claiming a task. The
-older candidate patterns below remain useful when one of the published issues
-is completed and the queue needs a similarly bounded replacement.
+**Acceptance:** the test fails on the old behavior, passes with the change, and
+never stores a key, audio payload, or transcript in output.
 
-These candidates are intentionally bounded. Before publishing one as an issue,
-a maintainer should confirm it still matches the current code and promise to
-review the resulting pull request.
+### Improve a microphone error
 
-## Verify one environment in the support matrix
+Choose one normalized CPAL failure and make the next user action explicit.
 
-Run the documented source install on one currently “expected” Linux
-environment and report the exact OS, desktop session, audio stack, install
-commands, diagnostics, and result without including private device names or
-credentials.
+**Acceptance:** a focused unit test covers the failure and the UI/CLI message is
+actionable without exposing device internals or private paths.
 
-**Acceptance:** one row in `docs/SUPPORT.md` gains reproducible evidence and an
-honest supported/expected/unsupported status.
+### Review keyboard focus and contrast
 
-## Add an architecture diagram alt description
+Run the native desktop through ready, settings, recording, complete, and error
+states on one available OS.
 
-Turn the text data flow in `docs/DATA-FLOW.md` into an accessible SVG diagram
-and preserve the complete text equivalent.
+**Acceptance:** every interactive control has a visible name, focus is obvious,
+checkboxes remain visible in the dark theme, and the evidence names any missing
+screen-reader or hardware gate.
 
-**Acceptance:** the diagram renders in GitHub light/dark themes, has a concise
-alt description, and introduces no new privacy claim.
+### Add a target-specific release smoke check
 
-## Test the product-tour renderer on Linux
+Extract one native archive on a clean profile and run the diagnostic commands.
 
-Run `scripts/render_demo_assets.sh` with Chrome/Chromium and ffmpeg on Linux,
-then document any required package names or font differences.
+**Acceptance:** the exact tag, asset, checksum, OS, architecture, and output are
+recorded without credentials or private transcript data.
 
-**Acceptance:** regenerated images have the documented dimensions, contain all
-three states, and pass a visual comparison review.
-
-## Improve a microphone error
-
-Choose one normalized capture failure, add a failing unit test for an unclear
-message, then make the next action explicit without exposing environment data.
-
-**Acceptance:** the new test fails before and passes after the change; the
-message names a safe user action.
-
-## Review keyboard names and focus order
-
-Use GTK's accessibility inspection tools on the ready, Settings, recording,
-and completed states. Record only widget names and focus order.
-
-**Acceptance:** every interactive control has a useful accessible name, the
-focus path is documented, and any fix includes a manual verification note.
+Use the [contributor map](contributing/README.md) and the [issue-to-PR path](contributing/ISSUE-TO-PR.md)
+before publishing a new task.

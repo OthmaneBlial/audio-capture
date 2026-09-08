@@ -1,66 +1,41 @@
-# Flatpak release checklist
+# Native release checklist
 
-This checklist distinguishes an automated package build from a supported public
-release. Record the commit, bundle checksum, tester environment, and evidence
-URL for every completed run.
+Record the exact commit, tag, workflow URL, archive names, checksums, tester
+environment, and result for every release. A successful CI build is separate
+from a downloaded-asset runtime check.
 
-The cross-phase source/package/human gate register is maintained in
-[`docs/RELEASE-EVIDENCE.md`](../RELEASE-EVIDENCE.md). This checklist remains
-the authoritative per-package acceptance list.
+## Source gate
 
-The generated test report has an `automated.release_ready` field and a status
-for each gate. `release_ready: true` requires the source-quality job, the
-deterministic suite, and the installed-bundle smoke to report `passed`; a
-`not-recorded` step remains an open gate even when another step is green.
+- [ ] Cargo package version, changelog, metadata, tag, and release title agree.
+- [ ] `cargo fmt --all -- --check` passes.
+- [ ] `cargo test --locked --all-targets` passes.
+- [ ] `cargo clippy --locked --all-targets -- -D warnings` passes.
+- [ ] `cargo deny check advisories licenses bans sources` passes.
+- [ ] No credentials, recordings, transcripts, or local configuration are in
+      the tree or release notes.
 
-The latest automated Flatpak gate passed on 8 September 2026 in workflow run
-`34255478952` for commit `cee8dc8`. It does not satisfy the real Linux desktop,
-microphone, provider-account, or downloaded-release gates below.
+## Build and archive gate
 
-## Automated package gate
+- [ ] Linux x86_64 archive builds on the pinned runner.
+- [ ] macOS arm64 `.app.zip` builds and contains a microphone usage description.
+- [ ] Windows x86_64 archive builds on the MSVC runner.
+- [ ] Every archive has the exact version/target name and a SHA-256 sidecar.
+- [ ] Uploaded asset bytes match the published checksums.
+- [ ] Release notes state what was built and what was not runtime-tested.
 
-- [x] Unit tests, Ruff, and Python compilation pass.
-- [x] Desktop file and AppStream metadata validate with no errors.
-- [x] Flatpak manifest builds from a clean checkout.
-- [x] All declared sources are fetched, then an offline `--disable-download`
-  rebuild passes.
-- [x] Manifest, exported repository, and AppStream lints report zero
-  non-excepted errors; the historical App-ID/repository punctuation exception
-  remains documented in `FLATPAK-LINT.md` and is not Flathub approval.
-- [x] Bundle installs into a clean user Flatpak installation.
-- [x] Installed `--version`, `--help`, and `--doctor --json` contracts pass.
-- [x] Installed permissions contain only Wayland, fallback X11/IPC,
-  PulseAudio, and network.
-- [x] Desktop file, MetaInfo, icon, and executable exist inside `/app`.
-- [x] GTK window and first-run dialog remain open under Xvfb.
-- [x] Uninstall with data removal succeeds.
+## Downloaded-asset gate
 
-## Real Linux desktop gate
+- [ ] Each available target extracts on a clean profile.
+- [ ] `--version`, `--doctor --json`, and `--list-devices --json` work there.
+- [ ] `--test-microphone --json` is run where a microphone is available.
+- [ ] Manual UI review covers ready, settings, recording, complete, and error
+      states with keyboard focus and visible checkbox states.
+- [ ] One tester-owned Groq transcript/translation request succeeds, or the
+      release notes explicitly leave that gate open.
 
-- [ ] Test exact distribution, version, architecture, desktop, X11/Wayland,
-  and PipeWire/PulseAudio route is recorded.
-- [ ] App appears in the launcher with the correct icon and name.
-- [ ] First-run controls are reachable in order from the keyboard; accessible
-  names and boundary copy are understandable.
-- [ ] Microphone permission is visible and can be revoked.
-- [ ] Default and one explicitly selected microphone show a live local meter.
-- [ ] Start, speech detection, stop, and final segment flush work.
-- [ ] One real Groq transcription succeeds with a tester-owned key.
-- [ ] Invalid key, offline network, rate limit, missing device, and full queue
-  states remain actionable and contain no secret/transcript content.
-- [ ] Copy produces the visible transcript.
-- [ ] Export uses an explicit chooser, writes only the chosen file, and does not
-  require broad home access.
-- [ ] Closing and reopening does not retain raw audio or transcript text.
-- [ ] Uninstall and “delete data” remove the app sandbox; an external explicit
-  export remains because it belongs to the user.
+## Public presentation gate
 
-## Public artifact gate
-
-- [x] Bundle filename includes the exact application version and architecture.
-- [x] SHA-256 checksum file is generated from the uploaded bundle.
-- [x] Release notes name the supported environments and permission boundary.
-- [x] Source tag, changelog, package version, MetaInfo release, and bundle output
-  all match.
-- [ ] A clean machine installs the *downloaded release asset*, not a local build,
-  and repeats the real desktop gate.
+- [ ] README install commands point to the current release assets.
+- [ ] Screenshots show the actual native application and contain no private text.
+- [ ] The support matrix distinguishes CI evidence from real-device evidence.
+- [ ] The final demonstration video is captured only after all earlier gates.
