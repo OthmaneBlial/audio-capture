@@ -3,6 +3,7 @@ import tempfile
 import threading
 import types
 import unittest
+from typing import Optional
 from unittest import mock
 
 from config import ConfigManager
@@ -36,7 +37,7 @@ class FakeAudioCapture:
     instances: list["FakeAudioCapture"] = []
 
     def __init__(
-        self, *, device_index: int | None, on_level: object, queue_audio: bool = True
+        self, *, device_index: Optional[int], on_level: object, queue_audio: bool = True
     ) -> None:
         self.device_index = device_index
         self.on_level = on_level
@@ -81,7 +82,7 @@ class FakeThread:
     def is_alive(self) -> bool:
         return False
 
-    def join(self, timeout: float | None = None) -> None:
+    def join(self, timeout: Optional[float] = None) -> None:
         del timeout
 
 

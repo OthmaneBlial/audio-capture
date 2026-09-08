@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 def load_script(name: str):
@@ -51,6 +52,26 @@ class ReleaseToolTests(unittest.TestCase):
         self.assertIn("Privacy delta", notes)
         self.assertIn("Benchmark and help wanted", notes)
         self.assertIn("abc123", notes)
+
+    def test_release_report_does_not_claim_unobserved_flatpak_success(self):
+        run_release_tests = load_script("run_release_tests")
+        with mock.patch.object(run_release_tests, "discover_suite", return_value=unittest.TestSuite()):
+            report, passed = run_release_tests.run_report(
+                "1.0.0", "abc123", "https://example.invalid"
+            )
+        self.assertTrue(passed)
+        self.assertEqual(
+            report["automated"]["flatpak_build_install_cli_permissions_gtk_uninstall"]["status"],
+            "not-recorded",
+        )
+        with mock.patch.object(run_release_tests, "discover_suite", return_value=unittest.TestSuite()):
+            report, _ = run_release_tests.run_report(
+                "1.0.0", "abc123", "https://example.invalid", flatpak_status="passed"
+            )
+        self.assertEqual(
+            report["automated"]["flatpak_build_install_cli_permissions_gtk_uninstall"]["status"],
+            "passed",
+        )
 
 if __name__ == "__main__":
     unittest.main()

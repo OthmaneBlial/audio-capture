@@ -21,7 +21,13 @@ def discover_suite() -> unittest.TestSuite:
     return unittest.defaultTestLoader.discover(str(ROOT / "tests"), pattern="test_*.py")
 
 
-def run_report(version: str, commit: str, workflow_url: str) -> tuple[dict[str, object], bool]:
+def run_report(
+    version: str,
+    commit: str,
+    workflow_url: str,
+    *,
+    flatpak_status: str = "not-recorded",
+) -> tuple[dict[str, object], bool]:
     suite = discover_suite()
     started = time.perf_counter()
     result = unittest.TextTestRunner(verbosity=2).run(suite)
@@ -40,7 +46,10 @@ def run_report(version: str, commit: str, workflow_url: str) -> tuple[dict[str, 
                 "skipped": len(result.skipped),
                 "duration_seconds": round(time.perf_counter() - started, 3),
             },
-            "flatpak_build_install_cli_permissions_gtk_uninstall": "passed before report publication",
+            "flatpak_build_install_cli_permissions_gtk_uninstall": {
+                "status": flatpak_status,
+                "source": "packaging/smoke_test_flatpak.sh",
+            },
             "privacy_regression_suite": "included",
         },
         "manual_hardware": {
@@ -57,9 +66,20 @@ def main() -> int:
     parser.add_argument("--version", required=True)
     parser.add_argument("--commit", required=True)
     parser.add_argument("--workflow-url", required=True)
+    parser.add_argument(
+        "--flatpak-status",
+        choices=("not-recorded", "passed"),
+        default="not-recorded",
+        help="machine status from the installed-bundle smoke step",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    report, passed = run_report(args.version, args.commit, args.workflow_url)
+    report, passed = run_report(
+        args.version,
+        args.commit,
+        args.workflow_url,
+        flatpak_status=args.flatpak_status,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0 if passed else 1

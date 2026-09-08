@@ -3,6 +3,7 @@ set -euo pipefail
 
 app_id="io.github.othmaneblial.audio_capture"
 bundle_path="${1:-voice-transcriber.flatpak}"
+installed=0
 
 if [[ ! -f "$bundle_path" ]]; then
   echo "Flatpak bundle not found: $bundle_path" >&2
@@ -10,11 +11,18 @@ if [[ ! -f "$bundle_path" ]]; then
 fi
 
 cleanup() {
-  flatpak uninstall --user --noninteractive --delete-data "$app_id" >/dev/null 2>&1 || true
+  if [[ "$installed" -ne 1 ]]; then
+    return 0
+  fi
+  if ! flatpak uninstall --user --noninteractive --delete-data "$app_id" >/dev/null 2>&1; then
+    echo "Flatpak uninstall with --delete-data failed" >&2
+    return 1
+  fi
 }
 trap cleanup EXIT
 
 flatpak install --user --noninteractive --or-update "$bundle_path"
+installed=1
 flatpak run --user --command=voice-transcriber "$app_id" --version | grep -Fx "voice-transcriber 1.0.0"
 flatpak run --user --command=voice-transcriber "$app_id" --help | grep -F -- "--doctor"
 
@@ -47,7 +55,7 @@ grep -Eq 'shared=.*ipc' <<<"$permissions"
 grep -Eq 'sockets=.*wayland' <<<"$permissions"
 grep -Eq 'sockets=.*(fallback-x11|x11)' <<<"$permissions"
 grep -Eq 'sockets=.*pulseaudio' <<<"$permissions"
-if grep -Eq 'filesystems=(host|home)' <<<"$permissions"; then
+if grep -Eq 'filesystems=.*(host|home)' <<<"$permissions"; then
   echo "Unexpected broad filesystem permission" >&2
   exit 1
 fi
@@ -59,7 +67,10 @@ flatpak run --user --command=sh "$app_id" -c '
   test -f /app/share/icons/hicolor/scalable/apps/io.github.othmaneblial.audio_capture.svg
 '
 
-if command -v xvfb-run >/dev/null 2>&1; then
+if ! command -v xvfb-run >/dev/null 2>&1; then
+  echo "xvfb-run is required for the GTK launch smoke test" >&2
+  exit 1
+else
   # GitHub's container has no Flatpak portal for Glycin's second-level image
   # sandbox. Disable only that nested loader sandbox for these Xvfb launches;
   # the application itself still runs in its installed Flatpak sandbox.
@@ -78,8 +89,6 @@ if command -v xvfb-run >/dev/null 2>&1; then
     exit 1
   fi
   echo "Flatpak GTK launch smoke test passed under Xvfb."
-else
-  echo "xvfb-run is unavailable; GTK launch smoke test was skipped." >&2
 fi
 
 echo "Flatpak install, CLI, diagnostics, permissions, metadata, and removal smoke test passed."
