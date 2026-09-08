@@ -7,6 +7,8 @@ failed. The strip never stores audio or transcript content.
 ## Edit and control
 
 - Type directly into the transcript, select text, or use `Ctrl+A`.
+- Incoming segments follow the bottom only while you are already reading there;
+  scrolling up for review is preserved while new text arrives.
 - Undo with `Ctrl+Z` and redo with `Ctrl+Shift+Z`.
 - Undo/Redo keeps a bounded in-memory snapshot budget; very large drafts may
   have fewer recoverable edit points than short drafts.

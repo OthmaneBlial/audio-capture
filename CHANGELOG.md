@@ -14,6 +14,8 @@ All notable changes to Voice Transcriber are documented here.
   controls remain usable at the minimum window width.
 - Undo and Redo snapshots now have both count and character budgets, so a long
   editing session cannot grow those in-memory stacks without bound.
+- Incoming transcript segments no longer yank the editor to the bottom when a
+  user is reviewing an earlier passage.
 
 ### Privacy
 

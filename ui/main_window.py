@@ -233,6 +233,7 @@ class MainWindow(Gtk.Window):
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         overlay.add(scrolled)
+        self._transcript_scroll = scrolled
         self._text_view = Gtk.TextView()
         self._text_view.get_style_context().add_class("transcript-view")
         self._text_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
@@ -1457,6 +1458,7 @@ class MainWindow(Gtk.Window):
         clean_text = text.strip()
         if not clean_text:
             return False
+        follow_end = self._transcript_is_at_end()
         self._undo_history.remember(self._transcript_text(raw=True))
         self._applying_snapshot = True
         try:
@@ -1466,8 +1468,15 @@ class MainWindow(Gtk.Window):
             self._text_buffer.insert(self._text_buffer.get_end_iter(), clean_text)
         finally:
             self._applying_snapshot = False
-        self._text_view.scroll_to_iter(self._text_buffer.get_end_iter(), 0.0, False, 0.0, 0.0)
+        if follow_end:
+            self._text_view.scroll_to_iter(self._text_buffer.get_end_iter(), 0.0, False, 0.0, 0.0)
         return False
+
+    def _transcript_is_at_end(self) -> bool:
+        """Follow new text only when the reader was already near the bottom."""
+        adjustment = self._transcript_scroll.get_vadjustment()
+        remaining = adjustment.get_upper() - adjustment.get_page_size() - adjustment.get_value()
+        return remaining <= max(12.0, adjustment.get_step_increment())
 
     def update_segment_state(self, request_id: str, state: str, detail: Optional[str]) -> None:
         """Show a bounded per-request state without retaining audio or transcript text."""
