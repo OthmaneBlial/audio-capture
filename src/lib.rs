@@ -8,6 +8,7 @@ pub mod audio;
 pub mod config;
 pub mod exports;
 pub mod history;
+pub mod provider;
 pub mod transcript;
 pub mod vad;
 
