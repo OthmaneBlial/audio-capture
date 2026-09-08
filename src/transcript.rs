@@ -36,21 +36,11 @@ pub struct Segment {
     pub detail: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Transcript {
     text: String,
     segments: Vec<Segment>,
     undo: UndoHistory,
-}
-
-impl Default for Transcript {
-    fn default() -> Self {
-        Self {
-            text: String::new(),
-            segments: Vec::new(),
-            undo: UndoHistory::default(),
-        }
-    }
 }
 
 impl Transcript {

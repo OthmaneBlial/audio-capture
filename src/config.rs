@@ -23,30 +23,20 @@ pub enum ConfigError {
     Invalid(String),
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ProviderMode {
+    #[default]
     Groq,
     LocalWhisperCpp,
 }
 
-impl Default for ProviderMode {
-    fn default() -> Self {
-        Self::Groq
-    }
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum CaptureMode {
+    #[default]
     Toggle,
     PushToTalk,
-}
-
-impl Default for CaptureMode {
-    fn default() -> Self {
-        Self::Toggle
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -232,9 +222,11 @@ mod tests {
     fn save_load_is_atomic_and_round_trips() {
         let temporary = tempfile::tempdir().unwrap();
         let store = ConfigStore::at(temporary.path().join("config"));
-        let mut config = AppConfig::default();
-        config.input_device_identity = "abcdef0123456789abcdef01".into();
-        config.language = "fr".into();
+        let config = AppConfig {
+            input_device_identity: "abcdef0123456789abcdef01".into(),
+            language: "fr".into(),
+            ..Default::default()
+        };
         store.save(&config).unwrap();
         assert_eq!(store.load().unwrap(), config);
         assert!(store.path().is_file());
@@ -242,16 +234,20 @@ mod tests {
 
     #[test]
     fn invalid_identity_is_rejected() {
-        let mut config = AppConfig::default();
-        config.input_device_identity = "not-a-fingerprint".into();
+        let config = AppConfig {
+            input_device_identity: "not-a-fingerprint".into(),
+            ..Default::default()
+        };
         let error = config.validate().unwrap_err().to_string();
         assert!(error.contains("input_device_identity"));
     }
 
     #[test]
     fn environment_key_wins_without_being_persisted() {
-        let mut config = AppConfig::default();
-        config.api_key = "saved-key-12345".into();
+        let config = AppConfig {
+            api_key: "saved-key-12345".into(),
+            ..Default::default()
+        };
         let mut environment = BTreeMap::new();
         environment.insert("GROQ_API_KEY".into(), "environment-key-12345".into());
         assert!(config.has_api_key(&environment));
