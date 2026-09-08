@@ -47,18 +47,30 @@ class FakeAudioCapture:
         self.selected_device = types.SimpleNamespace(name="Test microphone")
         self.started = False
         self.stopped = False
+        self.stop_clear_queue: Optional[bool] = None
+        self.queued_chunks: list[bytes] = []
         self.__class__.instances.append(self)
 
     def start(self) -> None:
         self.started = True
 
-    def stop(self) -> None:
+    def stop(self, *, clear_queue: bool = True) -> None:
         self.stopped = True
+        self.stop_clear_queue = clear_queue
+
+    def get_audio_chunk(self, timeout: float = 0.0) -> Optional[bytes]:
+        del timeout
+        return self.queued_chunks.pop(0) if self.queued_chunks else None
 
 
 class FakeVad:
     def __init__(self, **_kwargs: object) -> None:
         self.flushed = False
+        self.processed: list[bytes] = []
+
+    def process_frame(self, frame: bytes) -> None:
+        self.processed.append(frame)
+        return None
 
     def flush(self) -> None:
         self.flushed = True
@@ -151,6 +163,7 @@ class VoiceTranscriberAppTests(unittest.TestCase):
                 app._stop_listening()
         self.assertFalse(app._running.is_set())
         self.assertTrue(FakeAudioCapture.instances[0].stopped)
+        self.assertFalse(FakeAudioCapture.instances[0].stop_clear_queue)
 
     def test_result_from_inactive_request_is_ignored(self) -> None:
         app = self._new_app(consented=True)
@@ -168,6 +181,17 @@ class VoiceTranscriberAppTests(unittest.TestCase):
             self.assertFalse(FakeAudioCapture.instances[0].queue_audio)
             app._stop_microphone_test()
         self.assertTrue(FakeAudioCapture.instances[0].stopped)
+
+    def test_stop_drains_frames_admitted_before_capture_close(self) -> None:
+        app = self._new_app(consented=True)
+        with mock.patch.dict(sys.modules, {"audio": self.audio_module}):
+            with mock.patch("main.threading.Thread", FakeThread):
+                self.assertTrue(app._start_listening())
+                app._audio.queued_chunks.append(b"queued-frame")
+                app._vad.process_frame = lambda _frame: b"\x00\x00"
+                app._transcriber.transcribe_async = mock.Mock()
+                app._stop_listening()
+        app._transcriber.transcribe_async.assert_called_once_with(b"\x00\x00")
 
 
 if __name__ == "__main__":

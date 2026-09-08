@@ -237,7 +237,10 @@ class VoiceTranscriberApp:
             self._processing_thread = None
 
         if audio is not None:
-            audio.stop()
+            # Keep frames already admitted by PortAudio until the processing
+            # loop has drained them. A regular stop must not silently discard
+            # the final spoken phrase.
+            audio.stop(clear_queue=False)
         self._window.set_input_level(0.0)
         if processing_thread and processing_thread.is_alive() and processing_thread is not threading.current_thread():
             processing_thread.join(timeout=1.5)
@@ -245,6 +248,14 @@ class VoiceTranscriberApp:
                 LOGGER.warning("Audio processing did not finish before shutdown timeout")
 
         if vad is not None:
+            if audio is not None:
+                while True:
+                    queued_chunk = audio.get_audio_chunk(timeout=0.0)
+                    if queued_chunk is None:
+                        break
+                    speech_segment = vad.process_frame(queued_chunk)
+                    if speech_segment:
+                        self._transcriber.transcribe_async(speech_segment)
             remaining = vad.flush()
             if remaining:
                 self._transcriber.transcribe_async(remaining)

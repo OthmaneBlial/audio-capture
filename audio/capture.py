@@ -222,8 +222,8 @@ class AudioCapture:
                 # A consumer won a race; dropping this frame preserves real-time behavior.
                 self._dropped_frames += 1
 
-    def stop(self) -> None:
-        """Stop capture, wait briefly for the reader, and release native resources."""
+    def stop(self, *, clear_queue: bool = True) -> None:
+        """Stop capture, wait briefly for the reader, and optionally retain queued frames."""
         with self._lock:
             self._running.clear()
             capture_thread = self._capture_thread
@@ -236,7 +236,8 @@ class AudioCapture:
         with self._lock:
             self._capture_thread = None
             self._cleanup_resources()
-            self._clear_queue()
+            if clear_queue:
+                self._clear_queue()
             try:
                 self._audio_queue.put_nowait(None)
             except queue.Full:
